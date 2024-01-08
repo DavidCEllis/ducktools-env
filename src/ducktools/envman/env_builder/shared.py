@@ -1,4 +1,4 @@
-# <one line to give the program's name and a brief idea of what it does.>
+# DuckTools-EnvMan
 # Copyright (C) 2024 David C Ellis
 #
 # This program is free software: you can redistribute it and/or modify
@@ -14,4 +14,15 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-__version__ = "v0.0.1"
+from prefab_classes import prefab
+
+
+@prefab
+class PythonVersion:
+    version: tuple[int, ...]
+    executable: str
+
+    @classmethod
+    def from_str(cls, version: str, executable: str):
+        version_tuple = tuple(int(val) for val in version.split("."))
+        return cls(version_tuple, executable)  # noqa
