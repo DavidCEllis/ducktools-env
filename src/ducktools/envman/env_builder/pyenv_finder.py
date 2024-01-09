@@ -25,16 +25,18 @@ import sys
 from .shared import PythonVersion
 from ..exceptions import ManagerNotFoundError
 
+if sys.platform == "win32":  # pragma: os-other
+    PYENV_VERSIONS_FOLDER = os.path.expanduser(os.path.join("~", ".pyenv", "pyenv-win", "versions"))
+else:  # pragma: os-win32
+    PYENV_VERSIONS_FOLDER = os.path.expanduser(os.path.join("~", ".pyenv", "versions"))
 
-def get_pyenv_versions() -> list[PythonVersion]:
 
-    if sys.platform == "win32":
-        versions_folder = os.path.expanduser(os.path.join("~", ".pyenv", "pyenv-win", "versions"))
-    else:
-        versions_folder = os.path.expanduser(os.path.join("~", ".pyenv", "versions"))
+def get_pyenv_versions(
+        versions_folder: str | os.PathLike = PYENV_VERSIONS_FOLDER
+) -> list[PythonVersion]:
 
     if not os.path.exists(versions_folder):
-        ManagerNotFoundError("pyenv 'versions' folder not found")
+        raise ManagerNotFoundError("pyenv 'versions' folder not found")
 
     python_versions = []
     for p in os.scandir(versions_folder):

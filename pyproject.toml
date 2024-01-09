@@ -30,7 +30,7 @@ classifiers = [
 dynamic = ['version']
 
 [project.optional-dependencies]
-testing = ["pytest", "pytest-cov"]
+testing = ["pytest", "pytest-cov", "coverage-conditional-plugin"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -43,6 +43,14 @@ addopts= "--cov=src/ --cov-report=term-missing"
 testpaths = [
     "tests",
 ]
+
+[tool.coverage.run]
+plugins = ["coverage_conditional_plugin"]
+
+[tool.coverage.coverage_conditional_plugin.rules]
+# This tool works backwards - it really means no cover if <condition>
+os-win32 = "sys_platform == 'win32'"
+os-other = "sys_platform != 'win32'"
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
