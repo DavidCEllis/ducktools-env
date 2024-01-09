@@ -22,7 +22,7 @@ import os
 
 from prefab_classes import prefab, attribute
 from ducktools.lazyimporter import LazyImporter, TryExceptImport, ModuleImport, MultiFromImport
-from ducktools.script_metadata_parser import parse_file
+from ducktools.scriptmetadata import parse_file
 
 
 # Lazy importers for modules that may not be used
