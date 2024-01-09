@@ -25,9 +25,9 @@ import sys
 from .shared import PythonVersion
 from ..exceptions import ManagerNotFoundError
 
-if sys.platform == "win32":  # pragma: os-other
+if sys.platform == "win32":  # pragma: skip-if-os-other
     PYENV_VERSIONS_FOLDER = os.path.expanduser(os.path.join("~", ".pyenv", "pyenv-win", "versions"))
-else:  # pragma: os-win32
+else:  # pragma: skip-if-os-win32
     PYENV_VERSIONS_FOLDER = os.path.expanduser(os.path.join("~", ".pyenv", "versions"))
 
 

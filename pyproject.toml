@@ -49,8 +49,8 @@ plugins = ["coverage_conditional_plugin"]
 
 [tool.coverage.coverage_conditional_plugin.rules]
 # This tool works backwards - it really means no cover if <condition>
-os-win32 = "sys_platform == 'win32'"
-os-other = "sys_platform != 'win32'"
+skip-if-os-win32 = "sys_platform == 'win32'"
+skip-if-os-other = "sys_platform != 'win32'"
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
