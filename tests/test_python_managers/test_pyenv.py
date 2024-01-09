@@ -6,9 +6,9 @@ from tempfile import TemporaryDirectory
 import pytest
 from unittest.mock import patch, Mock
 
-from ducktools.envman.env_builder.shared import PythonVersion
+from ducktools.envman.python_finders.shared import PythonVersion
 from ducktools.envman.exceptions import ManagerNotFoundError
-from ducktools.envman.env_builder.pyenv_finder import get_pyenv_versions, PYENV_VERSIONS_FOLDER
+from ducktools.envman.python_finders.pyenv_finder import get_pyenv_versions, PYENV_VERSIONS_FOLDER
 
 
 def test_no_versions_folder():

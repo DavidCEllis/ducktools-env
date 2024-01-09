@@ -3,8 +3,8 @@ import pytest
 import sys
 import os.path
 
-from ducktools.envman.env_builder.shared import PythonVersion
-from ducktools.envman.env_builder.winpy_finder import get_py_install_versions
+from ducktools.envman.python_finders.shared import PythonVersion
+from ducktools.envman.python_finders.winpy_finder import get_py_install_versions
 
 known_versions = [
     PythonVersion.from_str(
