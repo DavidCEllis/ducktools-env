@@ -24,7 +24,8 @@ from ducktools.lazyimporter import LazyImporter, MultiFromImport
 from ..inline_dependencies import EnvironmentSpec
 from ..exceptions import ManagerNotFoundError
 from .pyenv_finder import get_pyenv_versions
-from .winpy_finder import get_py_install_versions
+
+from .win_registrysearch import get_registered_python_installs
 
 
 _packaging = LazyImporter(
