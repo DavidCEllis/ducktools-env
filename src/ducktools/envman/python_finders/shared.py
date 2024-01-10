@@ -14,15 +14,23 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from prefab_classes import prefab
+from prefab_classes import prefab, attribute
 
 
 @prefab
-class PythonVersion:
+class PythonInstall:
     version: tuple[int, ...]
     executable: str
+    architecture: str = "64bit"
+    metadata: dict = attribute(default_factory=dict)
 
     @classmethod
-    def from_str(cls, version: str, executable: str):
+    def from_str(
+            cls,
+            version: str,
+            executable: str,
+            architecture: str = "64bit",
+            metadata: dict | None = None,
+    ):
         version_tuple = tuple(int(val) for val in version.split("."))
-        return cls(version_tuple, executable)  # noqa
+        return cls(version_tuple, executable, architecture, metadata)  # noqa
