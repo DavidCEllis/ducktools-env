@@ -3,7 +3,7 @@ import pytest
 import sys
 import os.path
 
-from ducktools.envman.python_finders.shared import PythonVersion
+from ducktools.envman.python_finders.shared import PythonInstall
 from ducktools.envman.python_finders.winpy_finder import get_py_install_versions
 
 
@@ -18,15 +18,15 @@ def _python_folder(verno: str) -> str:
 
 
 known_versions = [
-    PythonVersion.from_str(
+    PythonInstall.from_str(
         "3.10",
         _python_folder("310"),
     ),
-    PythonVersion.from_str(
+    PythonInstall.from_str(
         "3.11",
         _python_folder("311"),
     ),
-    PythonVersion.from_str(
+    PythonInstall.from_str(
         "3.12",
         _python_folder("312"),
     ),
