@@ -24,20 +24,20 @@ from .shared import PythonVersion
 from ..exceptions import ManagerNotFoundError
 
 
-_subprocess = LazyImporter([
-    FromImport("subprocess", "run"),
-])
+_subprocess = LazyImporter([FromImport("subprocess", "run")])
 
-_re = LazyImporter([
-    MultiFromImport(
-        "re",
-        [
-            "compile",
-            "fullmatch",
-            "match",
-        ]
-    )
-])
+_re = LazyImporter(
+    [
+        MultiFromImport(
+            "re",
+            [
+                "compile",
+                "fullmatch",
+                "match",
+            ],
+        )
+    ]
+)
 
 
 class _LazyPythonRegexes:
@@ -76,10 +76,11 @@ def get_py_install_versions(precise=False) -> list[PythonVersion]:
             python_path = data.group(2)
             if precise:
                 # Get exact version from `python.exe -V` output
-                version_output = _subprocess.run(
-                    [python_path, "-V"],
-                    capture_output=True
-                ).stdout.decode("utf-8").strip()
+                version_output = (
+                    _subprocess.run([python_path, "-V"], capture_output=True)
+                    .stdout.decode("utf-8")
+                    .strip()
+                )
 
                 version_txt = _re.match(regexes.python_v_re, version_output).group(1)
             else:

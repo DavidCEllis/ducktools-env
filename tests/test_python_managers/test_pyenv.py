@@ -8,7 +8,10 @@ from unittest.mock import patch, Mock
 
 from ducktools.envman.python_finders.shared import PythonVersion
 from ducktools.envman.exceptions import ManagerNotFoundError
-from ducktools.envman.python_finders.pyenv_finder import get_pyenv_versions, PYENV_VERSIONS_FOLDER
+from ducktools.envman.python_finders.pyenv_finder import (
+    get_pyenv_versions,
+    PYENV_VERSIONS_FOLDER,
+)
 
 
 def test_no_versions_folder():
@@ -40,7 +43,7 @@ def test_mock_versions_folder():
     assert python_versions == [PythonVersion.from_str(out_ver, out_executable)]
 
 
-@pytest.mark.skipif(sys.platform != 'win32', reason="Test for Windows only")
+@pytest.mark.skipif(sys.platform != "win32", reason="Test for Windows only")
 def test_temp_versions_win():
     # Test with real temporary folders
 
@@ -51,7 +54,7 @@ def test_temp_versions_win():
         os.mkdir(py_folder)
 
         # make python.exe file
-        with open(py_exe, 'wb') as _:
+        with open(py_exe, "wb") as _:
             pass
 
         versions = get_pyenv_versions(tmpdir)
@@ -60,7 +63,7 @@ def test_temp_versions_win():
 
 
 # @pytest.mark.skipif(os.environ.get("CI", False), reason="Don't make temporary folders in CI")
-@pytest.mark.skipif(sys.platform == 'win32', reason="Test for non-Windows only")
+@pytest.mark.skipif(sys.platform == "win32", reason="Test for non-Windows only")
 def test_temp_versions_non_win():
     # Test with real temporary folders
 
@@ -72,7 +75,7 @@ def test_temp_versions_non_win():
         os.mkdir(os.path.join(py_folder, "bin"))
 
         # make python.exe file
-        with open(py_exe, 'wb') as _:
+        with open(py_exe, "wb") as _:
             pass
 
         versions = get_pyenv_versions(tmpdir)

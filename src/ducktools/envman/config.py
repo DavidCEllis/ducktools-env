@@ -30,9 +30,13 @@ match sys.platform:
     case "linux":
         BASE_FOLDER = os.path.expanduser(os.path.join("~", f".{PROJECT_NAME}"))
     case "darwin":
-        BASE_FOLDER = os.path.expanduser(os.path.join("~", "Library", "Caches", PROJECT_NAME, CACHE_FOLDER_NAME))
+        BASE_FOLDER = os.path.expanduser(
+            os.path.join("~", "Library", "Caches", PROJECT_NAME, CACHE_FOLDER_NAME)
+        )
     case _:
-        raise UnsupportedPlatformError(f"Platform {sys.platform!r} is not currently supported.")
+        raise UnsupportedPlatformError(
+            f"Platform {sys.platform!r} is not currently supported."
+        )
 
 CACHE_FOLDER = os.path.join(BASE_FOLDER, CACHE_FOLDER_NAME)
 

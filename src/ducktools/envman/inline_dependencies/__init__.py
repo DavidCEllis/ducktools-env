@@ -21,7 +21,12 @@ Handle parsing of inline script dependency data.
 import os
 
 from prefab_classes import prefab, attribute
-from ducktools.lazyimporter import LazyImporter, TryExceptImport, ModuleImport, MultiFromImport
+from ducktools.lazyimporter import (
+    LazyImporter,
+    TryExceptImport,
+    ModuleImport,
+    MultiFromImport,
+)
 from ducktools.scriptmetadata import parse_file
 
 
@@ -62,7 +67,9 @@ class EnvironmentSpec:
             try:
                 _laz.SpecifierSet(self.requires_python)
             except _laz.InvalidSpecifier:
-                error_details.append(f"Invalid python version specifier: {self.requires_python!r}")
+                error_details.append(
+                    f"Invalid python version specifier: {self.requires_python!r}"
+                )
         for dep in self.dependencies:
             try:
                 _laz.Requirement(dep)
@@ -73,8 +80,8 @@ class EnvironmentSpec:
 
 
 def get_requirements(
-        script_path: os.PathLike | str,
-        check_errors: bool = True,
+    script_path: os.PathLike | str,
+    check_errors: bool = True,
 ) -> EnvironmentSpec:
     """
     Get the python version and dependencies
