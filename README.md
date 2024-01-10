@@ -13,7 +13,8 @@ Subprocesses:
 * `pyenv` (one option for finding python installs)
 
 PyPI: 
+* `prefab-classes` (A lazy implementation of dataclasses)
 * `ducktools-lazyimporter`
-* `ducktools-script_metadata_parser`
+* `ducktools-scriptmetadata`
 * `packaging`
-* `tomli` (for Python <=3.10)
+* `tomli` (for Python 3.10)
