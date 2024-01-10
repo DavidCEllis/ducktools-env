@@ -22,8 +22,15 @@ import os
 import os.path
 import sys
 
+from ducktools.lazyimporter import LazyImporter, ModuleImport
+
 from .shared import PythonInstall
 from ..exceptions import ManagerNotFoundError, InvalidVersionError
+
+_laz = LazyImporter([ModuleImport("re")])
+
+PYTHON_VER_RE = r"\d{1,2}\.\d{1,2}\.\d+"
+PYPY_VER_RE = r"^pypy(?P<pyversion>\d{1,2}\.\d+)-(?P<pypyversion>[\d\.]*)$"
 
 if sys.platform == "win32":  # pragma: skip-if-os-other
     PYENV_VERSIONS_FOLDER = os.path.expanduser(
@@ -51,7 +58,6 @@ if sys.platform == "win32":  # pragma: skip-if-os-other
                             PythonInstall.from_str(version, executable, architecture=arch)
                         )
                     case (version, ):
-                        print(version)
                         # If no arch given pyenv will be 64 bit
                         python_versions.append(
                             PythonInstall.from_str(version, executable, architecture="64bit")
@@ -61,7 +67,7 @@ if sys.platform == "win32":  # pragma: skip-if-os-other
                             f"{'-'.join(other)} not a recognised version folder"
                         )
 
-        python_versions.sort(key=lambda x: x.version)
+        python_versions.sort(key=lambda x: x.version, reverse=True)
 
         return python_versions
 
@@ -78,9 +84,22 @@ else:  # pragma: skip-if-os-win32
         python_versions = []
         for p in os.scandir(versions_folder):
             executable = os.path.join(p.path, "bin/python")
-            if os.path.exists(executable):
-                python_versions.append(PythonInstall.from_str(p.name, executable))
 
-        python_versions.sort(key=lambda x: x.version)
+            if os.path.exists(executable):
+                if _laz.re.fullmatch(PYTHON_VER_RE, p.name):
+                    python_versions.append(PythonInstall.from_str(p.name, executable))
+                elif vermatches := _laz.re.fullmatch(PYPY_VER_RE, p.name):
+                    py_ver = vermatches.group("pyversion")
+                    pypy_ver = vermatches.group("pypyversion")
+                    python_versions.append(
+                        PythonInstall.from_str(
+                            version=py_ver,
+                            executable=executable,
+                            implementation="pypy",
+                            metadata={"pypy_version": pypy_ver}
+                        )
+                    )
+
+        python_versions.sort(key=lambda x: x.version, reverse=True)
 
         return python_versions
