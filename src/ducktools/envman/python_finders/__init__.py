@@ -14,31 +14,14 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""
-Build python environments given a specifier list
-"""
+# Find platform python versions
 
+import sys
 
-from ducktools.lazyimporter import LazyImporter, MultiFromImport
-
-from ..inline_dependencies import EnvironmentSpec
-from ..exceptions import ManagerNotFoundError
-from .pyenv_finder import get_pyenv_versions
-
-
-_packaging = LazyImporter(
-    [
-        MultiFromImport(
-            "packaging.requirements",
-            ["Requirement", "InvalidRequirement"],
-        ),
-        MultiFromImport(
-            "packaging.versions",
-            ["Version", "InvalidVersion"],
-        ),
-        MultiFromImport(
-            "packaging.specifiers",
-            ["SpecifierSet", "InvalidSpecifier"],
-        ),
-    ],
-)
+match sys.platform:
+    case "win32":
+        from .win32 import get_python_installs
+    case "darwin":
+        from .darwin import get_python_installs
+    case _:
+        from .linux import get_python_installs

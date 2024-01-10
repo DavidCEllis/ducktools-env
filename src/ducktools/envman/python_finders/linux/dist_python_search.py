@@ -21,7 +21,7 @@ import os.path
 
 from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport
 
-from .shared import PythonInstall
+from ..shared import PythonInstall
 
 _laz = LazyImporter([
     ModuleImport("re"),
@@ -56,7 +56,7 @@ class _LazyPythonRegexes:
 REGEXES = _LazyPythonRegexes()
 
 
-def get_system_python_installs(base_folder=BIN_FOLDER):
+def get_dist_pythons(base_folder=BIN_FOLDER):
     installs = []
     potential_py = _laz.glob(os.path.join(base_folder, "python*"))
     for executable_path in potential_py:

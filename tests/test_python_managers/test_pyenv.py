@@ -7,19 +7,17 @@ import pytest
 from unittest.mock import patch, Mock
 
 from ducktools.envman.python_finders.shared import PythonInstall
-from ducktools.envman.exceptions import ManagerNotFoundError
-from ducktools.envman.python_finders.pyenv_finder import (
-    get_pyenv_versions,
-    PYENV_VERSIONS_FOLDER,
-)
+
+if sys.platform == "win32":
+    from ducktools.envman.python_finders.win32.pyenv_search import get_pyenv_pythons, PYENV_VERSIONS_FOLDER
+else:
+    from ducktools.envman.python_finders.linux.pyenv_search import get_pyenv_pythons, PYENV_VERSIONS_FOLDER
 
 
 def test_no_versions_folder():
     with patch("os.path.exists") as exists_mock:
         exists_mock.return_value = False
-
-        with pytest.raises(ManagerNotFoundError):
-            get_pyenv_versions()
+        assert get_pyenv_pythons() == []
 
 
 def test_mock_versions_folder():
@@ -38,7 +36,7 @@ def test_mock_versions_folder():
         exists_mock.return_value = True
         scandir_mock.return_value = iter([mock_dir_entry])
 
-        python_versions = get_pyenv_versions()
+        python_versions = get_pyenv_pythons()
 
     assert python_versions == [PythonInstall.from_str(out_ver, out_executable)]
 
@@ -57,7 +55,7 @@ def test_temp_versions_win():
         with open(py_exe, "wb") as _:
             pass
 
-        versions = get_pyenv_versions(tmpdir)
+        versions = get_pyenv_pythons(tmpdir)
 
         assert versions == [PythonInstall.from_str("3.12.1", py_exe)]
 
@@ -78,6 +76,6 @@ def test_temp_versions_non_win():
         with open(py_exe, "wb") as _:
             pass
 
-        versions = get_pyenv_versions(tmpdir)
+        versions = get_pyenv_pythons(tmpdir)
 
         assert versions == [PythonInstall.from_str("3.12.1", py_exe)]

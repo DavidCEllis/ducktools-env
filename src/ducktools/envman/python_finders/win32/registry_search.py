@@ -23,7 +23,7 @@ Based on PEP 514 registry entries.
 
 import winreg  # noqa  # pycharm seems to think winreg doesn't exist in python3.12
 
-from .shared import PythonInstall
+from ..shared import PythonInstall
 
 exclude_companies = {
     "PyLauncher",  # pylauncher is special cased to be ignored
@@ -39,7 +39,7 @@ check_pairs = [
 ]
 
 
-def get_registered_python_installs() -> list[PythonInstall]:
+def get_registered_pythons() -> list[PythonInstall]:
     python_installs: list[PythonInstall] = []
 
     for base, py_folder in check_pairs:

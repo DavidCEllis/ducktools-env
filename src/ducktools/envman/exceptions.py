@@ -19,13 +19,5 @@ class EnvManError(Exception):
     pass
 
 
-class ManagerNotFoundError(EnvManError):
-    pass
-
-
 class UnsupportedPlatformError(EnvManError):
-    pass
-
-
-class InvalidVersionError(EnvManError):
     pass
