@@ -106,7 +106,7 @@ def get_requirements(
         requirement_data = _laz.tomllib.loads(raw_metadata)
 
         tool_block = (
-            requirement_data.get("tool", {}).get("ducktoools", {}).get("envman", {})
+            requirement_data.get("tool", {}).get("ducktools", {}).get("envman", {})
         )
 
         requirements = EnvironmentSpec(
