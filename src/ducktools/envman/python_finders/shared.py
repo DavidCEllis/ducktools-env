@@ -22,6 +22,7 @@ class PythonInstall:
     version: tuple[int, ...]
     executable: str
     architecture: str = "64bit"
+    implementation: str = "cpython"
     metadata: dict = attribute(default_factory=dict)
 
     @classmethod
@@ -30,7 +31,16 @@ class PythonInstall:
             version: str,
             executable: str,
             architecture: str = "64bit",
+            implementation: str = "cpython",
             metadata: dict | None = None,
     ):
         version_tuple = tuple(int(val) for val in version.split("."))
-        return cls(version_tuple, executable, architecture, metadata)  # noqa
+
+        # noinspection PyArgumentList
+        return cls(
+            version=version_tuple,
+            executable=executable,
+            architecture=architecture,
+            implementation=implementation,
+            metadata=metadata,
+        )
