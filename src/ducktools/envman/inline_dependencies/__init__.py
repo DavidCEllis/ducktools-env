@@ -59,6 +59,7 @@ class SpecificationError(Exception):
 class EnvironmentSpec:
     requires_python: str | None = attribute(default=None)
     dependencies: list[str] = attribute(default_factory=list())
+    extras: dict = attribute(default_factory=dict())
 
     def errors(self) -> list[str]:
         error_details = []
@@ -81,10 +82,13 @@ class EnvironmentSpec:
 
 def get_requirements(
     script_path: os.PathLike | str,
-    check_errors: bool = True,
+    check_errors: bool = False,
 ) -> EnvironmentSpec:
     """
-    Get the python version and dependencies
+    Get the python version and dependencies.
+
+    By default this does not check for errors - for caching if there is a match
+    it is unnecessary to re-check as the original spec will have been checked.
 
     :param script_path: Path to the python script to parse for environment requirements
     :param check_errors: Check the resulting specification has valid version
@@ -101,9 +105,14 @@ def get_requirements(
     if raw_metadata := parsed_data.blocks.get("script"):
         requirement_data = _laz.tomllib.loads(raw_metadata)
 
+        tool_block = (
+            requirement_data.get("tool", {}).get("ducktoools", {}).get("envman", {})
+        )
+
         requirements = EnvironmentSpec(
             requirement_data.get("requires-python", None),
             requirement_data.get("dependencies", []),
+            tool_block,
         )
     else:
         requirements = EnvironmentSpec()
