@@ -6,18 +6,29 @@ import os.path
 from ducktools.envman.python_finders.shared import PythonVersion
 from ducktools.envman.python_finders.winpy_finder import get_py_install_versions
 
+
+def _python_folder(verno: str) -> str:
+    return os.path.join(
+        os.path.expandvars("%LOCALAPPDATA%"),
+        "Programs",
+        "Python",
+        f"Python3{verno}",
+        "python.exe",
+    )
+
+
 known_versions = [
     PythonVersion.from_str(
         "3.10",
-        os.path.join(os.path.expandvars("%LOCALAPPDATA%"), "Programs", "Python", "Python310", "python.exe"),
+        _python_folder("310"),
     ),
     PythonVersion.from_str(
         "3.11",
-        os.path.join(os.path.expandvars("%LOCALAPPDATA%"), "Programs", "Python", "Python311", "python.exe"),
+        _python_folder("311"),
     ),
     PythonVersion.from_str(
         "3.12",
-        os.path.join(os.path.expandvars("%LOCALAPPDATA%"), "Programs", "Python", "Python312", "python.exe"),
+        _python_folder("312"),
     ),
 ]
 
