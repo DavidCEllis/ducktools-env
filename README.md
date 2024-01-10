@@ -16,5 +16,6 @@ PyPI:
 * `prefab-classes` (A lazy implementation of dataclasses)
 * `ducktools-lazyimporter`
 * `ducktools-scriptmetadata`
+* `ducktools-pythonfinder`
 * `packaging`
 * `tomli` (for Python 3.10)
