@@ -31,7 +31,7 @@ match sys.platform:
         BASE_FOLDER = os.path.expanduser(os.path.join("~", f".{PROJECT_NAME}"))
     case "darwin":
         BASE_FOLDER = os.path.expanduser(
-            os.path.join("~", "Library", "Caches", PROJECT_NAME, CACHE_FOLDER_NAME)
+            os.path.join("~", "Library", "Caches", PROJECT_NAME)
         )
     case _:
         raise UnsupportedPlatformError(
