@@ -61,6 +61,14 @@ class EnvironmentSpec:
     dependencies: list[str] = attribute(default_factory=list())
     extras: dict = attribute(default_factory=dict())
 
+    @property
+    def requires_python_spec(self):
+        return _laz.SpecifierSet(self.requires_python)
+
+    @property
+    def dependencies_spec(self):
+        return [_laz.Requirement(dep) for dep in self.dependencies]
+
     def errors(self) -> list[str]:
         error_details = []
 

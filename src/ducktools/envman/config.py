@@ -43,6 +43,10 @@ CACHE_FOLDER = os.path.join(BASE_FOLDER, CACHE_FOLDER_NAME)
 
 @prefab
 class Config:
-    use_builder: str = "pyenv"
     cache_folder: str = CACHE_FOLDER
     cache_maxsize: int = 15
+    db_filename: str = "envman_cache.sqlite"
+
+    @property
+    def db_path(self) -> str:
+        return os.path.join(self.cache_folder, self.db_filename)
