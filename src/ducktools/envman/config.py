@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import sys
+import os
 import os.path
 
 from prefab_classes import prefab
@@ -26,16 +27,21 @@ CACHE_FOLDER_NAME = "venv_cache"
 
 match sys.platform:
     case "win32":
-        BASE_FOLDER = os.path.expandvars(os.path.join("%LOCALAPPDATA%", PROJECT_NAME))
+        # os.path.expandvars will actually import a whole bunch of other modules
+        # Try just using the environment.
+        _local_app_folder = os.environ.get("LOCALAPPDATA")
+        if not (_local_app_folder and os.path.isdir(_local_app_folder)):
+            raise FileNotFoundError(f"Could not find local app data folder: {_local_app_folder!r}")
+        BASE_FOLDER = os.path.join(_local_app_folder, PROJECT_NAME)
     case "linux":
         BASE_FOLDER = os.path.expanduser(os.path.join("~", f".{PROJECT_NAME}"))
     case "darwin":
         BASE_FOLDER = os.path.expanduser(
             os.path.join("~", "Library", "Caches", PROJECT_NAME)
         )
-    case _:
+    case other:
         raise UnsupportedPlatformError(
-            f"Platform {sys.platform!r} is not currently supported."
+            f"Platform {other!r} is not currently supported."
         )
 
 CACHE_FOLDER = os.path.join(BASE_FOLDER, CACHE_FOLDER_NAME)
@@ -45,8 +51,4 @@ CACHE_FOLDER = os.path.join(BASE_FOLDER, CACHE_FOLDER_NAME)
 class Config:
     cache_folder: str = CACHE_FOLDER
     cache_maxsize: int = 15
-    db_filename: str = "envman_cache.sqlite"
-
-    @property
-    def db_path(self) -> str:
-        return os.path.join(self.cache_folder, self.db_filename)
+    cache_refresh: int = 30
