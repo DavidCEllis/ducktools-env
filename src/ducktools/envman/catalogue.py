@@ -19,13 +19,14 @@ import os.path
 from ducktools.lazyimporter import LazyImporter, ModuleImport, FromImport
 
 from prefab_classes import prefab, attribute
-from prefab_classes.funcs import to_json
+import prefab_classes.funcs as prefab_funcs
 
 
 _laz = LazyImporter(
     [
         FromImport("datetime", "datetime"),
         ModuleImport("shutil"),
+        ModuleImport("json"),
     ]
 )
 
@@ -35,7 +36,7 @@ def _datetime_now_iso():
 
 
 @prefab
-class CacheInfo:
+class CacheFolder:
     cache_name: str
     cache_path: str
     raw_specs: list[str]
@@ -63,8 +64,8 @@ class CacheInfo:
 
 
 @prefab
-class MultiCache:
-    caches: dict[str, CacheInfo]
+class CacheInfo:
+    caches: dict[str, CacheFolder]
 
     def delete_cache(self, cachename):
         if cache := self.caches.get(cachename):
@@ -72,3 +73,26 @@ class MultiCache:
             del self.caches[cachename]
         else:
             raise FileNotFoundError(f"Cache {cachename!r} not found")
+
+    def to_json(self) -> str:
+        """Serialize this class into a JSON string"""
+        # For external users that may not import prefab directly
+        return prefab_funcs.to_json(self)
+
+    @classmethod
+    def from_json(cls, json_data) -> "CacheInfo":
+        raw_data = _laz.json.loads(json_data)
+        caches = {}
+        for name, cache_info in raw_data.get("caches", {}):
+            caches[name] = CacheFolder(**cache_info)
+        return cls(caches=caches)  # noqa
+
+    def _fast_find_environment(self, raw_spec):
+        for cache in self.caches.values():
+            if raw_spec in cache.raw_specs:
+                return cache
+        else:
+            return None
+
+    def _find_environment(self, raw_spec):
+        pass

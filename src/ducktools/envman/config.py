@@ -29,9 +29,13 @@ match sys.platform:
     case "win32":
         # os.path.expandvars will actually import a whole bunch of other modules
         # Try just using the environment.
-        _local_app_folder = os.environ.get("LOCALAPPDATA")
-        if not (_local_app_folder and os.path.isdir(_local_app_folder)):
-            raise FileNotFoundError(f"Could not find local app data folder: {_local_app_folder!r}")
+        if _local_app_folder := os.environ.get("LOCALAPPDATA"):
+            if not os.path.isdir(_local_app_folder):
+                raise FileNotFoundError(
+                    f"Could not find local app data folder {_local_app_folder}"
+                )
+        else:
+            raise EnvironmentError("Environment variable %LOCALAPPDATA% not found")
         BASE_FOLDER = os.path.join(_local_app_folder, PROJECT_NAME)
     case "linux":
         BASE_FOLDER = os.path.expanduser(os.path.join("~", f".{PROJECT_NAME}"))

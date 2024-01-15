@@ -57,9 +57,58 @@ class SpecificationError(Exception):
 
 @prefab
 class EnvironmentSpec:
-    requires_python: str | None = attribute(default=None)
-    dependencies: list[str] = attribute(default_factory=list())
-    extras: dict = attribute(default_factory=dict())
+    raw_spec: str | None
+
+    def __prefab_post_init__(self):
+        self._initialized: bool = False
+        self._requires_python: str | None = None
+        self._dependencies: list[str] = []
+        self._extras: dict = {}
+
+    def _parse_raw(self):
+        if self.raw_spec:
+            # Parse the raw data as toml to extract requirements
+            requirement_data = _laz.tomllib.loads(self.raw_spec)
+
+            tool_block = (
+                requirement_data.get("tool", {}).get("ducktools", {}).get("envman", {})
+            )
+            requires_python = requirement_data.get("requires-python", None)
+            dependencies = requirement_data.get("dependencies", [])
+
+            self._requires_python = requires_python
+            self._dependencies = dependencies
+            self._extras = tool_block
+
+        self._initialized = True
+
+    @classmethod
+    def from_file(cls, script_path):
+        parsed_data = parse_file(script_path)
+
+        # Display any warning messages
+        for warning in parsed_data.warnings:
+            _laz.warnings.warn(warning)
+
+        return cls(raw_spec=parsed_data.blocks.get("script"))  # noqa
+
+    @property
+    def requires_python(self) -> str | None:
+        if not self._initialized:
+            self._parse_raw()
+        return self._requires_python
+
+    @property
+    def dependencies(self) -> list[str]:
+        if not self._initialized:
+            self._parse_raw()
+        return self._dependencies
+
+    @property
+    def extras(self) -> dict:
+        if not self._initialized:
+            self._parse_raw()
+        return self._extras
 
     @property
     def requires_python_spec(self):
@@ -86,47 +135,3 @@ class EnvironmentSpec:
                 error_details.append(f"Invalid dependency specification: {dep!r}")
 
         return error_details
-
-
-def get_requirements(
-    script_path: os.PathLike | str,
-    check_errors: bool = False,
-) -> EnvironmentSpec:
-    """
-    Get the python version and dependencies.
-
-    By default this does not check for errors - for caching if there is a match
-    it is unnecessary to re-check as the original spec will have been checked.
-
-    :param script_path: Path to the python script to parse for environment requirements
-    :param check_errors: Check the resulting specification has valid version
-                         and dependency specifiers.
-    :return: Dictionary with "requires-python" and "dependencies"
-    """
-    parsed_data = parse_file(script_path)
-
-    # Display any warning messages
-    for warning in parsed_data.warnings:
-        _laz.warnings.warn(warning)
-
-    # Parse the TOML
-    if raw_metadata := parsed_data.blocks.get("script"):
-        requirement_data = _laz.tomllib.loads(raw_metadata)
-
-        tool_block = (
-            requirement_data.get("tool", {}).get("ducktools", {}).get("envman", {})
-        )
-
-        requirements = EnvironmentSpec(
-            requirement_data.get("requires-python", None),
-            requirement_data.get("dependencies", []),
-            tool_block,
-        )
-    else:
-        requirements = EnvironmentSpec()
-
-    if check_errors:
-        if errors := requirements.errors():
-            raise SpecificationError(", ".join(errors))
-
-    return requirements
