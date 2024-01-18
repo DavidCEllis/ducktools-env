@@ -55,7 +55,7 @@ def _datetime_now_iso():
 
 
 @prefab
-class CacheFolder:
+class CachedEnv:
     cache_name: str
     cache_path: str
     raw_specs: list[str]
@@ -84,7 +84,7 @@ class CacheFolder:
 
 @prefab
 class CacheInfo:
-    caches: dict[str, CacheFolder]
+    caches: dict[str, CachedEnv]
 
     def delete_cache(self, cachename):
         if cache := self.caches.get(cachename):
@@ -103,10 +103,10 @@ class CacheInfo:
         raw_data = _laz.json.loads(json_data)
         caches = {}
         for name, cache_info in raw_data.get("caches", {}):
-            caches[name] = CacheFolder(**cache_info)
+            caches[name] = CachedEnv(**cache_info)
         return cls(caches=caches)  # noqa
 
-    def strict_find_environment(self, spec: EnvironmentSpec) -> CacheFolder | None:
+    def strict_find_environment(self, spec: EnvironmentSpec) -> CachedEnv | None:
         """
         Attempt to find a cached python environment that matches the literal text
         of the specification.
@@ -121,7 +121,7 @@ class CacheInfo:
         else:
             return None
 
-    def loose_find_environment(self, spec: EnvironmentSpec) -> CacheFolder | None:
+    def loose_find_environment(self, spec: EnvironmentSpec) -> CachedEnv | None:
         """
         Check for a cache that matches the minimums of all specified modules
 
@@ -163,7 +163,7 @@ class CacheInfo:
         else:
             return None
 
-    def find_environment(self, spec: EnvironmentSpec) -> CacheFolder | None:
+    def find_environment(self, spec: EnvironmentSpec) -> CachedEnv | None:
         """
         Try to find an existing cached environment that satisfies the spec
 
@@ -174,5 +174,5 @@ class CacheInfo:
             return env
         return self.loose_find_environment(spec)
 
-    def create_environment(self, spec: EnvironmentSpec) -> CacheFolder:
+    def create_environment(self, spec: EnvironmentSpec, cache_folder) -> CachedEnv:
         ...
