@@ -16,10 +16,12 @@
 
 import os.path
 
-from ducktools.lazyimporter import LazyImporter, ModuleImport, FromImport
+from ducktools.lazyimporter import LazyImporter, ModuleImport, FromImport, MultiFromImport
 
 from prefab_classes import prefab, attribute
 import prefab_classes.funcs as prefab_funcs
+
+from .inline_dependencies import EnvironmentSpec
 
 
 _laz = LazyImporter(
@@ -27,6 +29,23 @@ _laz = LazyImporter(
         FromImport("datetime", "datetime"),
         ModuleImport("shutil"),
         ModuleImport("json"),
+    ]
+)
+
+_packaging = LazyImporter(
+    [
+        MultiFromImport(
+            "packaging.requirements",
+            ["Requirement", "InvalidRequirement"],
+        ),
+        MultiFromImport(
+            "packaging.specifiers",
+            ["SpecifierSet", "InvalidSpecifier"],
+        ),
+        MultiFromImport(
+            "packaging.version",
+            ["Version", "InvalidVersion"]
+        ),
     ]
 )
 
@@ -40,8 +59,8 @@ class CacheFolder:
     cache_name: str
     cache_path: str
     raw_specs: list[str]
+    python_version: str
     installed_modules: list[str]
-    python_version: tuple[int, int, int]
     usage_count: int = 0
     created_on: str = attribute(default_factory=_datetime_now_iso)
     last_used: str = attribute(default_factory=_datetime_now_iso)
@@ -87,12 +106,73 @@ class CacheInfo:
             caches[name] = CacheFolder(**cache_info)
         return cls(caches=caches)  # noqa
 
-    def _fast_find_environment(self, raw_spec):
+    def strict_find_environment(self, spec: EnvironmentSpec) -> CacheFolder | None:
+        """
+        Attempt to find a cached python environment that matches the literal text
+        of the specification.
+
+        :param spec: EnvironmentSpec of requirements
+        :return: CacheFolder details of python env that satisfies it or None
+        """
         for cache in self.caches.values():
-            if raw_spec in cache.raw_specs:
+            if spec.raw_spec in cache.raw_specs:
+                cache.last_used = _datetime_now_iso()
                 return cache
         else:
             return None
 
-    def _find_environment(self, raw_spec):
-        pass
+    def loose_find_environment(self, spec: EnvironmentSpec) -> CacheFolder | None:
+        """
+        Check for a cache that matches the minimums of all specified modules
+
+        If found, add the text of the spec to raw_specs for that module and return it
+
+        :param spec: EnvironmentSpec requirements for a python environment
+        :return: CacheFolder python environment details or None
+        """
+        for cache in self.caches.values():
+            cache_pyver = _packaging.Version(cache.python_version)
+
+            # Skip dependency check if python version does not match
+            if cache_pyver not in spec.requires_python_spec:
+                continue
+
+            # Check dependencies
+            cache_spec = {}
+
+            for mod in cache.installed_modules:
+                name, version = mod.split("==")
+                # There should only be one specifier, specifying one version
+                module_ver = _packaging.Version(version)
+                cache_spec[name] = module_ver
+
+            for req in spec.dependencies_spec:
+                # If a dependency is not satisfied , break out of this loop
+                if ver := cache_spec.get(req.name):
+                    if ver not in req.specifier:
+                        break
+                else:
+                    break
+            else:
+                # If all dependencies were satisfied, the loop completed
+                # Update last_used and append this spec to raw_specs
+                cache.last_used = _datetime_now_iso()
+                cache.raw_specs.append(spec.raw_spec)
+                return cache
+
+        else:
+            return None
+
+    def find_environment(self, spec: EnvironmentSpec) -> CacheFolder | None:
+        """
+        Try to find an existing cached environment that satisfies the spec
+
+        :param spec:
+        :return:
+        """
+        if env := self.strict_find_environment(spec):
+            return env
+        return self.loose_find_environment(spec)
+
+    def create_environment(self, spec: EnvironmentSpec) -> CacheFolder:
+        ...
