@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os.path
+from datetime import datetime as _datetime
 
 from ducktools.lazyimporter import LazyImporter, ModuleImport, FromImport, MultiFromImport
 
@@ -26,7 +27,6 @@ from .inline_dependencies import EnvironmentSpec
 
 _laz = LazyImporter(
     [
-        FromImport("datetime", "datetime"),
         ModuleImport("shutil"),
         ModuleImport("json"),
     ]
@@ -50,8 +50,12 @@ _packaging = LazyImporter(
 )
 
 
-def _datetime_now_iso():
-    return _laz.datetime.now().isoformat()
+def _datetime_now_iso() -> str:
+    """
+    Helper function to allow use of datetime.now with iso formatting
+    as a default factory
+    """
+    return _datetime.now().isoformat()
 
 
 @prefab
@@ -67,11 +71,11 @@ class CachedEnv:
 
     @property
     def created_date(self):
-        return _laz.datetime.fromisoformat(self.created_on)
+        return _datetime.fromisoformat(self.created_on)
 
     @property
     def last_used_date(self):
-        return _laz.datetime.fromisoformat(self.last_used)
+        return _datetime.fromisoformat(self.last_used)
 
     @property
     def exists(self) -> bool:
