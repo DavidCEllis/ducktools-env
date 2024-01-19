@@ -10,7 +10,6 @@ Currently ducktools.envman relies on the following tools.
 Subprocesses:
 * `venv` (via subprocess on python installs)
 * `pip` (via subprocess within a venv)
-* `pyenv` (one option for finding python installs)
 
 PyPI: 
 * `prefab-classes` (A lazy implementation of dataclasses)

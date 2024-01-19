@@ -17,13 +17,16 @@
 import sys
 import os
 import os.path
+import datetime
 
 from prefab_classes import prefab
 
 from .exceptions import UnsupportedPlatformError
 
 PROJECT_NAME = "ducktools"
-CACHE_FOLDER_NAME = "venv_cache"
+CACHE_FOLDER_NAME = "venv_caches"
+CACHE_FILENAME = f"cache_details.json"
+CACHE_EXPIRY_DAYS = 30
 
 match sys.platform:
     case "win32":
@@ -53,6 +56,19 @@ CACHE_FOLDER = os.path.join(BASE_FOLDER, CACHE_FOLDER_NAME)
 
 @prefab
 class Config:
+    """
+    Configuration for the environment manager.
+
+    :param cache_folder: string path to the cache folder
+    :param cache_db_name: string path to the cache filename
+    :param cache_maxsize: maximum number of environments to keep cached
+    :param cache_expires: delete/restore a cache after it is this old
+    """
     cache_folder: str = CACHE_FOLDER
+    cache_db_name: str = CACHE_FILENAME
     cache_maxsize: int = 15
-    cache_refresh: int = 30
+    cache_expires: datetime.timedelta | None = datetime.timedelta(days=CACHE_EXPIRY_DAYS)
+
+    @property
+    def cache_db_path(self):
+        return os.path.join(self.cache_folder, self.cache_db_name)

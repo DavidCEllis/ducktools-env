@@ -37,7 +37,7 @@ testing = ["pytest", "pytest-cov", "coverage-conditional-plugin"]
 where = ["src"]
 
 [tool.setuptools.dynamic]
-version = {attr = "ducktools.envman.__version__"}
+version = {attr = "ducktools.envman._version.__version__"}
 
 [tool.pytest.ini_options]
 addopts= "--cov=src/ --cov-report=term-missing"

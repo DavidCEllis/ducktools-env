@@ -21,3 +21,15 @@ class EnvManError(Exception):
 
 class UnsupportedPlatformError(EnvManError):
     pass
+
+
+class PythonVersionNotFound(EnvManError):
+    pass
+
+
+class InvalidEnvironmentSpec(EnvManError):
+    pass
+
+
+class VenvBuildError(EnvManError):
+    pass

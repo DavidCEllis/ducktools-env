@@ -112,7 +112,7 @@ class EnvironmentSpec:
 
     @property
     def requires_python_spec(self):
-        return _laz.SpecifierSet(self.requires_python)
+        return _laz.SpecifierSet(self.requires_python) if self.requires_python else None
 
     @property
     def dependencies_spec(self):
