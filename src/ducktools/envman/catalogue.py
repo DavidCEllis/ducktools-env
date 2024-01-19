@@ -70,9 +70,18 @@ class CachedEnv:
     raw_specs: list[str]
     python_version: str
     installed_modules: list[str]
+    parent_python: str
     usage_count: int = 0
     created_on: str = attribute(default_factory=_datetime_now_iso)
     last_used: str = attribute(default_factory=_datetime_now_iso)
+
+    @property
+    def python_path(self):
+        if sys.platform == "win32":
+            return os.path.join(cache_path, "Scripts", "python.exe")
+        else:
+            return os.path.join(cache_path, "bin", "python")
+
 
     @property
     def created_date(self):
@@ -135,7 +144,8 @@ class CacheInfo:
     def expire_caches(self):
         if delta := self.config.cache_expires:
             ctime = _datetime.now()
-            for cachename, cache in self.caches.items():
+            # Iterate over a copy as we are modifying the original
+            for cachename, cache in self.caches.copy().items():
                 if (ctime - cache.created_date) > delta:
                     self.delete_cache(cachename)
 
@@ -256,7 +266,7 @@ class CacheInfo:
         if len(self.caches) >= self.config.cache_maxsize:
             self.delete_cache(self.oldest_cache)
 
-        new_cachename = f"caches_{self.env_counter}"
+        new_cachename = f"env_{self.env_counter}"
         self.env_counter += 1
         cache_path = os.path.join(self.config.cache_folder, new_cachename)
 
@@ -307,8 +317,6 @@ class CacheInfo:
             except _laz.subprocess.CalledProcessError as e:
                 raise VenvBuildError(f"Failed to install dependencies: {e}")
 
-            print("installed")
-
             freeze = _laz.subprocess.run([venv_exe, "-m", "pip", "freeze"], capture_output=True)
 
             installed_modules = [item for item in freeze.stdout.decode().split(os.linesep) if item]
@@ -317,10 +325,11 @@ class CacheInfo:
 
         new_cache = CachedEnv(
             cache_name=new_cachename,
-            cache_path=venv_exe,
+            cache_path=cache_path,
             raw_specs=[spec.raw_spec],
             python_version=python_version,
             installed_modules=installed_modules,
+            parent_python=python_exe,
         )
 
         self.caches[new_cachename] = new_cache
@@ -330,5 +339,4 @@ class CacheInfo:
 
     def find_or_create_env(self, spec: EnvironmentSpec) -> CachedEnv:
         env = self.find_env(spec) or self.create_env(spec)
-
         return env
