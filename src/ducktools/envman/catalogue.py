@@ -144,7 +144,7 @@ class CacheInfo:
     def save_cache(self) -> None:
         """Serialize this class into a JSON string and save"""
         # For external users that may not import prefab directly
-        data = prefab_funcs.to_json(self, excludes=("config",))
+        data = prefab_funcs.to_json(self, excludes=("config",), indent=2)
 
         os.makedirs(self.config.cache_folder, exist_ok=True)
 
@@ -199,11 +199,12 @@ class CacheInfo:
         :return: CacheFolder python environment details or None
         """
         for cache in self.caches.values():
-            cache_pyver = _packaging.Version(cache.python_version)
-
-            # Skip dependency check if python version does not match
-            if cache_pyver not in spec.requires_python_spec:
-                continue
+            # If no python version listed ignore it
+            # If python version is listed, make sure it matches
+            if spec.requires_python:
+                cache_pyver = _packaging.Version(cache.python_version)
+                if cache_pyver not in spec.requires_python_spec:
+                    continue
 
             # Check dependencies
             cache_spec = {}
@@ -269,8 +270,6 @@ class CacheInfo:
             raise PythonVersionNotFound(
                 f"Could not find a Python install satisfying {spec.requires_python!r}."
             )
-
-        print(python_exe)
 
         # Make the venv
         if os.path.exists(cache_path):
