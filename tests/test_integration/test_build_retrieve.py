@@ -14,11 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from datetime import timedelta
 
-from unittest.mock import MagicMock, patch
-
-from ducktools.envman import Catalogue, Config
 from ducktools.envman.inline_dependencies import EnvironmentSpec
 
 
