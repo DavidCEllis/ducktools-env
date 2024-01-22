@@ -14,23 +14,28 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from ducktools.lazyimporter import LazyImporter, FromImport, get_module_funcs
+from datetime import timedelta
 
-from ._version import __version__
+from unittest.mock import MagicMock, patch
 
-__all__ = [
-    "__version__",
-    "Catalogue",  # noqa
-    "Config",  # noqa
-]
+from ducktools.envman import Catalogue, Config
+from ducktools.envman.inline_dependencies import EnvironmentSpec
 
 
-_laz = LazyImporter(
-    [
-        FromImport(".catalogue", "Catalogue"),
-        FromImport(".config", "Config"),
-    ],
-    globs=globals(),
-)
+class TestBuildRetrieve:
+    def test_build_retrieve(self, testing_catalogue):
+        spec = EnvironmentSpec(
+            "requires-python='>=3.10'\n"
+            "dependencies=[]\n",
+        )
 
-__getattr__, __dir__ = get_module_funcs(_laz)
+        # Test the env does not exist yet
+        assert testing_catalogue.find_env(spec) is None
+
+        real_env = testing_catalogue.find_or_create_env(spec)
+
+        assert real_env is not None
+
+        retrieve_env = testing_catalogue.find_env(spec)
+
+        assert real_env == retrieve_env

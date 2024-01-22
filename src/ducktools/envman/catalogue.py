@@ -100,7 +100,7 @@ class CachedEnv:
 
 
 @prefab
-class CacheInfo:
+class Catalogue:
     caches: dict[str, CachedEnv]
     config: Config
     env_counter: int = 1
@@ -161,7 +161,7 @@ class CacheInfo:
             f.write(data)
 
     @classmethod
-    def from_config(cls, config: Config) -> "CacheInfo":
+    def from_config(cls, config: Config) -> "Catalogue":
         try:
             with open(config.cache_db_path, 'r') as f:
                 raw_caches = _laz.json.load(f)
@@ -289,7 +289,7 @@ class CacheInfo:
 
         try:
             _laz.subprocess.run(
-                [python_exe, "-m", "venv", "--upgrade-deps", cache_path],
+                [python_exe, "-m", "venv", cache_path],
                 check=True
             )
         except _laz.subprocess.CalledProcessError as e:

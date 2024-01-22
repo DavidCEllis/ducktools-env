@@ -14,23 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from ducktools.lazyimporter import LazyImporter, FromImport, get_module_funcs
 
-from ._version import __version__
-
-__all__ = [
-    "__version__",
-    "Catalogue",  # noqa
-    "Config",  # noqa
-]
-
-
-_laz = LazyImporter(
-    [
-        FromImport(".catalogue", "Catalogue"),
-        FromImport(".config", "Config"),
-    ],
-    globs=globals(),
-)
-
-__getattr__, __dir__ = get_module_funcs(_laz)
+def test_python_install_fixture(this_python):
+    from ducktools.envman.catalogue import _laz
+    assert _laz.get_python_installs() == [this_python]
