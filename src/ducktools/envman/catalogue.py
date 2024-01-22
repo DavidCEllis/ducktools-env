@@ -23,7 +23,7 @@ from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport, Multi
 from prefab_classes import prefab, attribute
 import prefab_classes.funcs as prefab_funcs
 
-from .inline_dependencies import EnvironmentSpec
+from .environment_spec import EnvironmentSpec
 from .config import Config
 from .exceptions import PythonVersionNotFound, InvalidEnvironmentSpec, VenvBuildError
 
