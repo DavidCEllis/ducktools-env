@@ -78,10 +78,9 @@ class CachedEnv:
     @property
     def python_path(self):
         if sys.platform == "win32":
-            return os.path.join(cache_path, "Scripts", "python.exe")
+            return os.path.join(self.cache_path, "Scripts", "python.exe")
         else:
-            return os.path.join(cache_path, "bin", "python")
-
+            return os.path.join(self.cache_path, "bin", "python")
 
     @property
     def created_date(self):
@@ -154,7 +153,7 @@ class CacheInfo:
     def save_cache(self) -> None:
         """Serialize this class into a JSON string and save"""
         # For external users that may not import prefab directly
-        data = prefab_funcs.to_json(self, excludes=("config",), indent=2)
+        data = prefab_funcs.to_json(self, excludes=("config",))
 
         os.makedirs(self.config.cache_folder, exist_ok=True)
 
