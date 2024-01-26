@@ -16,10 +16,8 @@
 
 from ducktools.lazyimporter import LazyImporter, FromImport, get_module_funcs
 
-from ._version import __version__
-
 __all__ = [
-    "__version__",
+    "__version__",  # noqa
     "Catalogue",  # noqa
     "Config",  # noqa
 ]
@@ -27,6 +25,7 @@ __all__ = [
 
 _laz = LazyImporter(
     [
+        FromImport(".version", "__version__"),
         FromImport(".catalogue", "Catalogue"),
         FromImport(".config", "Config"),
     ],
