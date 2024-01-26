@@ -63,7 +63,7 @@ def _datetime_now_iso() -> str:
     return _datetime.now().isoformat()
 
 
-@prefab
+@prefab(kw_only=True)
 class CachedEnv:
     cache_name: str
     cache_path: str
@@ -92,14 +92,23 @@ class CachedEnv:
 
     @property
     def exists(self) -> bool:
-        return os.path.exists(self.cache_path)
+        return os.path.exists(self.python_path)
+
+    @property
+    def parent_exists(self) -> bool:
+        return os.path.exists(self.parent_python)
+
+    @property
+    def is_valid(self) -> bool:
+        """Check that both the folder exists and the source python exists"""
+        return self.exists and self.parent_exists
 
     def delete(self) -> None:
         """Delete the cache folder"""
         _laz.shutil.rmtree(self.cache_path)
 
 
-@prefab
+@prefab(kw_only=True)
 class Catalogue:
     caches: dict[str, CachedEnv]
     config: Config
@@ -116,11 +125,19 @@ class Catalogue:
         """
         Clear the cache folder when things have gone wrong or for a new version.
         """
+        # Clear the folder
         try:
             _laz.shutil.rmtree(self.config.cache_folder)
         except FileNotFoundError:
             pass
         os.makedirs(self.config.cache_folder, exist_ok=False)
+
+        # Remove caches that no longer exist
+        for cache_name, cache in self.caches.copy().items():
+            if not cache.is_valid:
+                del self.caches[cache_name]
+
+        self.save_cache()
 
     @property
     def oldest_cache(self) -> str | None:
@@ -141,6 +158,7 @@ class Catalogue:
             return old_cache
 
     def expire_caches(self):
+        """Delete caches that have 'expired'"""
         if delta := self.config.cache_expires:
             ctime = _datetime.now()
             # Iterate over a copy as we are modifying the original
