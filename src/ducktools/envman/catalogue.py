@@ -389,5 +389,5 @@ class Catalogue:
         env = self.find_env(spec)
         if not env:
             self.log("Existing environment not found, creating new environment.")
-            self.create_env(spec)
+            env = self.create_env(spec)
         return env
