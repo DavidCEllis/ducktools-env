@@ -32,6 +32,7 @@ from .environment_spec import EnvironmentSpec
 from .config import Config
 from .exceptions import PythonVersionNotFound, InvalidEnvironmentSpec, VenvBuildError
 
+MINIMUM_PIP = "22.3"  # This version of pip introduced --python
 
 _laz = LazyImporter(
     [
@@ -78,18 +79,18 @@ class CachedEnv:
     last_used: str = attribute(default_factory=_datetime_now_iso)
 
     @property
-    def python_path(self):
+    def python_path(self) -> str:
         if sys.platform == "win32":
             return os.path.join(self.cache_path, "Scripts", "python.exe")
         else:
             return os.path.join(self.cache_path, "bin", "python")
 
     @property
-    def created_date(self):
+    def created_date(self) -> _datetime:
         return _datetime.fromisoformat(self.created_on)
 
     @property
-    def last_used_date(self):
+    def last_used_date(self) -> _datetime:
         return _datetime.fromisoformat(self.last_used)
 
     @property
@@ -114,9 +115,14 @@ class CachedEnv:
 class Catalogue:
     caches: dict[str, CachedEnv]
     config: Config
+    # Not the count of current envs
+    # This is the total number of envs that have ever been created
     env_counter: int = 1
 
-    def delete_cache(self, cachename):
+    def log(self, message):
+        return self.config.logger.write(message)
+
+    def delete_cache(self, cachename: str) -> None:
         if cache := self.caches.get(cachename):
             cache.delete()
             del self.caches[cachename]
@@ -159,7 +165,7 @@ class Catalogue:
         else:
             return old_cache
 
-    def expire_caches(self):
+    def expire_caches(self) -> None:
         """Delete caches that have 'expired'"""
         if delta := self.config.cache_expires:
             ctime = _datetime.now()
@@ -173,7 +179,7 @@ class Catalogue:
     def save_cache(self) -> None:
         """Serialize this class into a JSON string and save"""
         # For external users that may not import prefab directly
-        data = prefab_funcs.to_json(self, excludes=("config",))
+        data = prefab_funcs.to_json(self, excludes=("config",), indent=2)
 
         os.makedirs(self.config.cache_folder, exist_ok=True)
 
@@ -277,8 +283,10 @@ class Catalogue:
             raise InvalidEnvironmentSpec("; ".join(spec_errors))
 
         # Delete the oldest cache if there are too many
-        if len(self.caches) >= self.config.cache_maxsize:
-            self.delete_cache(self.oldest_cache)
+        while len(self.caches) > self.config.cache_maxsize:
+            del_cache = self.oldest_cache
+            self.log(f"Deleting {del_cache}")
+            self.delete_cache(del_cache)
 
         new_cachename = f"env_{self.env_counter}"
         self.env_counter += 1
@@ -286,13 +294,24 @@ class Catalogue:
 
         # Find a valid python executable
         for install in _laz.get_python_installs():
-            if (
-                not spec.requires_python
-                or install.version_str in spec.requires_python_spec
-            ):
-                python_exe = install.executable
-                python_version = install.version_str
-                break
+            if pip_ver_str := install.get_pip_version():
+                pip_ver = _packaging.Version(pip_ver_str)
+
+                if pip_ver < _packaging.Version(MINIMUM_PIP):
+                    self.log(
+                        f"Version of Python found at {install.executable} "
+                        f"has an outdated version of pip which does not have "
+                        f"necessary functionality."
+                    )
+                elif (
+                    not spec.requires_python
+                    or install.version_str in spec.requires_python_spec
+                ):
+                    python_exe = install.executable
+                    python_version = install.version_str
+                    break
+            else:
+                self.log(f"Python found at {install.executable} did not have pip installed.")
         else:
             raise PythonVersionNotFound(
                 f"Could not find a Python install satisfying {spec.requires_python!r}."
@@ -306,31 +325,48 @@ class Catalogue:
             )
 
         try:
-            _laz.subprocess.run([python_exe, "-m", "venv", cache_path], check=True)
+            self.log(f"Creating venv in: {cache_path}")
+            _laz.subprocess.run(
+                [python_exe, "-m", "venv", "--without-pip", cache_path], check=True
+            )
         except _laz.subprocess.CalledProcessError as e:
             raise VenvBuildError(f"Failed to build venv: {e}")
 
-        match sys.platform:
-            case "win32":
-                venv_exe = os.path.join(cache_path, "Scripts", "python.exe")
-            case _:
-                venv_exe = os.path.join(cache_path, "bin", "python")
-
         if spec.dependencies:
+            dep_list = ", ".join(spec.dependencies)
+            self.log(f"Installing dependencies from PyPI: {dep_list}")
             try:
                 _laz.subprocess.run(
-                    [venv_exe, "-m", "pip", "install", *spec.dependencies],
+                    [
+                        python_exe,
+                        "-m",
+                        "pip",
+                        "-q",  # Quiet
+                        "--python",
+                        cache_path,
+                        "install",
+                        *spec.dependencies,
+                    ],
                     check=True,
                 )
             except _laz.subprocess.CalledProcessError as e:
                 raise VenvBuildError(f"Failed to install dependencies: {e}")
 
             freeze = _laz.subprocess.run(
-                [venv_exe, "-m", "pip", "freeze"], capture_output=True
+                [
+                    python_exe,
+                    "-m",
+                    "pip",
+                    "--python",
+                    cache_path,
+                    "freeze",
+                ],
+                capture_output=True,
+                text=True,
             )
 
             installed_modules = [
-                item for item in freeze.stdout.decode().split(os.linesep) if item
+                item for item in freeze.stdout.split(os.linesep) if item
             ]
         else:
             installed_modules = []
@@ -350,5 +386,8 @@ class Catalogue:
         return new_cache
 
     def find_or_create_env(self, spec: EnvironmentSpec) -> CachedEnv:
-        env = self.find_env(spec) or self.create_env(spec)
+        env = self.find_env(spec)
+        if not env:
+            self.log("Existing environment not found, creating new environment.")
+            self.create_env(spec)
         return env

@@ -19,7 +19,7 @@ import os
 import os.path
 import datetime
 
-from prefab_classes import prefab
+from prefab_classes import prefab, attribute
 
 from .exceptions import UnsupportedPlatformError
 
@@ -55,6 +55,15 @@ CACHE_FOLDER = os.path.join(BASE_FOLDER, CACHE_FOLDER_NAME)
 
 
 @prefab
+class BasicLogger:
+    destination = attribute()
+
+    def write(self, message):
+        if self.destination:
+            self.destination.write(message + "\n")
+
+
+@prefab
 class Config:
     """
     Configuration for the environment manager.
@@ -63,6 +72,7 @@ class Config:
     :param cache_db_name: string path to the cache filename
     :param cache_maxsize: maximum number of environments to keep cached
     :param cache_expires: delete/restore a cache after it is this old
+    :param logger: Object to write logging messages to.
     """
 
     cache_folder: str = CACHE_FOLDER
@@ -71,6 +81,7 @@ class Config:
     cache_expires: datetime.timedelta | None = datetime.timedelta(
         days=CACHE_EXPIRY_DAYS
     )
+    logger: BasicLogger = BasicLogger(destination=sys.stderr)
 
     @staticmethod
     def __prefab_pre_init__(cache_maxsize):
