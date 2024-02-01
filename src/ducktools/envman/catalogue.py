@@ -18,7 +18,12 @@ import sys
 import os.path
 from datetime import datetime as _datetime
 
-from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport, MultiFromImport
+from ducktools.lazyimporter import (
+    LazyImporter,
+    FromImport,
+    ModuleImport,
+    MultiFromImport,
+)
 
 from prefab_classes import prefab, attribute
 import prefab_classes.funcs as prefab_funcs
@@ -47,10 +52,7 @@ _packaging = LazyImporter(
             "packaging.specifiers",
             ["SpecifierSet", "InvalidSpecifier"],
         ),
-        MultiFromImport(
-            "packaging.version",
-            ["Version", "InvalidVersion"]
-        ),
+        MultiFromImport("packaging.version", ["Version", "InvalidVersion"]),
     ]
 )
 
@@ -175,31 +177,26 @@ class Catalogue:
 
         os.makedirs(self.config.cache_folder, exist_ok=True)
 
-        with open(self.config.cache_db_path, 'w') as f:
+        with open(self.config.cache_db_path, "w") as f:
             f.write(data)
 
     @classmethod
     def from_config(cls, config: Config) -> "Catalogue":
         try:
-            with open(config.cache_db_path, 'r') as f:
+            with open(config.cache_db_path, "r") as f:
                 raw_caches = _laz.json.load(f)
         except FileNotFoundError:
             raw_caches = {}
 
         caches = {
             name: CachedEnv(**cache_info)
-            for name, cache_info
-            in raw_caches.get("caches", {}).items()
+            for name, cache_info in raw_caches.get("caches", {}).items()
         }
 
         env_counter = raw_caches.get("env_counter", 1)
 
         # noinspection PyArgumentList
-        return cls(
-            caches=caches,
-            env_counter=env_counter,
-            config=config
-        )
+        return cls(caches=caches, env_counter=env_counter, config=config)
 
     def _strict_find_env(self, spec: EnvironmentSpec) -> CachedEnv | None:
         """
@@ -289,7 +286,10 @@ class Catalogue:
 
         # Find a valid python executable
         for install in _laz.get_python_installs():
-            if not spec.requires_python or install.version_str in spec.requires_python_spec:
+            if (
+                not spec.requires_python
+                or install.version_str in spec.requires_python_spec
+            ):
                 python_exe = install.executable
                 python_version = install.version_str
                 break
@@ -306,10 +306,7 @@ class Catalogue:
             )
 
         try:
-            _laz.subprocess.run(
-                [python_exe, "-m", "venv", cache_path],
-                check=True
-            )
+            _laz.subprocess.run([python_exe, "-m", "venv", cache_path], check=True)
         except _laz.subprocess.CalledProcessError as e:
             raise VenvBuildError(f"Failed to build venv: {e}")
 
@@ -322,21 +319,19 @@ class Catalogue:
         if spec.dependencies:
             try:
                 _laz.subprocess.run(
-                    [
-                        venv_exe,
-                        "-m",
-                        "pip",
-                        "install",
-                        *spec.dependencies
-                    ],
+                    [venv_exe, "-m", "pip", "install", *spec.dependencies],
                     check=True,
                 )
             except _laz.subprocess.CalledProcessError as e:
                 raise VenvBuildError(f"Failed to install dependencies: {e}")
 
-            freeze = _laz.subprocess.run([venv_exe, "-m", "pip", "freeze"], capture_output=True)
+            freeze = _laz.subprocess.run(
+                [venv_exe, "-m", "pip", "freeze"], capture_output=True
+            )
 
-            installed_modules = [item for item in freeze.stdout.decode().split(os.linesep) if item]
+            installed_modules = [
+                item for item in freeze.stdout.decode().split(os.linesep) if item
+            ]
         else:
             installed_modules = []
 

@@ -64,10 +64,13 @@ class Config:
     :param cache_maxsize: maximum number of environments to keep cached
     :param cache_expires: delete/restore a cache after it is this old
     """
+
     cache_folder: str = CACHE_FOLDER
     cache_db_name: str = CACHE_FILENAME
     cache_maxsize: int = 15
-    cache_expires: datetime.timedelta | None = datetime.timedelta(days=CACHE_EXPIRY_DAYS)
+    cache_expires: datetime.timedelta | None = datetime.timedelta(
+        days=CACHE_EXPIRY_DAYS
+    )
 
     @property
     def cache_db_path(self):
