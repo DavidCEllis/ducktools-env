@@ -1,7 +1,6 @@
 # DuckTools: EnvMan #
 
-EnvMan is a toolkit for managing python environments from python. This is designed to be
-a backend for tools intended to handle environment management for users.
+EnvMan is a toolkit for managing temporary python virtual environments.
 
 ## Dependencies ##
 
@@ -12,7 +11,7 @@ Subprocesses:
 * `pip` (via subprocess within a venv)
 
 PyPI: 
-* `prefab-classes` (A lazy implementation of dataclasses)
+* `prefab-classes` (A lazy, faster implementation of the same concept as dataclasses)
 * `ducktools-lazyimporter`
 * `ducktools-scriptmetadata`
 * `ducktools-pythonfinder`
