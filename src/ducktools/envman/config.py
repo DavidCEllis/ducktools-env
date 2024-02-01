@@ -72,6 +72,11 @@ class Config:
         days=CACHE_EXPIRY_DAYS
     )
 
+    @staticmethod
+    def __prefab_pre_init__(cache_maxsize):
+        if cache_maxsize <= 0 or not isinstance(cache_maxsize, int):
+            raise ValueError("Cache maximum size must be a positive integer.")
+
     @property
     def cache_db_path(self):
         return os.path.join(self.cache_folder, self.cache_db_name)
