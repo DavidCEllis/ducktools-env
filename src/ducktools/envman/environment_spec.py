@@ -18,9 +18,7 @@
 Handle parsing of inline script dependency data.
 """
 
-import os
-
-from prefab_classes import prefab, attribute
+from prefab_classes import prefab
 from ducktools.lazyimporter import (
     LazyImporter,
     TryExceptImport,
@@ -58,6 +56,7 @@ class SpecificationError(Exception):
 @prefab
 class EnvironmentSpec:
     raw_spec: str | None
+    tool_table: str = "envman"
 
     def __prefab_post_init__(self):
         self._initialized: bool = False
@@ -71,7 +70,9 @@ class EnvironmentSpec:
             requirement_data = _laz.tomllib.loads(self.raw_spec)
 
             tool_block = (
-                requirement_data.get("tool", {}).get("ducktools", {}).get("envman", {})
+                requirement_data.get("tool", {})
+                .get("ducktools", {})
+                .get(self.tool_table, {})
             )
             requires_python = requirement_data.get("requires-python", None)
             dependencies = requirement_data.get("dependencies", [])
@@ -83,14 +84,18 @@ class EnvironmentSpec:
         self._initialized = True
 
     @classmethod
-    def from_file(cls, script_path):
+    def from_file(cls, script_path, tool_table="envman"):
         parsed_data = parse_file(script_path)
 
         # Display any warning messages
         for warning in parsed_data.warnings:
             _laz.warnings.warn(warning)
 
-        return cls(raw_spec=parsed_data.blocks.get("script"))  # noqa
+        # noinspection PyArgumentList
+        return cls(
+            raw_spec=parsed_data.blocks.get("script"),
+            tool_table=tool_table,
+        )
 
     @property
     def requires_python(self) -> str | None:
