@@ -20,7 +20,7 @@ import shutil
 from datetime import timedelta
 
 from ducktools.pythonfinder import get_python_installs
-from ducktools.pythonfinder.shared import PythonInstall, parse_version_output
+from ducktools.pythonfinder.shared import PythonInstall, get_install_details
 
 from ducktools.envman import Catalogue, Config
 
@@ -36,8 +36,7 @@ def available_pythons():
 @pytest.fixture(scope="session")
 def this_python():
     py = sys.executable
-    py_ver = parse_version_output(py)
-    return PythonInstall.from_str(py_ver, py)
+    return get_install_details(py)
 
 
 @pytest.fixture(scope="session", autouse=True)
