@@ -20,7 +20,7 @@ import shutil
 from datetime import timedelta
 
 from ducktools.pythonfinder import get_python_installs
-from ducktools.pythonfinder.shared import PythonInstall, get_install_details
+from ducktools.pythonfinder.shared import get_install_details
 
 from ducktools.envman import Catalogue, Config
 
