@@ -14,19 +14,19 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from ducktools.lazyimporter import LazyImporter, FromImport, get_module_funcs
+from ducktools.lazyimporter import LazyImporter, FromImport, MultiFromImport, get_module_funcs
 
 __all__ = [
     "__version__",  # noqa
     "Catalogue",  # noqa
+    "CachedEnv",  # noqa
     "Config",  # noqa
 ]
-
 
 _laz = LazyImporter(
     [
         FromImport(".version", "__version__"),
-        FromImport(".catalogue", "Catalogue"),
+        MultiFromImport(".catalogue", ["Catalogue", "CachedEnv"]),
         FromImport(".config", "Config"),
     ],
     globs=globals(),

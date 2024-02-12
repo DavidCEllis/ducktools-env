@@ -18,8 +18,9 @@ import sys
 import os
 import os.path
 import datetime
+from _collections_abc import Callable
 
-from prefab_classes import prefab, attribute
+from prefab_classes import prefab
 
 from .exceptions import UnsupportedPlatformError
 
@@ -54,16 +55,7 @@ match sys.platform:
 CACHE_FOLDER = os.path.join(BASE_FOLDER, CACHE_FOLDER_NAME)
 
 
-@prefab
-class BasicLogger:
-    destination = attribute()
-
-    def write(self, message):
-        if self.destination:
-            self.destination.write(message + "\n")
-
-
-@prefab
+@prefab(kw_only=True)
 class Config:
     """
     Configuration for the environment manager.
@@ -72,7 +64,9 @@ class Config:
     :param cache_db_name: string path to the cache filename
     :param cache_maxsize: maximum number of environments to keep cached
     :param cache_expires: delete/restore a cache after it is this old
-    :param logger: Object to write logging messages to.
+    :param log_func: Function to use for log messages
+    :param exact_match_only: set to True to only use environments where
+                             the text specification matches.
     """
 
     cache_folder: str = CACHE_FOLDER
@@ -81,7 +75,8 @@ class Config:
     cache_expires: datetime.timedelta | None = datetime.timedelta(
         days=CACHE_EXPIRY_DAYS
     )
-    logger: BasicLogger = BasicLogger(destination=sys.stderr)
+    log_func: Callable[[str], None] = sys.stderr.write
+    exact_match_only: bool = False
 
     @staticmethod
     def __prefab_pre_init__(cache_maxsize):
@@ -91,3 +86,6 @@ class Config:
     @property
     def cache_db_path(self):
         return os.path.join(self.cache_folder, self.cache_db_name)
+
+    def log(self, message):
+        self.log_func(message + "\n")

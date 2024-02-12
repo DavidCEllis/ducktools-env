@@ -55,6 +55,11 @@ class SpecificationError(Exception):
 
 @prefab
 class EnvironmentSpec:
+    """
+    Environment specification details in toml format
+
+    Matching Python "inline script metadata"
+    """
     raw_spec: str | None
     tool_table: str = "envman"
 

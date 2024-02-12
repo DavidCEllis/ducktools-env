@@ -17,6 +17,7 @@
 import sys
 import os.path
 from datetime import datetime as _datetime
+from _collections_abc import Callable
 
 from ducktools.lazyimporter import (
     LazyImporter,
@@ -30,7 +31,7 @@ import prefab_classes.funcs as prefab_funcs
 
 from .environment_spec import EnvironmentSpec
 from .config import Config
-from .exceptions import PythonVersionNotFound, InvalidEnvironmentSpec, VenvBuildError
+from .exceptions import PythonVersionNotFound, InvalidEnvironmentSpec, VenvBuildError, EnvManError
 
 MINIMUM_PIP = "22.3"  # This version of pip introduced --python
 
@@ -120,7 +121,7 @@ class Catalogue:
     env_counter: int = 1
 
     def log(self, message):
-        return self.config.logger.write(message)
+        return self.config.log(message)
 
     def delete_cache(self, cachename: str) -> None:
         if cache := self.caches.get(cachename):
@@ -204,10 +205,13 @@ class Catalogue:
         # noinspection PyArgumentList
         return cls(caches=caches, env_counter=env_counter, config=config)
 
-    def _strict_find_env(self, spec: EnvironmentSpec) -> CachedEnv | None:
+    def find_exact_env(self, spec: EnvironmentSpec) -> CachedEnv | None:
         """
         Attempt to find a cached python environment that matches the literal text
         of the specification.
+
+        This means that either the exact text was used to generate the environment
+        or that it has previously matched in sufficient mode.
 
         :param spec: EnvironmentSpec of requirements
         :return: CacheFolder details of python env that satisfies it or None
@@ -219,15 +223,21 @@ class Catalogue:
         else:
             return None
 
-    def _loose_find_env(self, spec: EnvironmentSpec) -> CachedEnv | None:
+    def find_sufficient_env(self, spec: EnvironmentSpec) -> CachedEnv | None:
         """
         Check for a cache that matches the minimums of all specified modules
 
-        If found, add the text of the spec to raw_specs for that module and return it
+        If found, add the text of the spec to raw_specs for that module and return it.
 
         :param spec: EnvironmentSpec requirements for a python environment
         :return: CacheFolder python environment details or None
         """
+        if self.config.exact_match_only:
+            raise EnvManError(
+                "Can not use 'sufficient' matching environment "
+                "if exact match is required."
+            )
+
         for cache in self.caches.values():
             # If no python version listed ignore it
             # If python version is listed, make sure it matches
@@ -269,7 +279,10 @@ class Catalogue:
         :param spec:
         :return:
         """
-        env = self._strict_find_env(spec) or self._loose_find_env(spec)
+        env = self.find_exact_env(spec)
+
+        if not (env or self.config.exact_match_only):
+            env = self.find_sufficient_env(spec)
 
         if env:
             # Update the cache file
