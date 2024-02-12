@@ -14,25 +14,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from ducktools.lazyimporter import LazyImporter, FromImport, MultiFromImport, get_module_funcs
+# /// script
+# requires-python = "~=3.11.0"
+# ///
 
-__all__ = [
-    "__version__",  # noqa
-    "Catalogue",  # noqa
-    "CachedEnv",  # noqa
-    "Config",  # noqa
-    "EnvironmentSpec",  # noqa
-]
+import sys
 
-_laz = LazyImporter(
-    [
-        FromImport(".version", "__version__"),
-        MultiFromImport(".catalogue", ["Catalogue", "CachedEnv"]),
-        FromImport(".config", "Config"),
-        FromImport(".environment_spec", "EnvironmentSpec"),
-    ],
-    globs=globals(),
-)
-
-
-__getattr__, __dir__ = get_module_funcs(_laz, module_name=__name__)
+print(f"running in {sys.version_info}")

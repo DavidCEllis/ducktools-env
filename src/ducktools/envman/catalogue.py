@@ -17,7 +17,6 @@
 import sys
 import os.path
 from datetime import datetime as _datetime
-from _collections_abc import Callable
 
 from ducktools.lazyimporter import (
     LazyImporter,
@@ -123,10 +122,21 @@ class Catalogue:
     def log(self, message):
         return self.config.log(message)
 
+    def save(self) -> None:
+        """Serialize this class into a JSON string and save"""
+        # For external users that may not import prefab directly
+        data = prefab_funcs.to_json(self, excludes=("config",), indent=2)
+
+        os.makedirs(self.config.cache_folder, exist_ok=True)
+
+        with open(self.config.cache_db_path, "w") as f:
+            f.write(data)
+
     def delete_cache(self, cachename: str) -> None:
         if cache := self.caches.get(cachename):
             cache.delete()
             del self.caches[cachename]
+            self.save()
         else:
             raise FileNotFoundError(f"Cache {cachename!r} not found")
 
@@ -146,7 +156,7 @@ class Catalogue:
             if not cache.is_valid:
                 del self.caches[cache_name]
 
-        self.save_cache()
+        self.save()
 
     @property
     def oldest_cache(self) -> str | None:
@@ -175,17 +185,7 @@ class Catalogue:
                 if (ctime - cache.created_date) > delta:
                     self.delete_cache(cachename)
 
-        self.save_cache()
-
-    def save_cache(self) -> None:
-        """Serialize this class into a JSON string and save"""
-        # For external users that may not import prefab directly
-        data = prefab_funcs.to_json(self, excludes=("config",), indent=2)
-
-        os.makedirs(self.config.cache_folder, exist_ok=True)
-
-        with open(self.config.cache_db_path, "w") as f:
-            f.write(data)
+        self.save()
 
     @classmethod
     def from_config(cls, config: Config) -> "Catalogue":
@@ -219,6 +219,7 @@ class Catalogue:
         for cache in self.caches.values():
             if spec.raw_spec in cache.raw_specs:
                 cache.last_used = _datetime_now_iso()
+                self.save()
                 return cache
         else:
             return None
@@ -267,6 +268,7 @@ class Catalogue:
                 # Update last_used and append this spec to raw_specs
                 cache.last_used = _datetime_now_iso()
                 cache.raw_specs.append(spec.raw_spec)
+                self.save()
                 return cache
 
         else:
@@ -283,10 +285,6 @@ class Catalogue:
 
         if not (env or self.config.exact_match_only):
             env = self.find_sufficient_env(spec)
-
-        if env:
-            # Update the cache file
-            self.save_cache()
 
         return env
 
@@ -394,7 +392,7 @@ class Catalogue:
         )
 
         self.caches[new_cachename] = new_cache
-        self.save_cache()
+        self.save()
 
         return new_cache
 

@@ -14,25 +14,34 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from ducktools.lazyimporter import LazyImporter, FromImport, MultiFromImport, get_module_funcs
+"""
+A simple 'main' script showing usage - use all default settings.
+"""
+import sys
+import subprocess
 
-__all__ = [
-    "__version__",  # noqa
-    "Catalogue",  # noqa
-    "CachedEnv",  # noqa
-    "Config",  # noqa
-    "EnvironmentSpec",  # noqa
-]
-
-_laz = LazyImporter(
-    [
-        FromImport(".version", "__version__"),
-        MultiFromImport(".catalogue", ["Catalogue", "CachedEnv"]),
-        FromImport(".config", "Config"),
-        FromImport(".environment_spec", "EnvironmentSpec"),
-    ],
-    globs=globals(),
-)
+from . import Config, Catalogue, EnvironmentSpec
 
 
-__getattr__, __dir__ = get_module_funcs(_laz, module_name=__name__)
+def main():
+    args_to_python = sys.argv[1:]
+    for item in args_to_python:
+        if item.endswith(".py"):
+            script_file = item
+            break
+    else:
+        raise ValueError("Must provide a path to a python script within the arguments.")
+
+    spec = EnvironmentSpec.from_file(script_file)
+
+    config = Config()
+    catalogue = Catalogue.from_config(config)
+
+    env = catalogue.find_or_create_env(spec)
+
+    sys.stderr.write(f"Using environment at: {env.cache_path}\n")
+
+    subprocess.run([env.python_path, *args_to_python])
+
+
+main()
