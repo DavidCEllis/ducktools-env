@@ -44,4 +44,5 @@ def main():
     subprocess.run([env.python_path, *args_to_python])
 
 
-main()
+if __name__ == "__main__":
+    main()
