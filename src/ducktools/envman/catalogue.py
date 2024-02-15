@@ -149,14 +149,11 @@ class Catalogue:
             _laz.shutil.rmtree(self.config.cache_folder)
         except FileNotFoundError:
             pass
-        os.makedirs(self.config.cache_folder, exist_ok=False)
 
         # Remove caches that no longer exist
         for cache_name, cache in self.caches.copy().items():
             if not cache.is_valid:
                 del self.caches[cache_name]
-
-        self.save()
 
     @property
     def oldest_cache(self) -> str | None:
