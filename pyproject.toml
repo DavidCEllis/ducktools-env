@@ -16,7 +16,7 @@ dependencies = [
     "prefab-classes",
     "ducktools-lazyimporter",
     "ducktools-scriptmetadata",
-    "ducktools-pythonfinder@git+https://github.com/DavidCEllis/ducktools-pythonfinder",
+    "ducktools-pythonfinder",
     "tomli; python_version <= '3.10'",
     "packaging~=23.2",
 ]
