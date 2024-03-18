@@ -171,7 +171,7 @@ class Catalogue:
         if old_cache:
             return old_cache.cache_name
         else:
-            return old_cache
+            return None
 
     def expire_caches(self) -> None:
         """Delete caches that have 'expired'"""
