@@ -18,7 +18,7 @@
 Handle parsing of inline script dependency data.
 """
 
-from prefab_classes import prefab
+from ducktools.classbuilder.prefab import prefab
 from ducktools.lazyimporter import (
     LazyImporter,
     TryExceptImport,

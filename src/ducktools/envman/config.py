@@ -20,7 +20,7 @@ import os.path
 import datetime
 from _collections_abc import Callable
 
-from prefab_classes import prefab
+from ducktools.classbuilder.prefab import prefab
 
 from .exceptions import UnsupportedPlatformError
 
