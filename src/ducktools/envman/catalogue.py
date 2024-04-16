@@ -25,8 +25,7 @@ from ducktools.lazyimporter import (
     MultiFromImport,
 )
 
-from prefab_classes import prefab, attribute
-import prefab_classes.funcs as prefab_funcs
+from ducktools.classbuilder.prefab import prefab, attribute, as_dict
 
 from .environment_spec import EnvironmentSpec
 from .config import Config
@@ -114,7 +113,7 @@ class CachedEnv:
 @prefab(kw_only=True)
 class Catalogue:
     caches: dict[str, CachedEnv]
-    config: Config
+    config: Config = attribute(in_dict=False)
     # Not the count of current envs
     # This is the total number of envs that have ever been created
     env_counter: int = 1
@@ -125,7 +124,7 @@ class Catalogue:
     def save(self) -> None:
         """Serialize this class into a JSON string and save"""
         # For external users that may not import prefab directly
-        data = prefab_funcs.to_json(self, excludes=("config",), indent=2)
+        data = _laz.json.dumps(self, default=as_dict, indent=2)
 
         os.makedirs(self.config.cache_folder, exist_ok=True)
 

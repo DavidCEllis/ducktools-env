@@ -16,7 +16,7 @@
 
 from ducktools.envman.environment_spec import EnvironmentSpec
 
-from prefab_classes import prefab, attribute
+from ducktools.classbuilder.prefab import prefab, attribute
 import pytest
 
 
