@@ -113,7 +113,7 @@ class CachedEnv:
 @prefab(kw_only=True)
 class Catalogue:
     caches: dict[str, CachedEnv]
-    config: Config = attribute(in_dict=False)
+    config: Config = attribute(serialize=False)
     # Not the count of current envs
     # This is the total number of envs that have ever been created
     env_counter: int = 1

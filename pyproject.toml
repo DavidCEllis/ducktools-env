@@ -13,7 +13,7 @@ authors = [
 readme="README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "ducktools-classbuilder",
+    "ducktools-classbuilder>=0.2.1",
     "ducktools-lazyimporter",
     "ducktools-scriptmetadata",
     "ducktools-pythonfinder",
