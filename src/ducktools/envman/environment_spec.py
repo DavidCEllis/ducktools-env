@@ -18,7 +18,7 @@
 Handle parsing of inline script dependency data.
 """
 
-from ducktools.classbuilder.prefab import prefab
+from ducktools.classbuilder.prefab import Prefab, attribute
 from ducktools.lazyimporter import (
     LazyImporter,
     TryExceptImport,
@@ -53,8 +53,7 @@ class SpecificationError(Exception):
     pass
 
 
-@prefab
-class EnvironmentSpec:
+class EnvironmentSpec(Prefab):
     """
     Environment specification details in toml format
 
@@ -63,11 +62,11 @@ class EnvironmentSpec:
     raw_spec: str | None
     tool_table: str = "envman"
 
-    def __prefab_post_init__(self):
-        self._initialized: bool = False
-        self._requires_python: str | None = None
-        self._dependencies: list[str] = []
-        self._extras: dict = {}
+    # Internal attributes used for caches
+    _initialized: bool = attribute(default=False, init=False, exclude_field=True)
+    _requires_python: str | None = attribute(default=False, init=False, exclude_field=True)
+    _dependencies: list[str] = attribute(default_factory=list, init=False, exclude_field=True)
+    _extras: dict = attribute(default_factory=dict, init=False, exclude_field=True)
 
     def _parse_raw(self):
         if self.raw_spec:

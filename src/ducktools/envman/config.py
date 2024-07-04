@@ -20,7 +20,7 @@ import os.path
 import datetime
 from _collections_abc import Callable
 
-from ducktools.classbuilder.prefab import prefab
+from ducktools.classbuilder.prefab import Prefab
 
 from .exceptions import UnsupportedPlatformError
 
@@ -55,8 +55,7 @@ match sys.platform:
 CACHE_FOLDER = os.path.join(BASE_FOLDER, CACHE_FOLDER_NAME)
 
 
-@prefab(kw_only=True)
-class Config:
+class Config(Prefab, kw_only=True):
     """
     Configuration for the environment manager.
 

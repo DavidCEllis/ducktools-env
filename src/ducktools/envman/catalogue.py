@@ -25,7 +25,7 @@ from ducktools.lazyimporter import (
     MultiFromImport,
 )
 
-from ducktools.classbuilder.prefab import prefab, attribute, as_dict
+from ducktools.classbuilder.prefab import Prefab, attribute, as_dict
 
 from .environment_spec import EnvironmentSpec
 from .config import Config
@@ -65,8 +65,7 @@ def _datetime_now_iso() -> str:
     return _datetime.now().isoformat()
 
 
-@prefab(kw_only=True)
-class CachedEnv:
+class CachedEnv(Prefab, kw_only=True):
     cache_name: str
     cache_path: str
     raw_specs: list[str]
@@ -110,8 +109,7 @@ class CachedEnv:
         _laz.shutil.rmtree(self.cache_path)
 
 
-@prefab(kw_only=True)
-class Catalogue:
+class Catalogue(Prefab, kw_only=True):
     caches: dict[str, CachedEnv]
     config: Config = attribute(serialize=False)
     # Not the count of current envs
