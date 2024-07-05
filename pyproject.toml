@@ -6,14 +6,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name="ducktools-envman"
-description="New Ducktools Module"
+description="Virtual Environment Manager for ducktools applications"
 authors = [
   { name="David C Ellis" },
 ]
 readme="README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "ducktools-classbuilder>=0.2.1",
+    "ducktools-classbuilder>=0.6.2",
     "ducktools-lazyimporter",
     "ducktools-scriptmetadata",
     "ducktools-pythonfinder",
