@@ -41,6 +41,7 @@ Possible options:
 ## Config Options ##
 
 Various install options:
+
 update_frequency: "daily", "weekly", "fortnightly", "monthly", "never" (Default - "daily")
 package_index: link to alternate package index (default PyPI as pip) (URL)
 only_binary: (:all: by default)
@@ -49,8 +50,6 @@ offline_install: "True" - bundle all dependencies into the pyz for supported pla
 
 include_pip: default to 'False', if 'True' then update pip on install
              In general packages require `pip` only as their installer but don't use it otherwise
-
-
 
 
 ## What needs to happen on running a zipapp ##
