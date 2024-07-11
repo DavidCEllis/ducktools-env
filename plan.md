@@ -21,6 +21,9 @@ Install  Options:
   * In this case updates will require a new archive
   * Separate and merged binaries for projects that have platform dependant builds
 
+Possible options:
+* [ ] Install required python versions automatically
+  * I think for windows this could be done with the installers 
 
 ## Environment folder structure ##
 
@@ -35,9 +38,33 @@ Install  Options:
 * Application VEnvs: `/application`
 
 
+## Config Options ##
+
+Various install options:
+update_frequency: "daily", "weekly", "fortnightly", "monthly", "never" (Default - "daily")
+package_index: link to alternate package index (default PyPI as pip) (URL)
+only_binary: (:all: by default)
+
+offline_install: "True" - bundle all dependencies into the pyz for supported platforms
+
+include_pip: default to 'False', if 'True' then update pip on install
+             In general packages require `pip` only as their installer but don't use it otherwise
+
+
+
+
 ## What needs to happen on running a zipapp ##
 
+Metadata Requirements:
+* Project Name
+* Author Name
+* Version Number
+
+
 * Check if there is already a core environment
-* Check if the ducktools-envman version in that environment is >= the version bundled
-* If it is newer - use that version instead of the bundled one for app building
-* 
+* Update the core environment from PyPI if it is outdated (check once daily at most)
+* Update the core environment from a bundle if a newer version is included
+* Use the core environment that is already installed if it is newer than the bundled version
+
+* Launch the application if the environment already exists
+* Create a venv and install all dependencies and launch the command provided
