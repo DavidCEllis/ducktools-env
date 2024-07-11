@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from __future__ import annotations
 
 import sys
 import os
@@ -29,28 +30,34 @@ CACHE_FOLDER_NAME = "venv_caches"
 CACHE_FILENAME = f"cache_details.json"
 CACHE_EXPIRY_DAYS = 30
 
-match sys.platform:
-    case "win32":
-        # os.path.expandvars will actually import a whole bunch of other modules
-        # Try just using the environment.
-        if _local_app_folder := os.environ.get("LOCALAPPDATA"):
-            if not os.path.isdir(_local_app_folder):
-                raise FileNotFoundError(
-                    f"Could not find local app data folder {_local_app_folder}"
-                )
-        else:
-            raise EnvironmentError("Environment variable %LOCALAPPDATA% not found")
-        BASE_FOLDER = os.path.join(_local_app_folder, PROJECT_NAME)
-    case "linux":
-        BASE_FOLDER = os.path.expanduser(os.path.join("~", f".{PROJECT_NAME}"))
-    case "darwin":
-        BASE_FOLDER = os.path.expanduser(
-            os.path.join("~", "Library", "Caches", PROJECT_NAME)
+if sys.platform == "win32":
+    # os.path.expandvars will actually import a whole bunch of other modules
+    # Try just using the environment.
+    if _local_app_folder := os.environ.get("LOCALAPPDATA"):
+        if not os.path.isdir(_local_app_folder):
+            raise FileNotFoundError(
+                f"Could not find local app data folder {_local_app_folder}"
+            )
+    else:
+        raise EnvironmentError(
+            "Environment variable %LOCALAPPDATA% "
+            "for local application data folder location "
+            "not found"
         )
-    case other:
-        raise UnsupportedPlatformError(
-            f"Platform {other!r} is not currently supported."
-        )
+    BASE_FOLDER = os.path.join(_local_app_folder, PROJECT_NAME)
+elif sys.platform == "linux":
+    BASE_FOLDER = os.path.expanduser(os.path.join("~", f".{PROJECT_NAME}"))
+elif sys.platform == "darwin":
+    raise UnsupportedPlatformError(
+        f"Platform {sys.platform!r} is not currently supported."
+    )
+    # BASE_FOLDER = os.path.expanduser(
+    #     os.path.join("~", "Library", "Caches", PROJECT_NAME)
+    # )
+else:
+    raise UnsupportedPlatformError(
+        f"Platform {sys.platform!r} is not currently supported."
+    )
 
 CACHE_FOLDER = os.path.join(BASE_FOLDER, CACHE_FOLDER_NAME)
 

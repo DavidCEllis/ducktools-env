@@ -11,7 +11,7 @@ authors = [
   { name="David C Ellis" },
 ]
 readme="README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 dependencies = [
     "ducktools-classbuilder>=0.6.2",
     "ducktools-lazyimporter",
@@ -22,6 +22,8 @@ dependencies = [
 ]
 classifiers = [
     "Development Status :: 1 - Planning",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
