@@ -20,12 +20,14 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 import sys
 import os
 
-from .exceptions import UnsupportedPlatformError
 
-PROJECT_NAME = "ducktools"
+class UnsupportedPlatformError(Exception):
+    pass
+
 
 # Each OS has a different place where you would expect to keep application data
 # Try to correctly use them
@@ -43,35 +45,31 @@ if sys.platform == "win32":
             "for local application data folder location "
             "not found"
         )
-    PLATFORM_FOLDER = os.path.join(_local_app_folder, PROJECT_NAME)
+    USER_FOLDER = _local_app_folder
 elif sys.platform == "linux":
-    PLATFORM_FOLDER = os.path.expanduser(os.path.join("~", f".{PROJECT_NAME}"))
+    USER_FOLDER = os.path.expanduser("~")
 elif sys.platform == "darwin":
     raise UnsupportedPlatformError(
         f"MacOS is not yet supported."
     )
     # PLATFORM_FOLDER = os.path.expanduser(
-    #     os.path.join("~", "Library", "Caches", PROJECT_NAME)
+    #     os.path.join("~", "Library", "Caches")
     # )
 else:
     raise UnsupportedPlatformError(
         f"Platform {sys.platform!r} is not currently supported."
     )
 
-# This is the base folder for all configuration and environments
-BASE_PROJECT_FOLDERNAME = os.path.join(PLATFORM_FOLDER, "environments")
 
-# Folder for the manager environment
-CORE_FOLDERNAME = "core"
-CORE_FOLDER = os.path.join(BASE_PROJECT_FOLDERNAME, CORE_FOLDERNAME)
-CORE_VENV = os.path.join(CORE_FOLDER, "env")
+def get_platform_python(venv_folder):
+    if sys.platform == "win32":
+        return os.path.join(venv_folder, "Scripts", "python.exe")
+    else:
+        return os.path.join(venv_folder, "bin", "python")
 
-# Python executable path for core python
-if sys.platform == "win32":
-    CORE_PYTHON = os.path.join(CORE_VENV, "Scripts", "python.exe")
-else:
-    CORE_PYTHON = os.path.join(CORE_VENV, "bin", "python")
 
-# Filenames for configuration and catalogue
-CONFIG_FILENAME = "config.json"
-CATALOGUE_FILENAME = "catalogue.json"
+def get_platform_folder(name):
+    if sys.platform == "linux":
+        return os.path.join(USER_FOLDER, f".{name}")
+    else:
+        return os.path.join(USER_FOLDER, name)
