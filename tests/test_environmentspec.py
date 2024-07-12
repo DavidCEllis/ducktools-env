@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from ducktools.envman.environment_spec import EnvironmentSpec
+from ducktools.env.lib.environment_spec import EnvironmentSpec
 
 from ducktools.classbuilder.prefab import prefab, attribute
 import pytest

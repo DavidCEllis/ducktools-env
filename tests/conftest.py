@@ -22,7 +22,8 @@ from datetime import timedelta
 from ducktools.pythonfinder import get_python_installs
 from ducktools.pythonfinder.shared import get_install_details
 
-from ducktools.envman import Catalogue, Config
+from ducktools.env.catalogue import Catalogue
+from ducktools.env.core.config import Config
 
 from unittest.mock import patch
 import pytest

@@ -1,23 +1,31 @@
-# DuckTools-EnvMan
-# Copyright (C) 2024 David C Ellis
+# ducktools.env
+# MIT License
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# Copyright (c) 2024 David C Ellis
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 from __future__ import annotations
 
 import sys
 import os.path
-from datetime import datetime as _datetime
+from datetime import datetime as _datetime, timedelta as _timedelta
+from enum import StrEnum, auto
 
 from ducktools.lazyimporter import (
     LazyImporter,
@@ -28,9 +36,8 @@ from ducktools.lazyimporter import (
 
 from ducktools.classbuilder.prefab import Prefab, attribute, as_dict
 
-from .environment_spec import EnvironmentSpec
 from .config import Config
-from .exceptions import PythonVersionNotFound, InvalidEnvironmentSpec, VenvBuildError, EnvManError
+from ..exceptions import PythonVersionNotFound, InvalidEnvironmentSpec, VenvBuildError, EnvManError
 
 MINIMUM_PIP = "22.3"  # This version of pip introduced --python
 
@@ -58,6 +65,13 @@ _packaging = LazyImporter(
 )
 
 
+class UpdateSchedule(StrEnum):
+    DAILY = auto()
+    WEEKLY = auto()
+    FORTNIGHTLY = auto()
+    NEVER = auto()
+
+
 def _datetime_now_iso() -> str:
     """
     Helper function to allow use of datetime.now with iso formatting
@@ -66,23 +80,20 @@ def _datetime_now_iso() -> str:
     return _datetime.now().isoformat()
 
 
-class CachedEnv(Prefab, kw_only=True):
-    cache_name: str
-    cache_path: str
-    raw_specs: list[str]
+class EnvironmentBase(Prefab, kw_only=True):
+    name: str
+    path: str
     python_version: str
-    installed_modules: list[str]
     parent_python: str
-    usage_count: int = 0
     created_on: str = attribute(default_factory=_datetime_now_iso)
     last_used: str = attribute(default_factory=_datetime_now_iso)
 
     @property
     def python_path(self) -> str:
         if sys.platform == "win32":
-            return os.path.join(self.cache_path, "Scripts", "python.exe")
+            return os.path.join(self.path, "Scripts", "python.exe")
         else:
-            return os.path.join(self.cache_path, "bin", "python")
+            return os.path.join(self.path, "bin", "python")
 
     @property
     def created_date(self) -> _datetime:
@@ -107,25 +118,37 @@ class CachedEnv(Prefab, kw_only=True):
 
     def delete(self) -> None:
         """Delete the cache folder"""
-        _laz.shutil.rmtree(self.cache_path)
+        _laz.shutil.rmtree(self.path)
 
 
-class Catalogue(Prefab, kw_only=True):
-    caches: dict[str, CachedEnv]
-    config: Config = attribute(serialize=False)
-    # Not the count of current envs
-    # This is the total number of envs that have ever been created
-    env_counter: int = 1
+class TemporaryEnv(EnvironmentBase, kw_only=True):
+    """
+    This is for temporary environments that expire after a certain period
+    """
+    raw_specs: list[str]
+    installed_modules: list[str]
+    usage_count: int = 0
 
-    def log(self, message):
-        return self.config.log(message)
+
+class ApplicationEnv(EnvironmentBase, kw_only=True):
+    ...
+
+
+class CatalogueBase(Prefab, kw_only=True):
+    name: str
+    caches: dict[str, EnvironmentBase]
+    config: Config
+
+    @property
+    def path(self):
+        return os.path.join(self.config.base_folder, self.name)
 
     def save(self) -> None:
         """Serialize this class into a JSON string and save"""
         # For external users that may not import prefab directly
         data = _laz.json.dumps(self, default=as_dict, indent=2)
 
-        os.makedirs(self.config.cache_folder, exist_ok=True)
+        os.makedirs(self.path, exist_ok=True)
 
         with open(self.config.cache_db_path, "w") as f:
             f.write(data)
@@ -167,7 +190,7 @@ class Catalogue(Prefab, kw_only=True):
                 old_cache = cache
 
         if old_cache:
-            return old_cache.cache_name
+            return old_cache.name
         else:
             return None
 
@@ -191,7 +214,7 @@ class Catalogue(Prefab, kw_only=True):
             raw_caches = {}
 
         caches = {
-            name: CachedEnv(**cache_info)
+            name: TemporaryEnv(**cache_info)
             for name, cache_info in raw_caches.get("caches", {}).items()
         }
 
@@ -200,7 +223,7 @@ class Catalogue(Prefab, kw_only=True):
         # noinspection PyArgumentList
         return cls(caches=caches, env_counter=env_counter, config=config)
 
-    def find_exact_env(self, spec: EnvironmentSpec) -> CachedEnv | None:
+    def find_exact_env(self, spec: EnvironmentSpec) -> TemporaryEnv | None:
         """
         Attempt to find a cached python environment that matches the literal text
         of the specification.
@@ -208,7 +231,7 @@ class Catalogue(Prefab, kw_only=True):
         This means that either the exact text was used to generate the environment
         or that it has previously matched in sufficient mode.
 
-        :param spec: EnvironmentSpec of requirements
+        :param spec: InlineSpec of requirements
         :return: CacheFolder details of python env that satisfies it or None
         """
         for cache in self.caches.values():
@@ -219,13 +242,13 @@ class Catalogue(Prefab, kw_only=True):
         else:
             return None
 
-    def find_sufficient_env(self, spec: EnvironmentSpec) -> CachedEnv | None:
+    def find_sufficient_env(self, spec: EnvironmentSpec) -> TemporaryEnv | None:
         """
         Check for a cache that matches the minimums of all specified modules
 
         If found, add the text of the spec to raw_specs for that module and return it.
 
-        :param spec: EnvironmentSpec requirements for a python environment
+        :param spec: InlineSpec requirements for a python environment
         :return: CacheFolder python environment details or None
         """
         if self.config.exact_match_only:
@@ -269,7 +292,7 @@ class Catalogue(Prefab, kw_only=True):
         else:
             return None
 
-    def find_env(self, spec: EnvironmentSpec) -> CachedEnv | None:
+    def find_env(self, spec: EnvironmentSpec) -> TemporaryEnv | None:
         """
         Try to find an existing cached environment that satisfies the spec
 
@@ -283,7 +306,7 @@ class Catalogue(Prefab, kw_only=True):
 
         return env
 
-    def create_env(self, spec: EnvironmentSpec) -> CachedEnv:
+    def create_env(self, spec: EnvironmentSpec) -> TemporaryEnv:
         # Check the spec is valid
         if spec_errors := spec.errors():
             raise InvalidEnvironmentSpec("; ".join(spec_errors))
@@ -377,7 +400,7 @@ class Catalogue(Prefab, kw_only=True):
         else:
             installed_modules = []
 
-        new_cache = CachedEnv(
+        new_cache = TemporaryEnv(
             cache_name=new_cachename,
             cache_path=cache_path,
             raw_specs=[spec.raw_spec],
@@ -391,7 +414,7 @@ class Catalogue(Prefab, kw_only=True):
 
         return new_cache
 
-    def find_or_create_env(self, spec: EnvironmentSpec) -> CachedEnv:
+    def find_or_create_env(self, spec: EnvironmentSpec) -> TemporaryEnv:
         env = self.find_env(spec)
         if not env:
             self.log("Existing environment not found, creating new environment.")

@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from ducktools.envman.environment_spec import EnvironmentSpec
+from ducktools.env.lib.environment_spec import EnvironmentSpec
 
 
 class TestBuildRetrieve:

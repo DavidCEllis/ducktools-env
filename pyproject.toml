@@ -5,8 +5,8 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name="ducktools-envman"
-description="Virtual Environment Manager for ducktools applications"
+name="ducktools-env"
+description="Virtual environment management tools and application bundle builder"
 authors = [
   { name="David C Ellis" },
 ]
@@ -28,7 +28,8 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
-    "Operating System :: OS Independent",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
 ]
 dynamic = ['version']
 

@@ -31,9 +31,9 @@ Possible options:
   * Windows: `%LOCALAPPDATA%\ducktools\environments`
   * Linux: `~/.ducktools/environments`
   * MacOS: `~/Library/Caches/ducktools/environments` <-- This may change
-* Config File: `config_v<major_version>.json`
-* Catalogue File: `catalogue_v<major_version>.json` inside each folder for ENVs
-* Core environment: `/core_v<major_version>`
+* Config File: `config.json`
+* Catalogue File: `catalogue.json` inside each folder for ENVs
+* Core environment: `/core`
 * Temporary VEnvs: `/temporary`
 * Application VEnvs: `/application`
 
@@ -42,7 +42,7 @@ Possible options:
 
 Various install options:
 
-update_frequency: "daily", "weekly", "fortnightly", "monthly", "never" (Default - "daily")
+update_frequency: "daily", "weekly", "fortnightly", "never" (Default - "daily")
 package_index: link to alternate package index (default PyPI as pip) (URL)
 only_binary: (:all: by default)
 
@@ -67,3 +67,12 @@ Metadata Requirements:
 
 * Launch the application if the environment already exists
 * Create a venv and install all dependencies and launch the command provided
+
+
+## Multi-project structure ##
+
+ducktools.env.catalogue: Catalogue manager
+
+ducktools.env.run: script launcher
+ducktools.env.package: 
+
