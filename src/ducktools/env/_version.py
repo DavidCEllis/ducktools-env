@@ -21,5 +21,29 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os.path
 
-__version__ = "v0.0.1"
+# noinspection PyUnresolvedReferences
+__all__ = ["__version__"]
+
+
+def __getattr__(name):
+    if name == "__version__":
+        # setuptools-scm should write a _version.txt file
+        # if for whatever reason this isn't found, fall back to importlib-metadata
+
+        fld = os.path.split(__file__)[0]
+        version_file = os.path.join(fld, "_version.txt")
+        try:
+            with open(version_file, 'r') as version_txt:
+                v = version_txt.read()
+        except FileNotFoundError:
+            from importlib import metadata
+            v = metadata.version("ducktools-env")
+
+        globals()["__version__"] = v
+        return v
+
+
+def __dir__():
+    return ["__version__"]
