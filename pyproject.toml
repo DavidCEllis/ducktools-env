@@ -19,7 +19,7 @@ dependencies = [
     "ducktools-scriptmetadata",
     "ducktools-pythonfinder",
     "tomli; python_version <= '3.10'",
-    "packaging~=23.2",
+    "packaging>=23.2",
 ]
 classifiers = [
     "Development Status :: 1 - Planning",

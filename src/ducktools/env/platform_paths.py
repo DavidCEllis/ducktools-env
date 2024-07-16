@@ -20,13 +20,27 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from __future__ import annotations
 
 import sys
 import os
 
+from ducktools.classbuilder.prefab import Prefab, prefab, attribute
 
-class UnsupportedPlatformError(Exception):
-    pass
+from .exceptions import UnsupportedPlatformError
+
+
+ENVIRONMENTS_SUBFOLDER = "environments"
+
+# Folders used internally
+CORE_FOLDERNAME = "core"
+CACHEDENV_FOLDERNAME = "caches"
+APPLICATION_FOLDERNAME = "application"
+VENV_FOLDERNAME = "env"
+
+# Filenames for configuration and catalogue
+CONFIG_FILENAME = "config.json"
+CATALOGUE_FILENAME = "catalogue.json"
 
 
 # Each OS has a different place where you would expect to keep application data
@@ -73,3 +87,25 @@ def get_platform_folder(name):
         return os.path.join(USER_FOLDER, f".{name}")
     else:
         return os.path.join(USER_FOLDER, name)
+
+
+class ManagedPaths(Prefab):
+    project_name: str
+    project_folder: str = attribute(init=False, repr=False)
+    config_path: str = attribute(init=False, repr=False)
+    core_folder: str = attribute(init=False, repr=False)
+    core_python: str = attribute(init=False, repr=False)
+
+    application_folder: str = attribute(init=False, repr=False)
+    cache_folder: str = attribute(init=False, repr=False)
+
+    def __prefab_post_init__(self):
+        folder_base = os.path.join(self.project_name, ENVIRONMENTS_SUBFOLDER)
+
+        self.project_folder = get_platform_folder(folder_base)
+        self.config_path = os.path.join(self.project_folder, CONFIG_FILENAME)
+        self.core_folder = os.path.join(self.project_folder, CORE_FOLDERNAME)
+        self.core_python = get_platform_python(os.path.join(self.core_folder, VENV_FOLDERNAME))
+
+        self.application_folder = os.path.join(self.project_folder, APPLICATION_FOLDERNAME)
+        self.cache_folder = os.path.join(self.project_folder, CACHEDENV_FOLDERNAME)

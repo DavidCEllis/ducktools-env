@@ -20,17 +20,3 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-import json
-
-
-def main():
-    # Gather the spec for the install
-    with open("spec.json", 'r') as specfile:
-        spec = json.load(specfile)
-
-    base_folder = spec["base_folder"]
-
-
-if __name__ == "__main__":
-    main()

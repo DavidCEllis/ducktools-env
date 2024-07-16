@@ -20,52 +20,55 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from __future__ import annotations
-
+"""
+User global configuration
+"""
 import sys
 import os
 
-from ducktools.classbuilder.prefab import Prefab, attribute
+from datetime import timedelta as _timedelta
 
-from .platform_paths import get_platform_folder, get_platform_python
+from ducktools.lazyimporter import LazyImporter, ModuleImport
+from ducktools.classbuilder.prefab import Prefab, get_attributes, as_dict
 
-DEFAULT_PROJECT_NAME = "ducktools"
-
-# Each OS has a different place where you would expect to keep application data
-# Try to correctly use them
-PLATFORM_FOLDER = get_platform_folder(DEFAULT_PROJECT_NAME)
-
-# Folder for the manager environment
-CORE_FOLDERNAME = "core"
-
-# Filenames for configuration and catalogue
-CONFIG_FILENAME = "config.json"
-CATALOGUE_FILENAME = "catalogue.json"
+_laz = LazyImporter(
+    [
+        ModuleImport("json"),
+    ]
+)
 
 
-class Config(Prefab):
-    project_name: str = DEFAULT_PROJECT_NAME
+def log(message):
+    sys.stderr.write(message)
+    sys.stderr.write("\n")
 
-    _project_folder: str | None = attribute(default=None, private=True)
-    _core_python: str | None = attribute(default=None, private=True)
 
-    @property
-    def project_folder(self):
-        if self._project_folder is None:
-            folder_base = os.path.join(self.project_name, "environments")
-            self._project_folder = get_platform_folder(folder_base)
-        return self._project_folder
+class Config(Prefab, kw_only=True):
+    # Global settings for caches
+    cache_maxcount: int = 10
+    cache_lifetime: float = 1.0
 
-    @property
-    def config_path(self):
-        return os.path.join(self.project_folder, CONFIG_FILENAME)
+    applications_expire: bool = False
+    applications_lifetime: float = 14.0
 
-    @property
-    def core_folder(self):
-        return os.path.join(self.project_folder, "core")
+    def cache_lifetime_delta(self) -> _timedelta:
+        return _timedelta(days=self.cache_lifetime)
 
-    @property
-    def core_python(self):
-        if self._core_python is None:
-            self._core_python = get_platform_python(os.path.join(self.core_folder, "env"))
-        return self._core_python
+    @classmethod
+    def load(cls, file_path: str):
+        try:
+            with open(file_path, 'r') as f:
+                json_data = _laz.json.load(f)
+        except FileNotFoundError:
+            return cls()
+        else:
+            attribute_keys = {k for k, v in get_attributes(cls).items() if v.init}
+            valid_keys = json_data.keys() & attribute_keys
+
+            # noinspection PyArgumentList
+            return cls(**valid_keys)
+
+    def save(self, file_path: str):
+        os.makedirs(os.path.split(file_path)[0], exist_ok=True)
+        with open(file_path, "w") as f:
+            _laz.json.dump(self, f, default=as_dict)

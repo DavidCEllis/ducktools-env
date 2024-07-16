@@ -25,7 +25,6 @@ from __future__ import annotations
 import sys
 import os.path
 from datetime import datetime as _datetime, timedelta as _timedelta
-from enum import StrEnum, auto
 
 from ducktools.lazyimporter import (
     LazyImporter,
@@ -34,10 +33,11 @@ from ducktools.lazyimporter import (
     MultiFromImport,
 )
 
-from ducktools.classbuilder.prefab import Prefab, attribute, as_dict
+from ducktools.classbuilder.prefab import Prefab, prefab, attribute, as_dict
 
-from .config import Config
-from ..exceptions import PythonVersionNotFound, InvalidEnvironmentSpec, VenvBuildError, EnvManError
+from .exceptions import PythonVersionNotFound, InvalidEnvironmentSpec, VenvBuildError
+from .environment_specs import EnvironmentSpec
+from .config import Config, log
 
 MINIMUM_PIP = "22.3"  # This version of pip introduced --python
 
@@ -46,6 +46,7 @@ _laz = LazyImporter(
         ModuleImport("shutil"),
         ModuleImport("json"),
         ModuleImport("subprocess"),
+        ModuleImport("hashlib"),
         FromImport("ducktools.pythonfinder", "get_python_installs"),
     ]
 )
@@ -65,13 +66,6 @@ _packaging = LazyImporter(
 )
 
 
-class UpdateSchedule(StrEnum):
-    DAILY = auto()
-    WEEKLY = auto()
-    FORTNIGHTLY = auto()
-    NEVER = auto()
-
-
 def _datetime_now_iso() -> str:
     """
     Helper function to allow use of datetime.now with iso formatting
@@ -80,7 +74,7 @@ def _datetime_now_iso() -> str:
     return _datetime.now().isoformat()
 
 
-class EnvironmentBase(Prefab, kw_only=True):
+class BaseEnv(Prefab, kw_only=True):
     name: str
     path: str
     python_version: str
@@ -121,60 +115,67 @@ class EnvironmentBase(Prefab, kw_only=True):
         _laz.shutil.rmtree(self.path)
 
 
-class TemporaryEnv(EnvironmentBase, kw_only=True):
+class TemporaryEnv(BaseEnv, kw_only=True):
     """
     This is for temporary environments that expire after a certain period
     """
-    raw_specs: list[str]
+    spec_hashes: list[str]
     installed_modules: list[str]
     usage_count: int = 0
 
 
-class ApplicationEnv(EnvironmentBase, kw_only=True):
+class ApplicationEnv(BaseEnv, kw_only=True):
     ...
 
 
-class CatalogueBase(Prefab, kw_only=True):
-    name: str
-    caches: dict[str, EnvironmentBase]
-    config: Config
+@prefab(kw_only=True)
+class BaseCatalogue:
+    path: str
+    environments: dict[str, BaseEnv] = attribute(default_factory=dict)
 
     @property
-    def path(self):
-        return os.path.join(self.config.base_folder, self.name)
+    def catalogue_folder(self):
+        return os.path.split(self.path)[0]
 
     def save(self) -> None:
         """Serialize this class into a JSON string and save"""
         # For external users that may not import prefab directly
-        data = _laz.json.dumps(self, default=as_dict, indent=2)
+        os.makedirs(self.catalogue_folder, exist_ok=True)
 
-        os.makedirs(self.path, exist_ok=True)
+        with open(self.path, "w") as f:
+            _laz.json.dump(f, default=as_dict, indent=2)
 
-        with open(self.config.cache_db_path, "w") as f:
-            f.write(data)
-
-    def delete_cache(self, cachename: str) -> None:
-        if cache := self.caches.get(cachename):
-            cache.delete()
-            del self.caches[cachename]
+    def delete_env(self, envpath: str) -> None:
+        if env := self.environments.get(envpath):
+            env.delete()
+            del self.environments[envpath]
             self.save()
         else:
-            raise FileNotFoundError(f"Cache {cachename!r} not found")
+            raise FileNotFoundError(f"Cache {envpath!r} not found")
 
-    def purge_cache_folder(self):
+    def purge_folder(self):
         """
         Clear the cache folder when things have gone wrong or for a new version.
         """
         # Clear the folder
         try:
-            _laz.shutil.rmtree(self.config.cache_folder)
+            _laz.shutil.rmtree(self.catalogue_folder)
         except FileNotFoundError:
             pass
 
         # Remove caches that no longer exist
-        for cache_name, cache in self.caches.copy().items():
+        for cache_name, cache in self.environments.copy().items():
             if not cache.is_valid:
-                del self.caches[cache_name]
+                del self.environments[cache_name]
+
+
+@prefab(kw_only=True)
+class TempCatalogue(BaseCatalogue):
+    """
+    Catalogue for temporary environments
+    """
+    environments: dict[str, TemporaryEnv]
+    env_counter: int = 0
 
     @property
     def oldest_cache(self) -> str | None:
@@ -182,7 +183,7 @@ class CatalogueBase(Prefab, kw_only=True):
         :return: name of the oldest cache or None if there are no caches
         """
         old_cache = None
-        for cache in self.caches.values():
+        for cache in self.environments.values():
             if old_cache:
                 if cache.last_used < old_cache.last_used:
                     old_cache = cache
@@ -194,38 +195,25 @@ class CatalogueBase(Prefab, kw_only=True):
         else:
             return None
 
-    def expire_caches(self) -> None:
-        """Delete caches that have 'expired'"""
-        if delta := self.config.cache_expires:
+    def expire_caches(self, lifetime: _timedelta) -> None:
+        """
+        Delete caches that are older than `lifetime`
+
+        :param lifetime: timedelta age after which caches should be deleted
+        :type lifetime: _timedelta
+        """
+        if lifetime:
             ctime = _datetime.now()
             # Iterate over a copy as we are modifying the original
-            for cachename, cache in self.caches.copy().items():
-                if (ctime - cache.created_date) > delta:
-                    self.delete_cache(cachename)
+            for cachename, cache in self.environments.copy().items():
+                if (ctime - cache.created_date) > lifetime:
+                    self.delete_env(cachename)
 
         self.save()
 
-    @classmethod
-    def from_config(cls, config: Config) -> "Catalogue":
-        try:
-            with open(config.cache_db_path, "r") as f:
-                raw_caches = _laz.json.load(f)
-        except FileNotFoundError:
-            raw_caches = {}
-
-        caches = {
-            name: TemporaryEnv(**cache_info)
-            for name, cache_info in raw_caches.get("caches", {}).items()
-        }
-
-        env_counter = raw_caches.get("env_counter", 1)
-
-        # noinspection PyArgumentList
-        return cls(caches=caches, env_counter=env_counter, config=config)
-
-    def find_exact_env(self, spec: EnvironmentSpec) -> TemporaryEnv | None:
+    def find_env_hash(self, spec: EnvironmentSpec) -> TemporaryEnv | None:
         """
-        Attempt to find a cached python environment that matches the literal text
+        Attempt to find a cached python environment that matches the hash
         of the specification.
 
         This means that either the exact text was used to generate the environment
@@ -234,8 +222,8 @@ class CatalogueBase(Prefab, kw_only=True):
         :param spec: InlineSpec of requirements
         :return: CacheFolder details of python env that satisfies it or None
         """
-        for cache in self.caches.values():
-            if spec.raw_spec in cache.raw_specs:
+        for cache in self.environments.values():
+            if spec.spec_hash in cache.spec_hashes:
                 cache.last_used = _datetime_now_iso()
                 self.save()
                 return cache
@@ -251,18 +239,13 @@ class CatalogueBase(Prefab, kw_only=True):
         :param spec: InlineSpec requirements for a python environment
         :return: CacheFolder python environment details or None
         """
-        if self.config.exact_match_only:
-            raise EnvManError(
-                "Can not use 'sufficient' matching environment "
-                "if exact match is required."
-            )
 
-        for cache in self.caches.values():
+        for cache in self.environments.values():
             # If no python version listed ignore it
             # If python version is listed, make sure it matches
-            if spec.requires_python:
+            if spec.details.requires_python:
                 cache_pyver = _packaging.Version(cache.python_version)
-                if cache_pyver not in spec.requires_python_spec:
+                if cache_pyver not in spec.details.requires_python_spec:
                     continue
 
             # Check dependencies
@@ -274,7 +257,7 @@ class CatalogueBase(Prefab, kw_only=True):
                 module_ver = _packaging.Version(version)
                 cache_spec[name] = module_ver
 
-            for req in spec.dependencies_spec:
+            for req in spec.details.dependencies_spec:
                 # If a dependency is not satisfied , break out of this loop
                 if ver := cache_spec.get(req.name):
                     if ver not in req.specifier:
@@ -283,9 +266,10 @@ class CatalogueBase(Prefab, kw_only=True):
                     break
             else:
                 # If all dependencies were satisfied, the loop completed
-                # Update last_used and append this spec to raw_specs
+                # Update last_used and append the hash of the spec to the spec hashes
                 cache.last_used = _datetime_now_iso()
-                cache.raw_specs.append(spec.raw_spec)
+                cache.spec_hashes.append(spec.spec_hash)
+
                 self.save()
                 return cache
 
@@ -299,27 +283,27 @@ class CatalogueBase(Prefab, kw_only=True):
         :param spec:
         :return:
         """
-        env = self.find_exact_env(spec)
+        env = self.find_env_hash(spec)
 
-        if not (env or self.config.exact_match_only):
+        if not env:
             env = self.find_sufficient_env(spec)
 
         return env
 
-    def create_env(self, spec: EnvironmentSpec) -> TemporaryEnv:
+    def create_env(self, *, spec: EnvironmentSpec, config: Config) -> TemporaryEnv:
         # Check the spec is valid
-        if spec_errors := spec.errors():
+        if spec_errors := spec.details.errors():
             raise InvalidEnvironmentSpec("; ".join(spec_errors))
 
         # Delete the oldest cache if there are too many
-        while len(self.caches) > self.config.cache_maxsize:
+        while len(self.environments) > config.cache_maxcount:
             del_cache = self.oldest_cache
-            self.log(f"Deleting {del_cache}")
-            self.delete_cache(del_cache)
+            log(f"Deleting {del_cache}")
+            self.delete_env(del_cache)
 
         new_cachename = f"env_{self.env_counter}"
         self.env_counter += 1
-        cache_path = os.path.join(self.config.cache_folder, new_cachename)
+        cache_path = os.path.join(self.path, new_cachename)
 
         # Find a valid python executable
         for install in _laz.get_python_installs():
@@ -327,23 +311,23 @@ class CatalogueBase(Prefab, kw_only=True):
                 pip_ver = _packaging.Version(pip_ver_str)
 
                 if pip_ver < _packaging.Version(MINIMUM_PIP):
-                    self.log(
+                    log(
                         f"Version of Python found at {install.executable} "
                         f"has an outdated version of pip which does not have "
                         f"necessary functionality."
                     )
                 elif (
-                    not spec.requires_python
-                    or install.version_str in spec.requires_python_spec
+                    not spec.details.requires_python
+                    or install.version_str in spec.details.requires_python_spec
                 ):
                     python_exe = install.executable
                     python_version = install.version_str
                     break
             else:
-                self.log(f"Python found at {install.executable} did not have pip installed.")
+                log(f"Python found at {install.executable} did not have pip installed.")
         else:
             raise PythonVersionNotFound(
-                f"Could not find a Python install satisfying {spec.requires_python!r}."
+                f"Could not find a Python install satisfying {spec.details.requires_python!r}."
             )
 
         # Make the venv
@@ -354,16 +338,16 @@ class CatalogueBase(Prefab, kw_only=True):
             )
 
         try:
-            self.log(f"Creating venv in: {cache_path}")
+            log(f"Creating venv in: {cache_path}")
             _laz.subprocess.run(
                 [python_exe, "-m", "venv", "--without-pip", cache_path], check=True
             )
         except _laz.subprocess.CalledProcessError as e:
             raise VenvBuildError(f"Failed to build venv: {e}")
 
-        if spec.dependencies:
-            dep_list = ", ".join(spec.dependencies)
-            self.log(f"Installing dependencies from PyPI: {dep_list}")
+        if spec.details.dependencies:
+            dep_list = ", ".join(spec.details.dependencies)
+            log(f"Installing dependencies from PyPI: {dep_list}")
             try:
                 _laz.subprocess.run(
                     [
@@ -374,7 +358,7 @@ class CatalogueBase(Prefab, kw_only=True):
                         "--python",
                         cache_path,
                         "install",
-                        *spec.dependencies,
+                        *spec.details.dependencies,
                     ],
                     check=True,
                 )
@@ -401,22 +385,22 @@ class CatalogueBase(Prefab, kw_only=True):
             installed_modules = []
 
         new_cache = TemporaryEnv(
-            cache_name=new_cachename,
-            cache_path=cache_path,
-            raw_specs=[spec.raw_spec],
+            name=new_cachename,
+            path=cache_path,
             python_version=python_version,
-            installed_modules=installed_modules,
             parent_python=python_exe,
+            spec_hashes=[spec.spec_hash],
+            installed_modules=installed_modules,
         )
 
-        self.caches[new_cachename] = new_cache
+        self.environments[new_cachename] = new_cache
         self.save()
 
         return new_cache
 
-    def find_or_create_env(self, spec: EnvironmentSpec) -> TemporaryEnv:
+    def find_or_create_env(self, spec: EnvironmentSpec, config: Config) -> TemporaryEnv:
         env = self.find_env(spec)
         if not env:
-            self.log("Existing environment not found, creating new environment.")
-            env = self.create_env(spec)
+            log("Existing environment not found, creating new environment.")
+            env = self.create_env(spec=spec, config=config)
         return env

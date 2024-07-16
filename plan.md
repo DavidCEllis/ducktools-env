@@ -34,7 +34,7 @@ Possible options:
 * Config File: `config.json`
 * Catalogue File: `catalogue.json` inside each folder for ENVs
 * Core environment: `/core`
-* Temporary VEnvs: `/temporary`
+* Temporary VEnvs: `/caches`
 * Application VEnvs: `/application`
 
 
@@ -55,10 +55,12 @@ include_pip: default to 'False', if 'True' then update pip on install
 ## What needs to happen on running a zipapp ##
 
 Metadata Requirements:
-* Project Name
-* Author Name
-* Version Number
-
+```
+[tool.ducktools.env]
+project.name = "ducktools_env"  # Overrides project.name in pyproject.toml
+project.version = "v0.0.1"  # Overrides version in pyproject.toml
+project.owner = "davidcellis"
+```
 
 * Check if there is already a core environment
 * Update the core environment from PyPI if it is outdated (check once daily at most)
@@ -73,6 +75,24 @@ Metadata Requirements:
 
 ducktools.env.catalogue: Catalogue manager
 
-ducktools.env.run: script launcher
-ducktools.env.package: 
+ducktools.env.run: script launcher - has main
+ducktools.env.bundle: zipapp maker - has main
+
+
+## Bootstrap logic ##
+
+* `__main__.py` runs `bootstrap.py` to get the path to the ducktools-env executable.
+* `__main__.py` launches `app.py` using the ducktools-env executable.
+
+### `bootstrap.py` ###
+
+Checks if `ducktools/environments/core` exists.
+If so, compares version to bundled ducktools-env.
+
+If bundled ducktools-env is newer, rebuild with the new version
+If bundled ducktools-env is the same or older, keep old version
+
+Return path to the core python executable
+
+
 

@@ -22,16 +22,25 @@
 # SOFTWARE.
 
 
-class EnvManError(Exception):
-    pass
-
-class PythonVersionNotFound(EnvManError):
+class EnvError(Exception):
     pass
 
 
-class InvalidEnvironmentSpec(EnvManError):
+class PythonVersionNotFound(EnvError):
     pass
 
 
-class VenvBuildError(EnvManError):
+class InvalidEnvironmentSpec(EnvError):
+    pass
+
+
+class VenvBuildError(EnvError):
+    pass
+
+
+class SpecificationError(EnvError):
+    pass
+
+
+class UnsupportedPlatformError(EnvError):
     pass

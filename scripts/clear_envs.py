@@ -14,11 +14,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from ducktools.envman import Config, Catalogue
+from ducktools.env import Config, Catalogue
 
 if __name__ == "__main__":
     conf = Config()
 
     cat: Catalogue = Catalogue.from_config(conf)
 
-    cat.purge_cache_folder()
+    cat.purge_folder()

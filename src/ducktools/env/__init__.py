@@ -25,18 +25,11 @@ from ducktools.lazyimporter import LazyImporter, FromImport, MultiFromImport, ge
 
 __all__ = [
     "__version__",  # noqa
-    "Catalogue",  # noqa
-    "TemporaryEnv",  # noqa
-    "Config",  # noqa
-    "InlineSpec",  # noqa
 ]
 
 _laz = LazyImporter(
     [
-        FromImport(".version", "__version__"),
-        MultiFromImport(".catalogue", ["Catalogue", "TemporaryEnv"]),
-        FromImport(".core.config", "Config"),
-        FromImport(".environment_spec", "InlineSpec"),
+        FromImport("._version", "__version__"),
     ],
     globs=globals(),
 )
