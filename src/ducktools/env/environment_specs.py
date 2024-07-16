@@ -32,7 +32,8 @@ from ducktools.lazyimporter import (
     TryExceptImport,
 )
 
-from ducktools.classbuilder.prefab import Prefab, attribute, as_dict
+from ducktools.classbuilder.prefab import Prefab, as_dict
+import ducktools.scriptmetadata as scriptmetadata
 
 
 # Lazy importers for modules that may not be used
@@ -123,6 +124,12 @@ class EnvironmentSpec:
 
         self._spec_hash: str | None = spec_hash
         self._details: EnvironmentDetails | None = details
+
+    @classmethod
+    def from_script(cls, script_path):
+        spec_type = SpecType.INLINE_METADATA
+        raw_spec = scriptmetadata.parse_file(script_path).blocks.get("script", "")
+        return cls(spec_type=spec_type, raw_spec=raw_spec)
 
     @property
     def details(self) -> EnvironmentDetails:

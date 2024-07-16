@@ -99,6 +99,8 @@ class ManagedPaths(Prefab):
     application_folder: str = attribute(init=False, repr=False)
     cache_folder: str = attribute(init=False, repr=False)
 
+    cache_db: str = attribute(init=False, repr=False)
+
     def __prefab_post_init__(self):
         folder_base = os.path.join(self.project_name, ENVIRONMENTS_SUBFOLDER)
 
@@ -109,3 +111,5 @@ class ManagedPaths(Prefab):
 
         self.application_folder = os.path.join(self.project_folder, APPLICATION_FOLDERNAME)
         self.cache_folder = os.path.join(self.project_folder, CACHEDENV_FOLDERNAME)
+
+        self.cache_db = os.path.join(self.cache_folder, CATALOGUE_FILENAME)

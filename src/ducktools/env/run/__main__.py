@@ -27,7 +27,10 @@ A simple 'main' script showing usage - use all default settings.
 import sys
 import subprocess
 
-from . import Config, Catalogue, EnvironmentSpec
+from ..catalogue import TempCatalogue
+from ..environment_specs import EnvironmentSpec
+from ..config import Config
+from ..platform_paths import ManagedPaths
 
 
 def main():
@@ -39,12 +42,14 @@ def main():
     else:
         raise ValueError("Must provide a path to a python script within the arguments.")
 
-    spec = EnvironmentSpec.from_file(script_file)
+    paths = ManagedPaths()
+
+    spec = EnvironmentSpec.from_script(script_file)
 
     config = Config()
-    catalogue = Catalogue.from_config(config)
+    catalogue = TempCatalogue.load(paths.cache_db)
 
-    env = catalogue.find_or_create_env(spec)
+    env = catalogue.find_or_create_env(spec=spec, config=config)
 
     sys.stderr.write(f"Using environment at: {env.path}\n")
 
