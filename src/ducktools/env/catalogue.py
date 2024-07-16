@@ -142,7 +142,7 @@ class BaseCatalogue:
         os.makedirs(self.catalogue_folder, exist_ok=True)
 
         with open(self.path, "w") as f:
-            _laz.json.dump(f, default=as_dict, indent=2)
+            _laz.json.dump(self, f, default=as_dict, indent=2)
 
     @classmethod
     def load(cls, path):
@@ -321,7 +321,7 @@ class TempCatalogue(BaseCatalogue):
 
         new_cachename = f"env_{self.env_counter}"
         self.env_counter += 1
-        cache_path = os.path.join(self.path, new_cachename)
+        cache_path = os.path.join(self.catalogue_folder, new_cachename)
 
         # Find a valid python executable
         for install in _laz.get_python_installs():

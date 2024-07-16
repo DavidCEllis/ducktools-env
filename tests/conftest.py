@@ -17,13 +17,14 @@
 import sys
 import os.path
 import shutil
-from datetime import timedelta
 
 from ducktools.pythonfinder import get_python_installs
 from ducktools.pythonfinder.shared import get_install_details
 
-from ducktools.env.catalogue import Catalogue
-from ducktools.env.core.config import Config
+from ducktools.env.catalogue import TempCatalogue
+from ducktools.env.config import Config
+
+import ducktools.env.platform_paths as platform_paths
 
 from unittest.mock import patch
 import pytest
@@ -42,7 +43,7 @@ def this_python():
 
 @pytest.fixture(scope="session", autouse=True)
 def use_this_python_install(this_python):
-    with patch("ducktools.envman.catalogue._laz.get_python_installs") as get_installs:
+    with patch("ducktools.env.catalogue._laz.get_python_installs") as get_installs:
         get_installs.return_value = [this_python]
         yield
 
@@ -53,18 +54,24 @@ def catalogue_path():
     Provide a test folder path for python environments, delete after tests in a class have run.
     """
     folder = os.path.join(os.path.dirname(__file__), "test_envs")
-    yield folder
+    cache_file = os.path.join(folder, platform_paths.CATALOGUE_FILENAME)
+    yield cache_file
     try:
         shutil.rmtree(folder)
     except FileNotFoundError:
         pass
 
 
+@pytest.fixture(scope="session")
+def test_config():
+    config = Config(
+        cache_maxcount=2,
+        cache_lifetime=1/24,
+    )
+    yield config
+
+
 @pytest.fixture(scope="function")
 def testing_catalogue(catalogue_path):
-    config = Config(
-        cache_folder=catalogue_path,
-        cache_expires=timedelta(minutes=5)
-    )
-    catalogue = Catalogue.from_config(config=config)
+    catalogue = TempCatalogue(path=catalogue_path)
     yield catalogue

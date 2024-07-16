@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from ducktools.env.lib.environment_spec import EnvironmentSpec
+from ducktools.env.environment_specs import EnvironmentSpec, SpecType
 
 from ducktools.classbuilder.prefab import prefab, attribute
 import pytest
@@ -39,18 +39,17 @@ envs = [
     DataSet(
         raw_spec=(
             "requires-python = '>=3.11'\n"
-            "dependencies = ['prefab-classes>=0.10.0']\n"
+            "dependencies = ['ducktools-env>=0.1.0']\n"
         ),
         requires_python=">=3.11",
-        dependencies=["prefab-classes>=0.10.0"],
+        dependencies=["ducktools-env>=0.1.0"],
     )
 ]
 
 
 @pytest.mark.parametrize("test_data", envs)
 def test_envspec_pythononly(test_data):
-    env = EnvironmentSpec(test_data.raw_spec)
+    env = EnvironmentSpec(SpecType.INLINE_METADATA, test_data.raw_spec)
 
-    assert env.requires_python == test_data.requires_python
-    assert env.dependencies == test_data.dependencies
-    assert env.extras == test_data.extras
+    assert env.details.requires_python == test_data.requires_python
+    assert env.details.dependencies == test_data.dependencies
