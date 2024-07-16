@@ -93,6 +93,7 @@ class ManagedPaths(Prefab):
     project_name: str
     project_folder: str = attribute(init=False, repr=False)
     config_path: str = attribute(init=False, repr=False)
+
     core_folder: str = attribute(init=False, repr=False)
     core_python: str = attribute(init=False, repr=False)
 
@@ -106,6 +107,7 @@ class ManagedPaths(Prefab):
 
         self.project_folder = get_platform_folder(folder_base)
         self.config_path = os.path.join(self.project_folder, CONFIG_FILENAME)
+
         self.core_folder = os.path.join(self.project_folder, CORE_FOLDERNAME)
         self.core_python = get_platform_python(os.path.join(self.core_folder, VENV_FOLDERNAME))
 
