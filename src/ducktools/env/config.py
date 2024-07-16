@@ -59,7 +59,7 @@ class Config(Prefab, kw_only=True):
         try:
             with open(file_path, 'r') as f:
                 json_data = _laz.json.load(f)
-        except FileNotFoundError:
+        except (FileNotFoundError, _laz.json.JSONDecodeError):
             return cls()
         else:
             attribute_keys = {k for k, v in get_attributes(cls).items() if v.init}

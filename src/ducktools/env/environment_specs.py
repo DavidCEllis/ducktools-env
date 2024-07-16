@@ -134,7 +134,7 @@ class EnvironmentSpec:
     def spec_hash(self) -> str:
         if self._spec_hash is None:
             spec_bytes = self.raw_spec.encode("utf8")
-            self._spec_hash = _laz.hashlib.sha3_512(spec_bytes).hexdigest()
+            self._spec_hash = _laz.hashlib.sha3_256(spec_bytes).hexdigest()
         return self._spec_hash
 
     def parse_raw(self) -> EnvironmentDetails:

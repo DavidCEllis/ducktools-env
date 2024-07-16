@@ -33,7 +33,7 @@ from ducktools.lazyimporter import (
     MultiFromImport,
 )
 
-from ducktools.classbuilder.prefab import Prefab, prefab, attribute, as_dict
+from ducktools.classbuilder.prefab import Prefab, prefab, attribute, as_dict, get_attributes
 
 from .exceptions import PythonVersionNotFound, InvalidEnvironmentSpec, VenvBuildError
 from .environment_specs import EnvironmentSpec
@@ -121,7 +121,6 @@ class TemporaryEnv(BaseEnv, kw_only=True):
     """
     spec_hashes: list[str]
     installed_modules: list[str]
-    usage_count: int = 0
 
 
 class ApplicationEnv(BaseEnv, kw_only=True):
@@ -144,6 +143,21 @@ class BaseCatalogue:
 
         with open(self.path, "w") as f:
             _laz.json.dump(f, default=as_dict, indent=2)
+
+    @classmethod
+    def load(cls, path):
+        try:
+            with open(path, 'r') as f:
+                json_data = _laz.json.load(f)
+        except (FileNotFoundError, _laz.json.JSONDecodeError):
+            # noinspection PyArgumentList
+            return cls(path=path)
+        else:
+            cls_keys = {k for k, v in get_attributes(cls) if v.init}
+            valid_keys = json_data.keys() & cls_keys
+
+            # noinspection PyArgumentList
+            return cls(**valid_keys)
 
     def delete_env(self, envpath: str) -> None:
         if env := self.environments.get(envpath):
@@ -174,7 +188,7 @@ class TempCatalogue(BaseCatalogue):
     """
     Catalogue for temporary environments
     """
-    environments: dict[str, TemporaryEnv]
+    environments: dict[str, TemporaryEnv] = attribute(default_factory=dict)
     env_counter: int = 0
 
     @property
@@ -224,6 +238,7 @@ class TempCatalogue(BaseCatalogue):
         """
         for cache in self.environments.values():
             if spec.spec_hash in cache.spec_hashes:
+                log(f"Hash {spec.spec_hash} matched environment {cache.name}")
                 cache.last_used = _datetime_now_iso()
                 self.save()
                 return cache
@@ -267,6 +282,9 @@ class TempCatalogue(BaseCatalogue):
             else:
                 # If all dependencies were satisfied, the loop completed
                 # Update last_used and append the hash of the spec to the spec hashes
+                log(f"Spec satisfied by {cache.name!r}")
+                log(f"Adding {spec.spec_hash!r} to {cache.name!r} hash list")
+
                 cache.last_used = _datetime_now_iso()
                 cache.spec_hashes.append(spec.spec_hash)
 
