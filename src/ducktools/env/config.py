@@ -63,10 +63,13 @@ class Config(Prefab, kw_only=True):
             return cls()
         else:
             attribute_keys = {k for k, v in get_attributes(cls).items() if v.init}
-            valid_keys = json_data.keys() & attribute_keys
+
+            filtered_data = {
+                k: v for k, v in json_data.items() if k in attribute_keys
+            }
 
             # noinspection PyArgumentList
-            return cls(**valid_keys)
+            return cls(**filtered_data)
 
     def save(self, file_path: str):
         os.makedirs(os.path.split(file_path)[0], exist_ok=True)

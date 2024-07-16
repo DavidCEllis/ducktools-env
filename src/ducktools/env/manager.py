@@ -24,6 +24,8 @@
 
 from .config import Config
 from .platform_paths import ManagedPaths
+from .catalogue import TempCatalogue
+from .environment_specs import SpecType, EnvironmentSpec
 
 PROJECT_NAME = "ducktools"
 
@@ -39,5 +41,21 @@ class Manager:
         self.paths = ManagedPaths(project_name)
         self.config = Config.load(self.paths.config_path)
 
+        self._temp_catalogue = None
+
     def __repr__(self):
         return f"{type(self).__name__}(project_name={self.project_name!r})"
+
+    @property
+    def temp_catalogue(self):
+        if self._temp_catalogue is None:
+            self._temp_catalogue = TempCatalogue.load(self.paths.cache_db)
+        return self._temp_catalogue
+
+    def get_script_env(self, path):
+        spec = EnvironmentSpec.from_script(path)
+        env = self.temp_catalogue.find_or_create_env(spec=spec, config=self.config)
+        return env
+
+    def purge_cache(self):
+        self.temp_catalogue.purge_folder()

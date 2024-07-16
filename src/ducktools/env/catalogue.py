@@ -129,6 +129,8 @@ class ApplicationEnv(BaseEnv, kw_only=True):
 
 @prefab(kw_only=True)
 class BaseCatalogue:
+    ENV_TYPE = BaseEnv
+
     path: str
     environments: dict[str, BaseEnv] = attribute(default_factory=dict)
 
@@ -153,11 +155,20 @@ class BaseCatalogue:
             # noinspection PyArgumentList
             return cls(path=path)
         else:
-            cls_keys = {k for k, v in get_attributes(cls) if v.init}
-            valid_keys = json_data.keys() & cls_keys
+            cls_keys = {k for k, v in get_attributes(cls).items() if v.init}
+
+            filtered_data = {
+                k: v for k, v in json_data.items() if k in cls_keys
+            }
+
+            environments = {}
+            for k, v in filtered_data.get("environments", {}).items():
+                environments[k] = cls.ENV_TYPE(**v)
+
+            filtered_data["environments"] = environments
 
             # noinspection PyArgumentList
-            return cls(**valid_keys)
+            return cls(**filtered_data)
 
     def delete_env(self, envpath: str) -> None:
         if env := self.environments.get(envpath):
@@ -188,6 +199,8 @@ class TempCatalogue(BaseCatalogue):
     """
     Catalogue for temporary environments
     """
+    ENV_TYPE = TemporaryEnv
+
     environments: dict[str, TemporaryEnv] = attribute(default_factory=dict)
     env_counter: int = 0
 
