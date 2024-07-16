@@ -11,7 +11,6 @@ I'd like to expand this to handle application venvs to aid with bundling applica
   * [ ] Allow users to install applications from PyPI
 * [ ] Bundle support for downloading libraries from PyPI
 
-
 Install  Options:
 * [ ] Support for downloading dependencies from PyPI
   * [ ] Optional auto-updating based on config 
@@ -24,6 +23,7 @@ Install  Options:
 Possible options:
 * [ ] Install required python versions automatically
   * I think for windows this could be done with the installers 
+* [ ] Use a tkinter progressbar window for install messages if run as a .pyzw file on windows
 
 ## Environment folder structure ##
 
