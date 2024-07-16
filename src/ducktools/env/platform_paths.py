@@ -38,6 +38,8 @@ CACHEDENV_FOLDERNAME = "caches"
 APPLICATION_FOLDERNAME = "application"
 VENV_FOLDERNAME = "env"
 
+WHEELHOUSE_FOLDERNAME = "wheelhouse"
+
 # Filenames for configuration and catalogue
 CONFIG_FILENAME = "config.json"
 CATALOGUE_FILENAME = "catalogue.json"
@@ -102,6 +104,8 @@ class ManagedPaths(Prefab):
 
     cache_db: str = attribute(init=False, repr=False)
 
+    wheelhouse_folder: str = attribute(init=False, repr=False)
+
     module_folder: str = attribute(init=False, repr=False)
 
     def __prefab_post_init__(self):
@@ -117,5 +121,7 @@ class ManagedPaths(Prefab):
         self.cache_folder = os.path.join(self.project_folder, CACHEDENV_FOLDERNAME)
 
         self.cache_db = os.path.join(self.cache_folder, CATALOGUE_FILENAME)
+
+        self.wheelhouse_folder = os.path.join(self.project_folder, WHEELHOUSE_FOLDERNAME)
 
         self.module_folder = os.path.split(__file__)[0]
