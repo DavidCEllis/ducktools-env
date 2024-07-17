@@ -25,7 +25,7 @@ from __future__ import annotations
 import sys
 import os
 
-from ducktools.classbuilder.prefab import Prefab, prefab, attribute
+from ducktools.classbuilder.prefab import Prefab, attribute
 
 from .exceptions import UnsupportedPlatformError
 
