@@ -139,4 +139,4 @@ cython_debug/
 # Scratch folder
 scratch/
 
-_version.txt
+_version.py
