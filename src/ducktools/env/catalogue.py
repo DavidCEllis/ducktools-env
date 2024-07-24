@@ -136,7 +136,7 @@ class BaseCatalogue:
 
     @property
     def catalogue_folder(self):
-        return os.path.split(self.path)[0]
+        return os.path.dirname(self.path)
 
     def save(self) -> None:
         """Serialize this class into a JSON string and save"""
