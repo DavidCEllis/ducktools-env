@@ -54,6 +54,9 @@ class Config(Prefab, kw_only=True):
     def cache_lifetime_delta(self) -> _timedelta:
         return _timedelta(days=self.cache_lifetime)
 
+    def application_lifetime_delta(self) -> _timedelta:
+        return _timedelta(days=self.applications_lifetime)
+
     @classmethod
     def load(cls, file_path: str):
         try:
