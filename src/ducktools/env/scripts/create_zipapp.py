@@ -32,7 +32,7 @@ import sys
 import zipapp
 
 from ducktools.env.scripts import get_pip, bootstrap
-from ducktools.env import platform_paths
+from ducktools.env import platform_paths, __main__ as main_app, _version
 
 
 def build_zipapp(wheel_path):
@@ -40,12 +40,16 @@ def build_zipapp(wheel_path):
     python_path = sys.executable
     # pip is needed to build the zipapp
     paths = platform_paths.default_paths
-    pip_path = get_pip.retrieve_pip()
+
+    latest_pip = get_pip.LATEST_PIP
+    pip_path = get_pip.retrieve_pip(latest_pip)
 
     build_folder = paths.build_folder()
+    lib_folder = os.path.join(build_folder, "lib")
 
     try:
         print("Downloading application modules")
+        print(pip_path)
         # Pip install packages into build folder
         subprocess.run([
             python_path,
@@ -53,14 +57,35 @@ def build_zipapp(wheel_path):
             "install",
             wheel_path,
             "--target",
-            os.path.join(build_folder, "lib"),
+            lib_folder,
         ])
+
+        print("Copying __main__.py into lib")
+        shutil.copy(main_app.__file__, lib_folder)
+
+        print("Creating ducktools.pyz")
+        zipapp.create_archive(
+            source=lib_folder,
+            target=os.path.join(build_folder, "ducktools.pyz"),
+        )
+
+        # Cleaning up lib folder
+        shutil.rmtree(lib_folder)
+
+        print("Copying pip.pyz into lib")
+        shutil.copy(pip_path, build_folder)
 
         print("Copying platform paths")
         shutil.copy(platform_paths.__file__, os.path.join(build_folder, "platform_paths.py"))
 
         print("Copying bootstrap script")
         shutil.copy(bootstrap.__file__, os.path.join(build_folder, "__main__.py"))
+
+        print("Writing version numbers")
+        with open(os.path.join(build_folder, "pip.pyz.version"), 'w') as f:
+            f.write(latest_pip.version_str)
+        with open(os.path.join(build_folder, "ducktools.pyz.version"), 'w') as f:
+            f.write(_version.__version__)
 
         print("Creating zipapp")
         zipapp.create_archive(

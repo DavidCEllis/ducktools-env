@@ -53,6 +53,10 @@ class PipZipapp:
     def full_url(self):
         return f"{BASE_URL}/{self.source_url}"
 
+    @property
+    def version_str(self):
+        return ".".join(str(i) for i in self.version_tuple)
+
 
 # This is mostly kept for testing.
 PREVIOUS_PIP = PipZipapp(

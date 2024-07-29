@@ -20,21 +20,3 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-"""
-This script becomes the __main__.py script inside the ducktools-env zipapp.
-"""
-
-import sys
-import os.path
-
-
-try:
-    # In bundle
-    from platform_paths import ManagedPaths  # noqa
-except ImportError:
-    # When bundling from source
-    from ducktools.env.platform_paths import ManagedPaths
-
-
-# print(sys.argv)
