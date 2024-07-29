@@ -46,10 +46,10 @@ def log(message):
 class Config(Prefab, kw_only=True):
     # Global settings for caches
     cache_maxcount: int = 10
-    cache_lifetime: float = 1.0
+    cache_lifetime: float = 7.0
 
     applications_expire: bool = False
-    applications_lifetime: float = 14.0
+    applications_lifetime: float = 28.0
 
     def cache_lifetime_delta(self) -> _timedelta:
         return _timedelta(days=self.cache_lifetime)
