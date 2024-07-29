@@ -20,11 +20,3 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-from ducktools.env import __version__
-from ducktools.env.manager import Manager
-
-
-def bootstrap():
-    manager = Manager()
-

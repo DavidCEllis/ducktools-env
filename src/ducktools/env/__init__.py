@@ -21,18 +21,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ducktools.lazyimporter import LazyImporter, FromImport, MultiFromImport, get_module_funcs
+import sys
 
-__all__ = [
-    "__version__",  # noqa
-]
+from ._version import __version__, __version_tuple__
 
-_laz = LazyImporter(
-    [
-        FromImport("._version", "__version__"),
-    ],
-    globs=globals(),
-)
+MINIMUM_PYTHON = (3, 8)
 
-
-__getattr__, __dir__ = get_module_funcs(_laz, module_name=__name__)
+if sys.version_info < MINIMUM_PYTHON:
+    v = sys.version_info
+    major, minor = MINIMUM_PYTHON
+    raise ImportError(
+        f"Python {v.major}.{v.minor} is not supported by ducktools-env. "
+        f"Python {major}.{minor} is the minimum required version."
+    )

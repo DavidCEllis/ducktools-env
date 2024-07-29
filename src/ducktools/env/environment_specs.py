@@ -164,14 +164,7 @@ class EnvironmentSpec:
             owner = env_project_table.get("owner", None)
 
         elif self.spec_type == SpecType.PYPROJECT_METADATA:
-            project_table = base_table.get("project", {})
-
-            requires_python = project_table.get("requires-python", None)
-            dependencies = project_table.get("dependencies", [])
-
-            project_name = env_project_table.get("name", project_table.get("name", None))
-            version = env_project_table.get("version", project_table.get("version", None))
-            owner = env_project_table.get("owner", None)
+            raise EnvironmentError("PyProject spec not implemented")
 
         else:
             raise TypeError(f"'spec_type' must be an instance of {SpecType.__name__!r}")

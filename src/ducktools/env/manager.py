@@ -28,7 +28,7 @@ from ducktools.lazyimporter import LazyImporter, MultiFromImport
 
 from ._version import __version__
 from .config import Config
-from .platform_paths import ManagedPaths
+from .platform_paths import default_paths, ManagedPaths
 from .catalogue import TempCatalogue
 from .environment_specs import SpecType, EnvironmentSpec
 
@@ -53,7 +53,7 @@ class Manager:
     def __init__(self, project_name=PROJECT_NAME):
         self.project_name = project_name
 
-        self.paths = ManagedPaths(project_name)
+        self.paths = default_paths
         self.config = Config.load(self.paths.config_path)
 
         self._temp_catalogue = None

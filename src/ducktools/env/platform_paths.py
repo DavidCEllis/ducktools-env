@@ -20,25 +20,28 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+# This is used as a bootstrapping script as well as internally
+# For this reason it can't use any non-stdlib modules.
+
 from __future__ import annotations
 
 import sys
 import os
 
-from ducktools.classbuilder.prefab import Prefab, attribute
 
-from .exceptions import UnsupportedPlatformError
+class UnsupportedPlatformError(Exception):
+    pass
 
 
 ENVIRONMENTS_SUBFOLDER = "environments"
 
 # Folders used internally
-CORE_FOLDERNAME = "core"
 CACHEDENV_FOLDERNAME = "caches"
 APPLICATION_FOLDERNAME = "application"
 VENV_FOLDERNAME = "env"
 
-WHEELHOUSE_FOLDERNAME = "wheelhouse"
+MANAGER_FOLDERNAME = "lib"
 
 # Filenames for configuration and catalogue
 CONFIG_FILENAME = "config.json"
@@ -91,37 +94,80 @@ def get_platform_folder(name):
         return os.path.join(USER_FOLDER, name)
 
 
-class ManagedPaths(Prefab):
+class ManagedPaths:
     project_name: str
-    project_folder: str = attribute(init=False, repr=False)
-    config_path: str = attribute(init=False, repr=False)
+    project_folder: str
+    config_path: str
 
-    core_folder: str = attribute(init=False, repr=False)
-    core_python: str = attribute(init=False, repr=False)
+    manager_folder: str
+    pip_zipapp: str
+    env_zipapp: str
 
-    application_folder: str = attribute(init=False, repr=False)
-    cache_folder: str = attribute(init=False, repr=False)
+    application_folder: str  # Not yet used
+    cache_folder: str
 
-    cache_db: str = attribute(init=False, repr=False)
+    cache_db: str
 
-    wheelhouse_folder: str = attribute(init=False, repr=False)
+    build_base: str
 
-    module_folder: str = attribute(init=False, repr=False)
+    def __init__(self, project_name="ducktools"):
+        self.project_name = project_name
 
-    def __prefab_post_init__(self):
         folder_base = os.path.join(self.project_name, ENVIRONMENTS_SUBFOLDER)
 
         self.project_folder = get_platform_folder(folder_base)
         self.config_path = os.path.join(self.project_folder, CONFIG_FILENAME)
 
-        self.core_folder = os.path.join(self.project_folder, CORE_FOLDERNAME)
-        self.core_python = get_platform_python(os.path.join(self.core_folder, VENV_FOLDERNAME))
+        self.manager_folder = os.path.join(self.project_folder, MANAGER_FOLDERNAME)
+        self.pip_zipapp = os.path.join(self.manager_folder, "pip.pyz")
+        self.env_zipapp = os.path.join(self.manager_folder, "ducktools.pyz")
 
         self.application_folder = os.path.join(self.project_folder, APPLICATION_FOLDERNAME)
         self.cache_folder = os.path.join(self.project_folder, CACHEDENV_FOLDERNAME)
-
         self.cache_db = os.path.join(self.cache_folder, CATALOGUE_FILENAME)
 
-        self.wheelhouse_folder = os.path.join(self.project_folder, WHEELHOUSE_FOLDERNAME)
+        self.build_base = os.path.join(self.project_folder, "build")
 
-        self.module_folder = os.path.split(__file__)[0]
+    @staticmethod
+    def get_app_version(versionfile):
+        minimal_version = (0, 0)
+        if not os.path.exists(versionfile):
+            return minimal_version
+        with open(versionfile, 'r') as f:
+            raw_version = f.read()
+        try:
+            ver = tuple(int(arg) for arg in raw_version.split("."))
+        except ValueError:
+            return minimal_version
+        return ver
+
+    def get_pip_version(self):
+        version_file = f"{self.pip_zipapp}.version"
+        return self.get_app_version(version_file)
+
+    def get_env_version(self):
+        version_file = f"{self.env_zipapp}.version"
+        return self.get_app_version(version_file)
+
+    def build_folder(self):
+        """
+        Get a temporary folder to use for builds
+        """
+        # Time to use slow stuff
+        os.makedirs(self.build_base, exist_ok=True)
+
+        import tempfile
+        return tempfile.mkdtemp(dir=self.build_base)
+
+
+default_paths = ManagedPaths()
+
+
+if __name__ == "__main__":
+    paths = default_paths
+    print(paths.project_folder)
+    print(paths.config_path)
+    print(paths.cache_folder)
+    print(paths.cache_db)
+
+
