@@ -37,6 +37,7 @@ import os.path
 from ducktools.classbuilder.prefab import prefab
 
 from ducktools.env import platform_paths
+from ducktools.env.config import log
 from ducktools.env.exceptions import InvalidPipDownload
 
 
@@ -121,12 +122,12 @@ def retrieve_pip(latest_version: PipZipapp = LATEST_PIP) -> str:
     paths = platform_paths.default_paths
 
     if is_pip_outdated(paths, latest_version=latest_version):
-        print("Downloading PIP")
+        log("Downloading PIP")
         download_pip(paths.pip_zipapp, latest_version=latest_version)
 
-        print(f"Pip zipapp installed at {paths.pip_zipapp!r}")
+        log(f"Pip zipapp installed at {paths.pip_zipapp!r}")
     else:
-        print("Pip is already up to date")
+        log("Pip is already up to date")
 
     return paths.pip_zipapp
 

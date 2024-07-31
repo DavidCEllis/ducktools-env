@@ -39,7 +39,6 @@ from .exceptions import PythonVersionNotFound, InvalidEnvironmentSpec, VenvBuild
 from .environment_specs import EnvironmentSpec
 from .config import Config, log
 
-MINIMUM_PIP = "22.3"  # This version of pip introduced --python
 
 _laz = LazyImporter(
     [
@@ -48,7 +47,9 @@ _laz = LazyImporter(
         ModuleImport("subprocess"),
         ModuleImport("hashlib"),
         FromImport("ducktools.pythonfinder", "get_python_installs"),
-    ]
+        FromImport(".scripts.get_pip", "retrieve_pip"),
+    ],
+    globs=globals(),
 )
 
 _packaging = LazyImporter(
@@ -120,7 +121,7 @@ class TemporaryEnv(BaseEnv, kw_only=True):
     This is for temporary environments that expire after a certain period
     """
     spec_hashes: list[str]
-    installed_modules: list[str]
+    installed_modules: list[str] = attribute(default_factory=list)
 
 
 class ApplicationEnv(BaseEnv, kw_only=True):
@@ -336,26 +337,18 @@ class TempCatalogue(BaseCatalogue):
         self.env_counter += 1
         cache_path = os.path.join(self.catalogue_folder, new_cachename)
 
+        # Check pip is installed
+        pip_zipapp = _laz.retrieve_pip()
+
         # Find a valid python executable
         for install in _laz.get_python_installs():
-            if pip_ver_str := install.get_pip_version():
-                pip_ver = _packaging.Version(pip_ver_str)
-
-                if pip_ver < _packaging.Version(MINIMUM_PIP):
-                    log(
-                        f"Version of Python found at {install.executable} "
-                        f"has an outdated version of pip which does not have "
-                        f"necessary functionality."
-                    )
-                elif (
-                    not spec.details.requires_python
-                    or install.version_str in spec.details.requires_python_spec
-                ):
-                    python_exe = install.executable
-                    python_version = install.version_str
-                    break
-            else:
-                log(f"Python found at {install.executable} did not have pip installed.")
+            if (
+                not spec.details.requires_python
+                or install.version_str in spec.details.requires_python_spec
+            ):
+                python_exe = install.executable
+                python_version = install.version_str
+                break
         else:
             raise PythonVersionNotFound(
                 f"Could not find a Python install satisfying {spec.details.requires_python!r}."
@@ -376,18 +369,24 @@ class TempCatalogue(BaseCatalogue):
         except _laz.subprocess.CalledProcessError as e:
             raise VenvBuildError(f"Failed to build venv: {e}")
 
+        # Construct the TemporaryEnv to get the path to python.exe
+        new_env = TemporaryEnv(
+            name=new_cachename,
+            path=cache_path,
+            python_version=python_version,
+            parent_python=python_exe,
+            spec_hashes=[spec.spec_hash],
+        )
+
         if spec.details.dependencies:
             dep_list = ", ".join(spec.details.dependencies)
             log(f"Installing dependencies from PyPI: {dep_list}")
             try:
                 _laz.subprocess.run(
                     [
-                        python_exe,
-                        "-m",
-                        "pip",
+                        new_env.python_path,
+                        pip_zipapp,
                         "-q",  # Quiet
-                        "--python",
-                        cache_path,
                         "install",
                         *spec.details.dependencies,
                     ],
@@ -396,13 +395,12 @@ class TempCatalogue(BaseCatalogue):
             except _laz.subprocess.CalledProcessError as e:
                 raise VenvBuildError(f"Failed to install dependencies: {e}")
 
+            # Get pip-freeze list to use for installed modules
+
             freeze = _laz.subprocess.run(
                 [
-                    python_exe,
-                    "-m",
-                    "pip",
-                    "--python",
-                    cache_path,
+                    new_env.python_path,
+                    pip_zipapp,
                     "freeze",
                 ],
                 capture_output=True,
@@ -412,22 +410,13 @@ class TempCatalogue(BaseCatalogue):
             installed_modules = [
                 item for item in freeze.stdout.split(os.linesep) if item
             ]
-        else:
-            installed_modules = []
 
-        new_cache = TemporaryEnv(
-            name=new_cachename,
-            path=cache_path,
-            python_version=python_version,
-            parent_python=python_exe,
-            spec_hashes=[spec.spec_hash],
-            installed_modules=installed_modules,
-        )
+            new_env.installed_modules.extend(installed_modules)
 
-        self.environments[new_cachename] = new_cache
+        self.environments[new_cachename] = new_env
         self.save()
 
-        return new_cache
+        return new_env
 
     def find_or_create_env(self, spec: EnvironmentSpec, config: Config) -> TemporaryEnv:
         env = self.find_env(spec)
