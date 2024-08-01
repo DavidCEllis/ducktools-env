@@ -31,8 +31,10 @@ import subprocess
 import sys
 import zipapp
 
+from glob import glob
+
 from ducktools.env.scripts import get_pip, bootstrap
-from ducktools.env import platform_paths, __main__ as main_app, _version
+from ducktools.env import platform_paths, __main__ as main_app, _version, MINIMUM_PYTHON_STR
 
 
 def build_zipapp(wheel_path):
@@ -47,6 +49,14 @@ def build_zipapp(wheel_path):
     build_folder = paths.build_folder()
     lib_folder = os.path.join(build_folder, "lib")
 
+    build_folder_glob = os.path.normpath(
+        os.path.join(build_folder, os.path.pardir, '*')
+    )
+    # Clear out old build folders
+    for p in glob(build_folder_glob):
+        if p != build_folder:
+            shutil.rmtree(p)
+
     try:
         print("Downloading application modules")
         print(pip_path)
@@ -54,8 +64,12 @@ def build_zipapp(wheel_path):
         subprocess.run([
             python_path,
             pip_path,
+            "--disable-pip-version-check",
             "install",
             wheel_path,
+            "--python-version",
+            MINIMUM_PYTHON_STR,
+            "--only-binary=:all:",
             "--target",
             lib_folder,
         ])
