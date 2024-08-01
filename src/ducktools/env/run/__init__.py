@@ -20,3 +20,27 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+import sys
+import subprocess
+
+from ..manager import Manager
+from ..config import log
+
+
+def run_script():
+    args_to_python = sys.argv[1:]
+    for item in args_to_python:
+        if item.endswith(".py"):
+            script_file = item
+            break
+    else:
+        raise ValueError("Must provide a path to a python script within the arguments.")
+
+    manager = Manager()
+
+    env = manager.get_script_env(script_file)
+
+    log(f"Using environment at: {env.path}")
+
+    subprocess.run([env.python_path, *args_to_python])

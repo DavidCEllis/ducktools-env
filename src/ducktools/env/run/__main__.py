@@ -22,33 +22,10 @@
 # SOFTWARE.
 
 """
-A simple 'main' script showing usage - use all default settings.
+Run a provided script
 """
-import sys
-import subprocess
 
-from ..manager import Manager
-
-from ..config import log
-
-
-def main():
-    args_to_python = sys.argv[1:]
-    for item in args_to_python:
-        if item.endswith(".py"):
-            script_file = item
-            break
-    else:
-        raise ValueError("Must provide a path to a python script within the arguments.")
-
-    manager = Manager()
-
-    env = manager.get_script_env(script_file)
-
-    log(f"Using environment at: {env.path}")
-
-    subprocess.run([env.python_path, *args_to_python])
-
+from ducktools.env.run import run_script
 
 if __name__ == "__main__":
-    main()
+    run_script()
