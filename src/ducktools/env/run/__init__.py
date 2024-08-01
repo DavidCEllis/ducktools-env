@@ -28,8 +28,8 @@ from ..manager import Manager
 from ..config import log
 
 
-def run_script():
-    args_to_python = sys.argv[1:]
+def run_script(args):
+    args_to_python = args
     for item in args_to_python:
         if item.endswith(".py"):
             script_file = item

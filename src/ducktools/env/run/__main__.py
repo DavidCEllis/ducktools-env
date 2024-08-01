@@ -25,7 +25,8 @@
 Run a provided script
 """
 
+import sys
 from ducktools.env.run import run_script
 
 if __name__ == "__main__":
-    run_script()
+    run_script(sys.argv[1:])

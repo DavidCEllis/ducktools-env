@@ -14,8 +14,16 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from ducktools.env.manager import Manager
+import shutil
+
+from ducktools.env.platform_paths import default_paths
+
+
+def clear_cache(paths=default_paths):
+    root_path = default_paths.project_folder
+    print(f"Deleting cache at {root_path!r}")
+    shutil.rmtree(root_path, ignore_errors=True)
+
 
 if __name__ == "__main__":
-    manager = Manager()
-    manager.purge_cache()
+    clear_cache()

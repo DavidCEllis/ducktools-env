@@ -21,9 +21,45 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sys
+import argparse
+from ducktools.lazyimporter import LazyImporter, ModuleImport, FromImport
 
-if sys.path[0].endswith(".pyz") and __file__.startswith(sys.path[0]):
-    IN_ZIPAPP = True
-else:
-    IN_ZIPAPP = False
+_laz = LazyImporter(
+    [
+        FromImport(".run", "run_script"),
+        FromImport(".scripts.clear_cache", "clear_cache")
+    ],
+    globs=globals()
+)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="ducktools-env",
+        description="Script runner and bundler for scripts with inline dependencies",
+        prefix_chars="+/",
+    )
+
+    parser.add_argument(
+        "command",
+        choices=["run", "bundle", "clear_cache"],
+        help="ducktools-env commands"
+    )
+
+    matched, pass_on = parser.parse_known_args()
+
+    if matched.command == "run":
+        _laz.run_script(pass_on)
+    elif matched.command == "bundle":
+        raise NotImplementedError("Bundle script not yet implemented.")
+    elif matched.command == "clear_cache":
+        if pass_on:
+            print("clear_cache command does not take any additional arguments")
+        _laz.clear_cache()
+    else:
+        # Should be unreachable
+        raise ValueError("Invalid command")
+
+
+if __name__ == "__main__":
+    main()
