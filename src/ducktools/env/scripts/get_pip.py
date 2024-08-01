@@ -35,6 +35,7 @@ import os
 import os.path
 
 from ducktools.classbuilder.prefab import prefab
+from ducktools.lazyimporter import LazyImporter, FromImport
 
 from ducktools.env import platform_paths
 from ducktools.env.config import log
@@ -44,9 +45,12 @@ from ducktools.env.exceptions import InvalidPipDownload
 BASE_URL = "https://bootstrap.pypa.io/pip"
 
 
+_laz = LazyImporter([FromImport("packaging.version", "Version")])
+
+
 @prefab(frozen=True)
 class PipZipapp:
-    version_tuple: tuple[int, ...]
+    version_str: str
     sha3_256: str
     source_url: str
 
@@ -55,19 +59,23 @@ class PipZipapp:
         return f"{BASE_URL}/{self.source_url}"
 
     @property
-    def version_str(self):
-        return ".".join(str(i) for i in self.version_tuple)
+    def version_tuple(self):
+        return tuple(int(segment) for segment in self.version_str.split("."))
+
+    @property
+    def as_version(self):
+        return _laz.Version(self.version_str)
 
 
 # This is mostly kept for testing.
 PREVIOUS_PIP = PipZipapp(
-    version_tuple=(24, 1),
+    version_str="24.1",
     sha3_256="f4c4d76e70498762832a842d5b55e9d8c09b6d6607b30b5f4eb08e68dfc57077",
     source_url="zipapp/pip-24.1.pyz"
 )
 
 LATEST_PIP = PipZipapp(
-    version_tuple=(24, 2),
+    version_str="24.2",
     sha3_256="8dc4860613c47cb2e5e55c7e1ecf4046abe18edca083073d51f1720011bed6ea",
     source_url="zipapp/pip-24.2.pyz",
 )
@@ -79,7 +87,18 @@ def is_pip_outdated(
 ):
     pip_version = paths.get_pip_version()
 
-    return pip_version < latest_version.version_tuple
+    if pip_version is None:
+        return True
+
+    try:
+        installed_info = tuple(int(segment) for segment in pip_version.split("."))
+        latest_info = latest_version.version_tuple
+    except (ValueError, TypeError):
+        # possible pre/post release versions - use packaging
+        installed_info = _laz.Version(pip_version)
+        latest_info = latest_version.as_version
+
+    return installed_info < latest_info
 
 
 def download_pip(

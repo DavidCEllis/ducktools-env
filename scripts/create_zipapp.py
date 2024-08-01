@@ -22,8 +22,10 @@
 # SOFTWARE.
 
 """
-This module re-creates the ducktools-env zipapp
+This is the script that builds the inner ducktools-env.pyz zipapp
+and bundles ducktools-env into ducktools.pyz
 """
+import importlib_resources
 import os
 import os.path
 import shutil
@@ -31,13 +33,21 @@ import subprocess
 import sys
 import zipapp
 
-from glob import glob
+from pathlib import Path
 
-from ducktools.env.scripts import get_pip, bootstrap
-from ducktools.env import platform_paths, __main__ as main_app, _version, MINIMUM_PYTHON_STR
+import ducktools.env
+from ducktools.env import platform_paths, MINIMUM_PYTHON_STR
+from ducktools.env.scripts import get_pip
 
 
-def build_zipapp(wheel_path):
+bootstrap_requires = [
+    "ducktools-lazyimporter>=0.5.1",
+    "packaging>=23.2",
+    "importlib-resources>=6.0",
+]
+
+
+def build_zipapp(wheel_path, *, clear_old_builds=True):
     # Just use the existing Python to build
     python_path = sys.executable
     # pip is needed to build the zipapp
@@ -49,19 +59,17 @@ def build_zipapp(wheel_path):
     build_folder = paths.build_folder()
     lib_folder = os.path.join(build_folder, "lib")
 
-    build_folder_glob = os.path.normpath(
-        os.path.join(build_folder, os.path.pardir, '*')
-    )
-    # Clear out old build folders
-    for p in glob(build_folder_glob):
-        if p != build_folder:
-            shutil.rmtree(p)
+    if clear_old_builds:
+        build_folder_path = Path(build_folder)
+        for p in build_folder_path.parent.glob("*"):
+            if p != build_folder_path:
+                shutil.rmtree(p)
 
     try:
         print("Downloading application modules")
         print(pip_path)
         # Pip install packages into build folder
-        subprocess.run([
+        pip_command = [
             python_path,
             pip_path,
             "--disable-pip-version-check",
@@ -72,15 +80,31 @@ def build_zipapp(wheel_path):
             "--only-binary=:all:",
             "--target",
             lib_folder,
-        ])
+        ]
+        subprocess.run(pip_command)
 
-        print("Copying __main__.py into lib")
-        shutil.copy(main_app.__file__, lib_folder)
+        # Get the paths for modules that need to be copied
+        resources = importlib_resources.files("ducktools.env")
 
-        print("Creating ducktools.pyz")
+        with importlib_resources.as_file(resources) as env_folder:
+            main_app_path = env_folder / "__main__.py"
+            platform_paths_path = env_folder / "platform_paths.py"
+            bootstrap_path = env_folder / "scripts" / "bootstrap.py"
+
+            print("Copying __main__.py into lib")
+            shutil.copy(main_app_path, lib_folder)
+
+            print("Copying platform paths")
+            shutil.copy(platform_paths_path, os.path.join(build_folder, "platform_paths.py"))
+
+            print("Copying bootstrap script")
+            shutil.copy(bootstrap_path, os.path.join(build_folder, "__main__.py"))
+
+        print("Creating ducktools-env.pyz")
         zipapp.create_archive(
             source=lib_folder,
-            target=os.path.join(build_folder, "ducktools.pyz"),
+            target=os.path.join(build_folder, "ducktools-env.pyz"),
+            interpreter="/usr/bin/env python"
         )
 
         # Cleaning up lib folder
@@ -89,22 +113,36 @@ def build_zipapp(wheel_path):
         print("Copying pip.pyz into lib")
         shutil.copy(pip_path, build_folder)
 
-        print("Copying platform paths")
-        shutil.copy(platform_paths.__file__, os.path.join(build_folder, "platform_paths.py"))
-
-        print("Copying bootstrap script")
-        shutil.copy(bootstrap.__file__, os.path.join(build_folder, "__main__.py"))
-
         print("Writing version numbers")
         with open(os.path.join(build_folder, "pip.pyz.version"), 'w') as f:
             f.write(latest_pip.version_str)
-        with open(os.path.join(build_folder, "ducktools.pyz.version"), 'w') as f:
-            f.write(_version.__version__)
+        with open(os.path.join(build_folder, "ducktools-env.pyz.version"), 'w') as f:
+            f.write(ducktools.env.__version__)
 
-        print("Creating zipapp")
+        print("Installing bootstrap requirements")
+        vendor_folder = os.path.join(build_folder, "_vendor")
+
+        pip_command = [
+            python_path,
+            pip_path,
+            "--disable-pip-version-check",
+            "install",
+            *bootstrap_requires,
+            "--python-version",
+            MINIMUM_PYTHON_STR,
+            "--only-binary=:all:",
+            "--target",
+            vendor_folder,
+        ]
+        subprocess.run(pip_command)
+
+        dist_folder = Path(__file__).parents[1] / "dist"
+        dist_folder.mkdir(exist_ok=True)
+
+        print("Creating ducktools.pyz")
         zipapp.create_archive(
             source=build_folder,
-            target=os.path.join(os.getcwd(), "ducktools-env.pyz"),
+            target=dist_folder / "ducktools.pyz",
             interpreter="/usr/bin/env python"
         )
 
@@ -113,5 +151,9 @@ def build_zipapp(wheel_path):
 
 
 if __name__ == "__main__":
-    path_base = sys.argv[1]
+    try:
+        path_base = sys.argv[1]
+    except IndexError:
+        path_base = str(Path(__file__).parents[1])
+
     build_zipapp(path_base)

@@ -45,6 +45,7 @@ PyPI:
 * `ducktools-pythonfinder` (A tool to discover python installs available for environment creation)
 * `packaging` (for comparing dependency lists to cached environments)
 * `tomli` (for Python 3.10 and earlier to support the TOML format)
+* `importlib-resources` (to handle finding file paths correctly when building bundles)
 
 ## Other tools in this space ##
 

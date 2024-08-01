@@ -22,11 +22,8 @@
 # SOFTWARE.
 
 import sys
-import os.path
 
 if sys.path[0].endswith(".pyz") and __file__.startswith(sys.path[0]):
     IN_ZIPAPP = True
 else:
     IN_ZIPAPP = False
-
-print(IN_ZIPAPP)
