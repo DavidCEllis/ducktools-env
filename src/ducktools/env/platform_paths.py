@@ -35,12 +35,12 @@ class UnsupportedPlatformError(Exception):
     pass
 
 
-ENVIRONMENTS_SUBFOLDER = "environments"
+PACKAGE_SUBFOLDER = "env"
 
 # Folders used internally
 CACHEDENV_FOLDERNAME = "caches"
 APPLICATION_FOLDERNAME = "application"
-VENV_FOLDERNAME = "env"
+VENV_FOLDERNAME = "venv"
 
 MANAGER_FOLDERNAME = "lib"
 
@@ -114,14 +114,14 @@ class ManagedPaths:
     def __init__(self, project_name="ducktools"):
         self.project_name = project_name
 
-        folder_base = os.path.join(self.project_name, ENVIRONMENTS_SUBFOLDER)
+        folder_base = os.path.join(self.project_name, PACKAGE_SUBFOLDER)
 
         self.project_folder = get_platform_folder(folder_base)
         self.config_path = os.path.join(self.project_folder, CONFIG_FILENAME)
 
         self.manager_folder = os.path.join(self.project_folder, MANAGER_FOLDERNAME)
         self.pip_zipapp = os.path.join(self.manager_folder, "pip.pyz")
-        self.env_zipapp = os.path.join(self.manager_folder, "ducktools.pyz")
+        self.env_zipapp = os.path.join(self.manager_folder, "ducktools-env.pyz")
 
         self.application_folder = os.path.join(self.project_folder, APPLICATION_FOLDERNAME)
         self.cache_folder = os.path.join(self.project_folder, CACHEDENV_FOLDERNAME)
@@ -131,15 +131,13 @@ class ManagedPaths:
 
     @staticmethod
     def get_app_version(versionfile):
-        minimal_version = (0, 0)
-        if not os.path.exists(versionfile):
-            return minimal_version
-        with open(versionfile, 'r') as f:
-            raw_version = f.read()
+
         try:
-            ver = tuple(int(arg) for arg in raw_version.split("."))
-        except ValueError:
-            return minimal_version
+            with open(versionfile, 'r') as f:
+                ver = f.read()
+        except FileNotFoundError:
+            return None
+
         return ver
 
     def get_pip_version(self):
