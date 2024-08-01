@@ -170,5 +170,3 @@ if __name__ == "__main__":
     print(paths.config_path)
     print(paths.cache_folder)
     print(paths.cache_db)
-
-
