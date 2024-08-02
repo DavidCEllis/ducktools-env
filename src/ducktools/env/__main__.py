@@ -20,6 +20,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import sys
 
 import argparse
 from ducktools.lazyimporter import LazyImporter, FromImport
@@ -27,7 +28,8 @@ from ducktools.lazyimporter import LazyImporter, FromImport
 _laz = LazyImporter(
     [
         FromImport("ducktools.env.run", "run_script"),
-        FromImport("ducktools.env.scripts.clear_cache", "clear_cache")
+        FromImport("ducktools.env.scripts.clear_cache", "clear_cache"),
+        FromImport("ducktools.env.bundle", "create_bundle"),
     ]
 )
 
@@ -39,21 +41,43 @@ def main():
         prefix_chars="+/",
     )
 
-    parser.add_argument(
-        "command",
-        choices=["run", "bundle", "clear_cache"],
-        help="ducktools-env commands"
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    run_parser = subparsers.add_parser(
+        "run",
+        help="Launch the provided python script with inline dependencies",
     )
 
-    matched, pass_on = parser.parse_known_args()
+    bundle_parser = subparsers.add_parser(
+        "bundle",
+        help="Bundle the provided python script with inline dependencies into a python zipapp",
+    )
 
-    if matched.command == "run":
-        _laz.run_script(pass_on)
-    elif matched.command == "bundle":
-        raise NotImplementedError("Bundle script not yet implemented.")
-    elif matched.command == "clear_cache":
-        if pass_on:
-            print("clear_cache command does not take any additional arguments")
+    clear_cache_parser = subparsers.add_parser(
+        "clear_cache",
+        help="Completely clear the ducktools/env cache folder"
+    )
+
+    run_parser.add_argument("script_filename")
+    bundle_parser.add_argument("script_filename")
+
+    args, extras = parser.parse_known_args()
+
+    if args.command == "run":
+        _laz.run_script(args.script_filename, extras)
+    elif args.command == "bundle":
+        if extras:
+            arg_text = ' '.join(extras)
+            sys.stderr.write(f"Unrecognised arguments: {arg_text}")
+            return
+
+        _laz.create_bundle(args.script_filename)
+    elif args.command == "clear_cache":
+        if extras:
+            arg_text = ' '.join(extras)
+            sys.stderr.write(f"Unrecognised arguments: {arg_text}")
+            return
+
         _laz.clear_cache()
     else:
         # Should be unreachable

@@ -28,6 +28,12 @@ from ._version import __version__, __version_tuple__
 MINIMUM_PYTHON = (3, 8)
 MINIMUM_PYTHON_STR = ".".join(str(v) for v in MINIMUM_PYTHON)
 
+bootstrap_requires = [
+    "ducktools-lazyimporter>=0.5.1",
+    "packaging>=23.2",
+    "zipp>=3.16",
+]
+
 if sys.version_info < MINIMUM_PYTHON:
     v = sys.version_info
     major, minor = MINIMUM_PYTHON

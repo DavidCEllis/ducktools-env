@@ -28,19 +28,11 @@ from ..manager import Manager
 from ..config import log
 
 
-def run_script(args):
-    args_to_python = args
-    for item in args_to_python:
-        if item.endswith(".py"):
-            script_file = item
-            break
-    else:
-        raise ValueError("Must provide a path to a python script within the arguments.")
-
+def run_script(script_file, args):
     manager = Manager()
 
     env = manager.get_script_env(script_file)
 
     log(f"Using environment at: {env.path}")
 
-    subprocess.run([env.python_path, *args_to_python])
+    subprocess.run([env.python_path, script_file, *args])

@@ -23,4 +23,5 @@ import sys
 from cowsay.__main__ import cli
 
 if __name__ == "__main__":
+    print(sys.version)
     cli()

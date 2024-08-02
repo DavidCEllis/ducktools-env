@@ -22,17 +22,18 @@
 # SOFTWARE.
 
 """
-This script becomes the __main__.py script inside the ducktools-env zipapp.
+This script becomes the __main__.py script inside the ducktools.pyz zipapp.
 """
+from __future__ import annotations
 
 import os.path
 import sys
 import zipfile
 
-
-from platform_paths import default_paths  # noqa
+from _platform_paths import default_paths  # noqa
 
 from _vendor.ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport  # noqa
+from _vendor import zipp  # noqa
 
 _laz = LazyImporter(
     [
@@ -72,8 +73,8 @@ def update_libraries():
 
     # Compare library versions to those in cache
     with zipfile.ZipFile(archive_path, "r") as zf:
-        bundled_ducktools_ver = zipfile.Path(zf, "ducktools-env.pyz.version").read_text()
-        bundled_pip_ver = zipfile.Path(zf, "pip.pyz.version").read_text()
+        bundled_ducktools_ver = zipp.Path(zf, "ducktools-env.pyz.version").read_text()
+        bundled_pip_ver = zipp.Path(zf, "pip.pyz.version").read_text()
 
         # Copy ducktools if outdated
         if is_outdated(default_paths.get_env_version(), bundled_ducktools_ver):
@@ -88,10 +89,14 @@ def update_libraries():
             zf.extract("pip.pyz.version", default_paths.manager_folder)
 
 
+def launch_script(script_file, args):
+    sys.path.insert(0, default_paths.env_zipapp)
+    try:
+        from ducktools.env.run import run_script
+        run_script(script_file, args)
+    finally:
+        sys.path.pop(0)
+
+
 def launch_ducktools():
     _laz.runpy.run_path(default_paths.env_zipapp, run_name="__main__")
-
-
-if __name__ == "__main__":
-    update_libraries()
-    launch_ducktools()

@@ -47,3 +47,10 @@ class InvalidPipDownload(EnvError):
     Error if the hash value of the downloaded `pip` does not match
     the value this application has for that version.
     """
+
+
+class ScriptNameClash(EnvError):
+    """
+    Error if the name of the python script to be bundled clashes with
+    an included library.
+    """
