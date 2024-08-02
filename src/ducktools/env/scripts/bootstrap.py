@@ -37,7 +37,7 @@ from _vendor.ducktools.lazyimporter import LazyImporter, FromImport, ModuleImpor
 _laz = LazyImporter(
     [
         FromImport("_vendor.packaging.version", "Version"),
-        ModuleImport("importlib_resources", asname="resources"),
+        ModuleImport("_vendor.importlib_resources", asname="resources"),
         ModuleImport("runpy"),
         ModuleImport("shutil"),
     ]
