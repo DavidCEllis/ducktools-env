@@ -22,14 +22,13 @@
 # SOFTWARE.
 
 import argparse
-from ducktools.lazyimporter import LazyImporter, ModuleImport, FromImport
+from ducktools.lazyimporter import LazyImporter, FromImport
 
 _laz = LazyImporter(
     [
-        FromImport(".run", "run_script"),
-        FromImport(".scripts.clear_cache", "clear_cache")
-    ],
-    globs=globals()
+        FromImport("ducktools.env.run", "run_script"),
+        FromImport("ducktools.env.scripts.clear_cache", "clear_cache")
+    ]
 )
 
 
