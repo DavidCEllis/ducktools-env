@@ -40,7 +40,6 @@ PACKAGE_SUBFOLDER = "env"
 # Folders used internally
 CACHEDENV_FOLDERNAME = "caches"
 APPLICATION_FOLDERNAME = "application"
-VENV_FOLDERNAME = "venv"
 
 MANAGER_FOLDERNAME = "lib"
 
