@@ -114,7 +114,7 @@ def create_bundle(script_file, *, paths=default_paths):
     (Path(vendor_folder) / "requirements.txt").write_text(freeze.stdout)
 
     print("Copying script to build folder and bundling")
-    shutil.copy(script_file, os.path.join(build_folder, "_bundled_script.py"))
+    shutil.copy(script_file, build_folder)
 
     archive_path = Path(script_file).with_suffix(".pyz")
 
