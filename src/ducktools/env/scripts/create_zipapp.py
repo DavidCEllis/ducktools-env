@@ -35,20 +35,30 @@ import zipapp
 from pathlib import Path
 
 import importlib_resources
+from importlib.metadata import requires
+from packaging.requirements import Requirement
 
 import ducktools.env
 from ducktools.env import platform_paths, MINIMUM_PYTHON_STR, bootstrap_requires
 from ducktools.env.scripts import get_pip
 
 
-def build_env_zipapp(wheel_path, *, clear_old_builds=True):
-    # Just use the existing Python to build
+def build_env_zipapp(*, clear_old_builds=True):
+    # Use the existing Python to build
     python_path = sys.executable
     # pip is needed to build the zipapp
     paths = platform_paths.default_paths
 
     latest_pip = get_pip.LATEST_PIP
     pip_path = get_pip.retrieve_pip(latest_pip)
+
+    # Get the full requirements for ducktools-env
+    deps = []
+    reqs = requires("ducktools.env")
+    for req in reqs:
+        req = Requirement(req)
+        if not (req.marker and not req.marker.evaluate({"python_version": MINIMUM_PYTHON_STR})):
+            deps.append(f"{req.name}{req.specifier}")
 
     build_folder = paths.build_folder()
 
@@ -59,15 +69,14 @@ def build_env_zipapp(wheel_path, *, clear_old_builds=True):
                 shutil.rmtree(p)
 
     try:
-        print("Downloading application modules")
-        print(pip_path)
+        print("Downloading application dependencies")
         # Pip install packages into build folder
         pip_command = [
             python_path,
             pip_path,
             "--disable-pip-version-check",
             "install",
-            wheel_path,
+            *deps,
             "--python-version",
             MINIMUM_PYTHON_STR,
             "--only-binary=:all:",
@@ -93,8 +102,15 @@ def build_env_zipapp(wheel_path, *, clear_old_builds=True):
         resources = importlib_resources.files("ducktools.env")
 
         with importlib_resources.as_file(resources) as env_folder:
-            main_app_path = env_folder / "__main__.py"
+            print("Copying application into archive")
+            ignore_compiled = shutil.ignore_patterns("__pycache__")
+            shutil.copytree(
+                env_folder,
+                os.path.join(build_folder, "ducktools", "env"),
+                ignore=ignore_compiled,
+            )
 
+            main_app_path = env_folder / "__main__.py"
             print("Copying __main__.py into lib")
             shutil.copy(main_app_path, build_folder)
 
@@ -113,7 +129,7 @@ def build_env_zipapp(wheel_path, *, clear_old_builds=True):
         pass  # clean up tempdir
 
 
-def build_zipapp(wheel_path, *, clear_old_builds=True):
+def build_zipapp(*, clear_old_builds=True):
     # Just use the existing Python to build
     python_path = sys.executable
     # pip is needed to build the zipapp
@@ -196,20 +212,5 @@ def build_zipapp(wheel_path, *, clear_old_builds=True):
 
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description="Create Ducktools Zipapp"
-    )
-
-    parser.add_argument(
-        "wheel_path",
-        help="Path to ducktools.env wheel file or source directory."
-    )
-
-    args = parser.parse_args()
-
-    path_base = args.wheel_path
-
-    build_env_zipapp(path_base)
-    build_zipapp(path_base)
+    build_env_zipapp()
+    build_zipapp()
