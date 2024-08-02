@@ -22,7 +22,7 @@
 # SOFTWARE.
 
 """
-This is the script that builds the inner ducktools-env.pyz zipapp
+This is the script that builds the inner ducktools-env folder
 and bundles ducktools-env into ducktools.pyz
 """
 import os
@@ -43,7 +43,7 @@ from ducktools.env import platform_paths, MINIMUM_PYTHON_STR, bootstrap_requires
 from ducktools.env.scripts import get_pip
 
 
-def build_env_zipapp(*, clear_old_builds=True):
+def build_env_folder(*, clear_old_builds=True):
     # Use the existing Python to build
     python_path = sys.executable
     # pip is needed to build the zipapp
@@ -114,15 +114,15 @@ def build_env_zipapp(*, clear_old_builds=True):
             print("Copying __main__.py into lib")
             shutil.copy(main_app_path, build_folder)
 
-        print("Creating ducktools-env.pyz")
-        zipapp.create_archive(
-            source=build_folder,
-            target=paths.env_zipapp,
-            interpreter="/usr/bin/env python"
+        print("Creating ducktools-env lib folder")
+        shutil.rmtree(paths.env_folder, ignore_errors=True)
+        shutil.copytree(
+            build_folder,
+            paths.env_folder,
         )
 
         print("Writing env version number")
-        with open(paths.env_zipapp + ".version", 'w') as f:
+        with open(paths.env_folder + ".version", 'w') as f:
             f.write(ducktools.env.__version__)
 
     finally:
@@ -146,6 +146,9 @@ def build_zipapp(*, clear_old_builds=True):
             if p != build_folder_path:
                 shutil.rmtree(p)
 
+    print("Copying pip.pyz and ducktools-env")
+    shutil.copytree(paths.manager_folder, build_folder, dirs_exist_ok=True)
+
     try:
         # Get the paths for modules that need to be copied
         resources = importlib_resources.files("ducktools.env")
@@ -163,9 +166,6 @@ def build_zipapp(*, clear_old_builds=True):
 
             print("Copying __main__ script")
             shutil.copy(main_zipapp_path, os.path.join(build_folder, "__main__.py"))
-
-        print("Copying pip.pyz and ducktools-env.pyz")
-        shutil.copytree(paths.manager_folder, build_folder, dirs_exist_ok=True)
 
         print("Installing bootstrap requirements")
         vendor_folder = os.path.join(build_folder, "_vendor")
@@ -212,5 +212,5 @@ def build_zipapp(*, clear_old_builds=True):
 
 
 if __name__ == "__main__":
-    build_env_zipapp()
+    build_env_folder()
     build_zipapp()

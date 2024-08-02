@@ -73,14 +73,14 @@ def update_libraries():
 
     # Compare library versions to those in cache
     with zipfile.ZipFile(archive_path, "r") as zf:
-        bundled_ducktools_ver = zipp.Path(zf, "ducktools-env.pyz.version").read_text()
+        bundled_ducktools_ver = zipp.Path(zf, "ducktools-env.version").read_text()
         bundled_pip_ver = zipp.Path(zf, "pip.pyz.version").read_text()
 
         # Copy ducktools if outdated
         if is_outdated(default_paths.get_env_version(), bundled_ducktools_ver):
             sys.stderr.write("Installed ducktools is older than bundled, replacing.\n")
-            zf.extract("ducktools-env.pyz", default_paths.manager_folder)
-            zf.extract("ducktools-env.pyz.version", default_paths.manager_folder)
+            zf.extract("ducktools-env/", default_paths.manager_folder)
+            zf.extract("ducktools-env.version", default_paths.manager_folder)
 
         # Copy pip if outdated
         if is_outdated(default_paths.get_pip_version(), bundled_pip_ver):
@@ -90,7 +90,7 @@ def update_libraries():
 
 
 def launch_script(script_file, args):
-    sys.path.insert(0, default_paths.env_zipapp)
+    sys.path.insert(0, default_paths.env_folder)
     try:
         from ducktools.env.run import run_script
         run_script(script_file, args)
@@ -99,4 +99,4 @@ def launch_script(script_file, args):
 
 
 def launch_ducktools():
-    _laz.runpy.run_path(default_paths.env_zipapp, run_name="__main__")
+    _laz.runpy.run_path(default_paths.env_folder, run_name="__main__")

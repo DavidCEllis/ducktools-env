@@ -34,7 +34,7 @@ import importlib_resources
 from .. import MINIMUM_PYTHON_STR, bootstrap_requires
 from ..platform_paths import default_paths
 from ..scripts.get_pip import retrieve_pip
-from ..scripts.create_zipapp import build_env_zipapp
+from ..scripts.create_zipapp import build_env_folder
 from ..exceptions import ScriptNameClash
 
 invalid_script_names = {
@@ -64,8 +64,8 @@ def create_bundle(script_file, *, paths=default_paths):
     if not os.path.exists(paths.pip_zipapp):
         retrieve_pip()
 
-    if not os.path.exists(paths.env_zipapp):
-        build_env_zipapp()
+    if not os.path.exists(paths.env_folder):
+        build_env_folder()
 
     print("Copying libraries into build folder")
     # Copy pip and ducktools zipapps into folder

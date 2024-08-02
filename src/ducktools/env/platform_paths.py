@@ -102,7 +102,7 @@ class ManagedPaths:
 
     manager_folder: str
     pip_zipapp: str
-    env_zipapp: str
+    env_folder: str
 
     application_folder: str  # Not yet used
     cache_folder: str
@@ -121,7 +121,7 @@ class ManagedPaths:
 
         self.manager_folder = os.path.join(self.project_folder, MANAGER_FOLDERNAME)
         self.pip_zipapp = os.path.join(self.manager_folder, "pip.pyz")
-        self.env_zipapp = os.path.join(self.manager_folder, "ducktools-env.pyz")
+        self.env_folder = os.path.join(self.manager_folder, "ducktools-env")
 
         self.application_folder = os.path.join(self.project_folder, APPLICATION_FOLDERNAME)
         self.cache_folder = os.path.join(self.project_folder, CACHEDENV_FOLDERNAME)
@@ -145,7 +145,7 @@ class ManagedPaths:
         return self.get_app_version(version_file)
 
     def get_env_version(self):
-        version_file = f"{self.env_zipapp}.version"
+        version_file = f"{self.env_folder}.version"
         return self.get_app_version(version_file)
 
     def build_folder(self):

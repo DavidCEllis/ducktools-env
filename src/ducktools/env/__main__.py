@@ -33,7 +33,7 @@ _laz = LazyImporter(
         FromImport("ducktools.env.bundle", "create_bundle"),
         MultiFromImport(
             "ducktools.env.scripts.create_zipapp",
-            ["build_env_zipapp", "build_zipapp"]
+            ["build_env_folder", "build_zipapp"]
         )
     ]
 )
@@ -96,7 +96,7 @@ def main():
             arg_text = ' '.join(extras)
             sys.stderr.write(f"Unrecognised arguments: {arg_text}")
             return
-        _laz.build_env_zipapp()
+        _laz.build_env_folder()
         _laz.build_zipapp()
     else:
         # Should be unreachable
