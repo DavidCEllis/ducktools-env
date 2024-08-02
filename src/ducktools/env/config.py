@@ -45,7 +45,7 @@ def log(message):
 
 class Config(Prefab, kw_only=True):
     # Global settings for caches
-    cache_maxcount: int = 10
+    cache_maxcount: int = 2
     cache_lifetime: float = 28.0
 
     applications_expire: bool = False
