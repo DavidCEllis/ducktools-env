@@ -43,7 +43,7 @@ from ducktools.env.scripts import get_pip
 bootstrap_requires = [
     "ducktools-lazyimporter>=0.5.1",
     "packaging>=23.2",
-    "importlib-resources>=6.0",
+    # "importlib-resources>=6.0",
 ]
 
 
@@ -82,6 +82,18 @@ def build_zipapp(wheel_path, *, clear_old_builds=True):
             lib_folder,
         ]
         subprocess.run(pip_command)
+
+        freeze_command = [
+            python_path,
+            pip_path,
+            "freeze",
+            "--path",
+            lib_folder,
+        ]
+
+        freeze = subprocess.run(freeze_command, capture_output=True, text=True)
+
+        (Path(lib_folder) / "requirements.txt").write_text(freeze.stdout)
 
         # Get the paths for modules that need to be copied
         resources = importlib_resources.files("ducktools.env")
@@ -135,6 +147,18 @@ def build_zipapp(wheel_path, *, clear_old_builds=True):
             vendor_folder,
         ]
         subprocess.run(pip_command)
+
+        freeze_command = [
+            python_path,
+            pip_path,
+            "freeze",
+            "--path",
+            vendor_folder,
+        ]
+
+        freeze = subprocess.run(freeze_command, capture_output=True, text=True)
+
+        (Path(vendor_folder) / "requirements.txt").write_text(freeze.stdout)
 
         dist_folder = Path(__file__).parents[1] / "dist"
         dist_folder.mkdir(exist_ok=True)
