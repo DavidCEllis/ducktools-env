@@ -23,13 +23,17 @@
 import sys
 
 import argparse
-from ducktools.lazyimporter import LazyImporter, FromImport
+from ducktools.lazyimporter import LazyImporter, FromImport, MultiFromImport
 
 _laz = LazyImporter(
     [
         FromImport("ducktools.env.run", "run_script"),
         FromImport("ducktools.env.scripts.clear_cache", "clear_cache"),
         FromImport("ducktools.env.bundle", "create_bundle"),
+        MultiFromImport(
+            "ducktools.env.scripts.create_zipapp",
+            ["build_env_zipapp", "build_zipapp"]
+        )
     ]
 )
 
@@ -58,6 +62,11 @@ def main():
         help="Completely clear the ducktools/env cache folder"
     )
 
+    create_zipapp_parser = subparsers.add_parser(
+        "create_zipapp",
+        help="Recreate the ducktools.env zipapp from the installed package"
+    )
+
     run_parser.add_argument("script_filename")
     bundle_parser.add_argument("script_filename")
 
@@ -79,6 +88,13 @@ def main():
             return
 
         _laz.clear_cache()
+    elif args.command == "create_zipapp":
+        if extras:
+            arg_text = ' '.join(extras)
+            sys.stderr.write(f"Unrecognised arguments: {arg_text}")
+            return
+        _laz.build_env_zipapp()
+        _laz.build_zipapp()
     else:
         # Should be unreachable
         raise ValueError("Invalid command")
