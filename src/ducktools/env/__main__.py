@@ -27,6 +27,7 @@ from ducktools.lazyimporter import LazyImporter, FromImport, MultiFromImport
 
 _laz = LazyImporter(
     [
+        FromImport("ducktools.env", "__version__"),
         FromImport("ducktools.env.run", "run_script"),
         FromImport("ducktools.env.scripts.clear_cache", "clear_cache"),
         FromImport("ducktools.env.bundle", "create_bundle"),
@@ -44,6 +45,8 @@ def main():
         description="Script runner and bundler for scripts with inline dependencies",
         prefix_chars="+/",
     )
+
+    parser.add_argument("+V", "++version", action="version", version=_laz.__version__)
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
