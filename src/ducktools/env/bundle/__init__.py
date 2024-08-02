@@ -34,6 +34,7 @@ import importlib_resources
 from .. import MINIMUM_PYTHON_STR, bootstrap_requires
 from ..platform_paths import default_paths
 from ..scripts.get_pip import retrieve_pip
+from ..scripts.create_zipapp import build_env_zipapp
 from ..exceptions import ScriptNameClash
 
 invalid_script_names = {
@@ -45,6 +46,11 @@ invalid_script_names = {
 
 
 def create_bundle(script_file, *, paths=default_paths):
+    if script_file.endswith(".pyz") or script_file.endswith(".pyzw"):
+        sys.stderr.write(
+            "Bundles must be created from .py scripts not .pyz[w] archives\n"
+        )
+
     if script_file in invalid_script_names:
         raise ScriptNameClash(
             f"Script {script_file!r} can't be bundled as the name clashes with "
@@ -59,9 +65,7 @@ def create_bundle(script_file, *, paths=default_paths):
         retrieve_pip()
 
     if not os.path.exists(paths.env_zipapp):
-        raise FileNotFoundError(
-            "Environment zipapp must be created before bundles can be made."
-        )
+        build_env_zipapp()
 
     print("Copying libraries into build folder")
     # Copy pip and ducktools zipapps into folder
