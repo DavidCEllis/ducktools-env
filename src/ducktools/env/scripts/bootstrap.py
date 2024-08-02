@@ -48,13 +48,13 @@ def is_outdated(installed_version: str | None, bundled_version: str) -> bool:
     if installed_version is None:
         return True
 
-    # Shortcut for identical version string
-    if installed_version == bundled_version:
-        return False
-
     # Always consider dev versions outdated
     if "dev" in installed_version:
         return True
+
+    # Shortcut for identical version string
+    if installed_version == bundled_version:
+        return False
 
     # Try to use tuples, fallback to packaging
     try:
