@@ -239,7 +239,7 @@ class TempCatalogue(BaseCatalogue):
 
         self.save()
 
-    def find_env_hash(self, spec: EnvironmentSpec) -> TemporaryEnv | None:
+    def find_env_hash(self, *, spec: EnvironmentSpec) -> TemporaryEnv | None:
         """
         Attempt to find a cached python environment that matches the hash
         of the specification.
@@ -265,7 +265,7 @@ class TempCatalogue(BaseCatalogue):
         else:
             return None
 
-    def find_sufficient_env(self, spec: EnvironmentSpec) -> TemporaryEnv | None:
+    def find_sufficient_env(self, *, spec: EnvironmentSpec) -> TemporaryEnv | None:
         """
         Check for a cache that matches the minimums of all specified modules
 
@@ -280,7 +280,7 @@ class TempCatalogue(BaseCatalogue):
             # If python version is listed, make sure it matches
             if spec.details.requires_python:
                 cache_pyver = _packaging.Version(cache.python_version)
-                if cache_pyver not in spec.details.requires_python_spec:
+                if not spec.details.requires_python_spec.contains(cache_pyver, prereleases=True):
                     continue
 
             # Check dependencies
@@ -320,17 +320,17 @@ class TempCatalogue(BaseCatalogue):
         else:
             return None
 
-    def find_env(self, spec: EnvironmentSpec) -> TemporaryEnv | None:
+    def find_env(self, *, spec: EnvironmentSpec) -> TemporaryEnv | None:
         """
         Try to find an existing cached environment that satisfies the spec
 
         :param spec:
         :return:
         """
-        env = self.find_env_hash(spec)
+        env = self.find_env_hash(spec=spec)
 
         if not env:
-            env = self.find_sufficient_env(spec)
+            env = self.find_sufficient_env(spec=spec)
 
         return env
 
@@ -356,7 +356,7 @@ class TempCatalogue(BaseCatalogue):
         for install in _laz.get_python_installs():
             if (
                 not spec.details.requires_python
-                or install.version_str in spec.details.requires_python_spec
+                or spec.details.requires_python_spec.contains(install.version_str, prereleases=True)
             ):
                 python_exe = install.executable
                 python_version = install.version_str
@@ -430,8 +430,8 @@ class TempCatalogue(BaseCatalogue):
 
         return new_env
 
-    def find_or_create_env(self, spec: EnvironmentSpec, config: Config) -> TemporaryEnv:
-        env = self.find_env(spec)
+    def find_or_create_env(self, *, spec: EnvironmentSpec, config: Config) -> TemporaryEnv:
+        env = self.find_env(spec=spec)
         if not env:
             log("Existing environment not found, creating new environment.")
             env = self.create_env(spec=spec, config=config)
