@@ -197,7 +197,7 @@ def build_zipapp(*, clear_old_builds=True):
 
         (Path(vendor_folder) / "requirements.txt").write_text(freeze.stdout)
 
-        dist_folder = Path(__file__).parents[1] / "dist"
+        dist_folder = Path(os.getcwd(), "dist")
         dist_folder.mkdir(exist_ok=True)
 
         print("Creating ducktools.pyz")

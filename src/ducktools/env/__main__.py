@@ -43,16 +43,16 @@ def main():
     parser = argparse.ArgumentParser(
         prog="ducktools-env",
         description="Script runner and bundler for scripts with inline dependencies",
-        prefix_chars="+/",
     )
 
-    parser.add_argument("+V", "++version", action="version", version=_laz.__version__)
+    parser.add_argument("-V", "--version", action="version", version=_laz.__version__)
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     run_parser = subparsers.add_parser(
         "run",
         help="Launch the provided python script with inline dependencies",
+        prefix_chars="+/",
     )
 
     bundle_parser = subparsers.add_parser(
@@ -66,12 +66,18 @@ def main():
     )
 
     create_zipapp_parser = subparsers.add_parser(
-        "create_zipapp",
-        help="Recreate the ducktools.env zipapp from the installed package"
+        "rebuild_env",
+        help="Recreate the ducktools-env library cache from the installed package"
     )
 
-    run_parser.add_argument("script_filename")
-    bundle_parser.add_argument("script_filename")
+    create_zipapp_parser.add_argument(
+        "--zipapp",
+        action="store_true",
+        help="Also create the portable ducktools.pyz zipapp",
+    )
+
+    run_parser.add_argument("script_filename", help="Path to the script to run")
+    bundle_parser.add_argument("script_filename", help="Path to the script to bundle into a zipapp")
 
     args, extras = parser.parse_known_args()
 
@@ -91,13 +97,14 @@ def main():
             return
 
         _laz.clear_cache()
-    elif args.command == "create_zipapp":
+    elif args.command == "rebuild_env":
         if extras:
             arg_text = ' '.join(extras)
             sys.stderr.write(f"Unrecognised arguments: {arg_text}")
             return
         _laz.build_env_folder()
-        _laz.build_zipapp()
+        if args.zipapp:
+            _laz.build_zipapp()
     else:
         # Should be unreachable
         raise ValueError("Invalid command")
