@@ -52,6 +52,10 @@ def is_outdated(installed_version: str | None, bundled_version: str) -> bool:
     if installed_version == bundled_version:
         return False
 
+    # Always consider dev versions outdated
+    if "dev" in installed_version:
+        return True
+
     # Try to use tuples, fallback to packaging
     try:
         installed_info = tuple(int(segment) for segment in installed_version.split("."))
@@ -85,7 +89,7 @@ def update_libraries():
 
 
 def launch_ducktools():
-    _laz.runpy.run_path(default_paths.env_zipapp)
+    _laz.runpy.run_path(default_paths.env_zipapp, run_name="__main__")
 
 
 if __name__ == "__main__":
