@@ -352,8 +352,15 @@ class TempCatalogue(BaseCatalogue):
         # Check pip is installed
         pip_zipapp = _laz.retrieve_pip()
 
+        # Get Python Installs
+        installs = sorted(
+            _laz.get_python_installs(),
+            key=lambda ver: (ver.version[3], *ver.version[:3], ver.version[4]),
+            reverse=True
+        )
+
         # Find a valid python executable
-        for install in _laz.get_python_installs():
+        for install in installs:
             if (
                 not spec.details.requires_python
                 or spec.details.requires_python_spec.contains(install.version_str, prereleases=True)
