@@ -33,7 +33,7 @@ from _bootstrap import update_libraries, launch_script  # noqa
 
 
 def main():
-    script_name = "ducktools_bundled_script.py"
+    script_name = "_bundled_script.py"
 
     # Get updated ducktools and pip
     update_libraries()
