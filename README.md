@@ -1,44 +1,119 @@
-# DuckTools: EnvMan #
+# DuckTools: Env #
 
-EnvMan is a library that provides a basic toolkit for managing temporary python 
-virtual environments.
+`ducktools-env` intends to provide a few tools to aid in running and distributing
+applications and scripts written in Python that require additional dependencies.
+
+## Currently implemented ##
+
+This pre-release version provides a way to run scripts based on
+[inline script metadata](https://packaging.python.org/en/latest/specifications/inline-script-metadata/#inline-script-metadata)
+and a second tool to bundle such scripts into python's 
+[zipapp](https://docs.python.org/3/library/zipapp.html)
+format in a way that can be run without needing to have `ducktools-env` already installed.
+
+This works by creating temporary environments in the following folders:
+
+* Windows: `%LOCALAPPDATA%\ducktools\environments`
+* Linux: `~/.ducktools/environments`
+* Mac: Unsure, currently not supported - possibly in `~/Library/Caches/ducktools/environments`?
+
+## What it does ##
+
+When you run a script with ducktools-env it will look at the inline dependencies.
+
+It will use [ducktools-pythonfinder](https://github.com/DavidCEllis/ducktools-pythonfinder) to attempt
+to find the newest valid python install (not a venv) that satisfies any python requirement.
+
+Having done that it will create a temporary venv with any dependencies listed and execute the script in the
+venv.
 
 ## Usage ##
 
-Launching a python with matching python version and environment.
+Either install the tool from PyPI or simply download the zipapp from github.
 
-```python
-import subprocess
-import datetime
-from ducktools.envman import Config, Catalogue, EnvironmentSpec
+Run a script that uses inline script metadata:
+`python ducktools.pyz run my_script.py`
 
-script_path = "path/to/script.py"
+Bundle the script into a zipapp:
+`python ducktools.pyz bundle my_script.py`
 
-# Make a catalogue with a 1 day cache life
-config = Config(cache_expires=datetime.timedelta(days=1))
-catalogue = Catalogue.from_config(config)
+Clear the temporary environment cache:
+`python ducktools.pyz clear_cache`
 
-spec = EnvironmentSpec.from_file(script_path)
+Re-install the cached ducktools-env
+`python ducktools.pyz rebuild_env`
 
-# Find or Build a python environment that satisfies the inline dependency requirements
-python_env = catalogue.find_or_create_env(spec)
+## Goals ##
 
-# Run the script in the specified environment
-subprocess.run([python_env.python_path, script_path])
-```
+Future goals for this tool:
+
+* Bundle requirements inside the zipapp for use without a connection.
+* Bundle applications that are wheels with a `__main__.py` function.
+* Create 'permanent' named environments for stand-alone applications and update them
+  * Currently there is a maximum of 2 temporary environments that expire in a day
+    (this is due to the pre-release nature of the project, the future defaults will be higher/longer)
 
 ## Dependencies ##
 
-Currently ducktools.envman relies on the following tools.
+Currently `ducktools.env` relies on the following tools.
 
 Subprocesses:
 * `venv` (via subprocess on python installs)
-* `pip` (via subprocess within a venv)
+  * (Might eventually use `virtualenv` as there are python installs without `venv`)
+* `pip` (as a zipapp via subprocess)
 
 PyPI: 
-* `prefab-classes` (A lazy, faster implementation of the same concept as dataclasses)
-* `ducktools-lazyimporter`
-* `ducktools-scriptmetadata`
-* `ducktools-pythonfinder`
+* `ducktools-classbuilder` (A lazy, faster implementation of the building blocks behind things like dataclasses)
+* `ducktools-lazyimporter` (A simple class based tool to handle deferred imports)
+* `ducktools-scriptmetadata` (The parser for inline script metadata blocks)
+* `ducktools-pythonfinder` (A tool to discover python installs available for environment creation)
 * `packaging` (for comparing dependency lists to cached environments)
-* `tomli` (for Python 3.10)
+* `tomli` (for Python 3.10 and earlier to support the TOML format)
+* `importlib-resources` (to handle finding file paths correctly when building bundles)
+* `zipp`  (To handle path-like objects in zips in older python correctly)
+
+## Other tools in this space ##
+
+### zipapp ###
+
+The standard library `zipapp` is at the core of how `ducktools-env` works. However it doesn't support
+running with C extensions and it has no inbuilt way to control which Python it will run under.
+
+By contrast `ducktools-env` will respect a specified python version and required extensions, these
+can be bundled or downloaded on first launch via `pip`.
+
+### Shiv ###
+
+`shiv` allows you to bundle zipapps with C extensions, but doesn't provide for any `online` installs
+and will extract everything into one `~/.shiv` directory unless otherwise specified. 
+`ducktools-env` will create a separate environment for each unique set of requirements
+for temporary environments by matching specification.
+
+### PEX ###
+
+`pex` provides an assortment of related tools for developers alongside a `.pex` bundler.
+It doesn't (to my knowledge) have support for inline script metadata and it makes `.pex` files
+instead of `.pyz` files.
+
+### Hatch ###
+
+`Hatch` allows you to run scripts with inline dependencies, but requires the user on the other end
+already have hatch installed. The goal of `ducktools-env` is to make it so you can quickly bundle the script
+into a zipapp that will work on the other end with only Python as the requirement.
+
+### pipx ###
+
+`pipx` is another tool that allows you to install packages from PyPI and run them as applications
+based on their `[project.scripts]` and `[project.gui-scripts]`. This is *somewhat* a goal of
+ducktools.env, except it would build separate zipapps for each script and the apps would share
+the same cached python environment.
+
+## Why not use UV for dependency management? ##
+
+UV is new and fast, but in order to make the install portable **without** always requiring 
+an internet connection it would be necessary to bundle the binaries for UV for every 
+platform, meaning 16 copies at over 200MB. Even then there may be platforms where someone
+has built Python but not uv.
+
+By relying on pure python dependencies only, `ducktools-env` should work anywhere that Python
+works and does not require any additional compilation.

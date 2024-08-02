@@ -15,23 +15,23 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from ducktools.envman.environment_spec import EnvironmentSpec
+from ducktools.env.environment_specs import EnvironmentSpec, SpecType
 
 
 class TestBuildRetrieve:
-    def test_build_retrieve(self, testing_catalogue):
+    def test_build_retrieve(self, testing_catalogue, test_config):
         spec = EnvironmentSpec(
-            "requires-python='>=3.10'\n"
-            "dependencies=[]\n",
+            spec_type=SpecType.INLINE_METADATA,
+            raw_spec="requires-python='>=3.8'\ndependencies=[]\n",
         )
 
         # Test the env does not exist yet
-        assert testing_catalogue.find_env(spec) is None
+        assert testing_catalogue.find_env(spec=spec) is None
 
-        real_env = testing_catalogue.find_or_create_env(spec)
+        real_env = testing_catalogue.find_or_create_env(spec=spec, config=test_config)
 
         assert real_env is not None
 
-        retrieve_env = testing_catalogue.find_env(spec)
+        retrieve_env = testing_catalogue.find_env(spec=spec)
 
         assert real_env == retrieve_env

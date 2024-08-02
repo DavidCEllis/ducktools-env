@@ -14,25 +14,16 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from ducktools.lazyimporter import LazyImporter, FromImport, MultiFromImport, get_module_funcs
+import shutil
 
-__all__ = [
-    "__version__",  # noqa
-    "Catalogue",  # noqa
-    "CachedEnv",  # noqa
-    "Config",  # noqa
-    "EnvironmentSpec",  # noqa
-]
-
-_laz = LazyImporter(
-    [
-        FromImport(".version", "__version__"),
-        MultiFromImport(".catalogue", ["Catalogue", "CachedEnv"]),
-        FromImport(".config", "Config"),
-        FromImport(".environment_spec", "EnvironmentSpec"),
-    ],
-    globs=globals(),
-)
+from ducktools.env.platform_paths import default_paths
 
 
-__getattr__, __dir__ = get_module_funcs(_laz, module_name=__name__)
+def clear_cache(paths=default_paths):
+    root_path = default_paths.project_folder
+    print(f"Deleting cache at {root_path!r}")
+    shutil.rmtree(root_path, ignore_errors=True)
+
+
+if __name__ == "__main__":
+    clear_cache()
