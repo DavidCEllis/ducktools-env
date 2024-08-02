@@ -253,6 +253,12 @@ class TempCatalogue(BaseCatalogue):
         for cache in self.environments.values():
             if spec.spec_hash in cache.spec_hashes:
                 log(f"Hash {spec.spec_hash} matched environment {cache.name}")
+
+                if not cache.is_valid:
+                    log(f"Cache {cache.name!r} does not point to a valid python, removing.")
+                    self.delete_env(cache.name)
+                    continue
+
                 cache.last_used = _datetime_now_iso()
                 self.save()
                 return cache
@@ -297,6 +303,12 @@ class TempCatalogue(BaseCatalogue):
                 # If all dependencies were satisfied, the loop completed
                 # Update last_used and append the hash of the spec to the spec hashes
                 log(f"Spec satisfied by {cache.name!r}")
+
+                if not cache.is_valid:
+                    log(f"Cache {cache.name!r} does not point to a valid python, removing.")
+                    self.delete_env(cache.name)
+                    continue
+
                 log(f"Adding {spec.spec_hash!r} to {cache.name!r} hash list")
 
                 cache.last_used = _datetime_now_iso()
