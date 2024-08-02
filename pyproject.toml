@@ -17,7 +17,7 @@ dependencies = [
     "ducktools-classbuilder>=0.7.0",
     "ducktools-lazyimporter>=0.5.1",
     "ducktools-scriptmetadata",
-    "ducktools-pythonfinder",
+    "ducktools-pythonfinder>=0.3.0",
     "tomli; python_version <= '3.10'",
     "packaging>=23.2",
     "importlib-resources>=6.0",  # Older python lacks nice version of this.

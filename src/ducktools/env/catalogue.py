@@ -46,7 +46,7 @@ _laz = LazyImporter(
         ModuleImport("json"),
         ModuleImport("subprocess"),
         ModuleImport("hashlib"),
-        FromImport("ducktools.pythonfinder", "get_python_installs"),
+        FromImport("ducktools.pythonfinder", "list_python_installs"),
         FromImport(".scripts.get_pip", "retrieve_pip"),
     ],
     globs=globals(),
@@ -352,15 +352,8 @@ class TempCatalogue(BaseCatalogue):
         # Check pip is installed
         pip_zipapp = _laz.retrieve_pip()
 
-        # Get Python Installs
-        installs = sorted(
-            _laz.get_python_installs(),
-            key=lambda ver: (ver.version[3], *ver.version[:3], ver.version[4]),
-            reverse=True
-        )
-
         # Find a valid python executable
-        for install in installs:
+        for install in _laz.list_python_installs():
             if (
                 not spec.details.requires_python
                 or spec.details.requires_python_spec.contains(install.version_str, prereleases=True)
