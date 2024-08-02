@@ -200,10 +200,13 @@ def build_zipapp(*, clear_old_builds=True):
         dist_folder = Path(os.getcwd(), "dist")
         dist_folder.mkdir(exist_ok=True)
 
-        print("Creating ducktools.pyz")
+        version_ext = ".".join(str(i) for i in ducktools.env.__version_tuple__[:4])
+        archive_name = f"ducktools.{version_ext}.pyz"
+
+        print(f"Creating {archive_name}")
         zipapp.create_archive(
             source=build_folder,
-            target=dist_folder / "ducktools.pyz",
+            target=dist_folder / archive_name,
             interpreter="/usr/bin/env python"
         )
 
