@@ -43,6 +43,7 @@ invalid_script_names = {
     "_vendor.py",
 }
 
+
 def create_bundle(script_file, *, paths=default_paths):
     if script_file in invalid_script_names:
         raise ScriptNameClash(
@@ -89,6 +90,7 @@ def create_bundle(script_file, *, paths=default_paths):
         "--python-version",
         MINIMUM_PYTHON_STR,
         "--only-binary=:all:",
+        "--no-compile",
         "--target",
         vendor_folder
     ]

@@ -71,6 +71,7 @@ def build_env_zipapp(wheel_path, *, clear_old_builds=True):
             "--python-version",
             MINIMUM_PYTHON_STR,
             "--only-binary=:all:",
+            "--no-compile",
             "--target",
             build_folder,
         ]
@@ -162,6 +163,7 @@ def build_zipapp(wheel_path, *, clear_old_builds=True):
             "--python-version",
             MINIMUM_PYTHON_STR,
             "--only-binary=:all:",
+            "--no-compile",
             "--target",
             vendor_folder,
         ]
