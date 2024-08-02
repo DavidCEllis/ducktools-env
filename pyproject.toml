@@ -20,7 +20,8 @@ dependencies = [
     "ducktools-pythonfinder",
     "tomli; python_version <= '3.10'",
     "packaging>=23.2",
-    "importlib-resources>=6.0",
+    "importlib-resources>=6.0",  # Older python lacks nice version of this.
+    "zipp>=3.16",  # Bug in 3.8/3.9 zipfile.
 ]
 classifiers = [
     "Development Status :: 1 - Planning",
