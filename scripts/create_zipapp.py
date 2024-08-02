@@ -25,7 +25,6 @@
 This is the script that builds the inner ducktools-env.pyz zipapp
 and bundles ducktools-env into ducktools.pyz
 """
-import importlib_resources
 import os
 import os.path
 import shutil
@@ -34,6 +33,8 @@ import sys
 import zipapp
 
 from pathlib import Path
+
+import importlib_resources
 
 import ducktools.env
 from ducktools.env import platform_paths, MINIMUM_PYTHON_STR
