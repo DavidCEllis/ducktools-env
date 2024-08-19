@@ -3,6 +3,14 @@
 `ducktools-env` intends to provide a few tools to aid in running and distributing
 applications and scripts written in Python that require additional dependencies.
 
+## Goals ##
+
+Provide a way to easily create executable zipapps from scripts with inline dependencies
+or wheels with entry points.
+
+The zipapps created are self installing bundles that can download and install dependencies
+from PyPI into managed virtual environments.
+
 ## Currently implemented ##
 
 This pre-release version provides a way to run scripts based on
@@ -14,8 +22,7 @@ format in a way that can be run without needing to have `ducktools-env` already 
 This works by creating temporary environments in the following folders:
 
 * Windows: `%LOCALAPPDATA%\ducktools\environments`
-* Linux: `~/.ducktools/environments`
-* Mac: Unsure, currently not supported - possibly in `~/Library/Caches/ducktools/environments`?
+* Linux/Mac/Other: `~/.ducktools/environments`
 
 ## What it does ##
 
@@ -47,6 +54,7 @@ Re-install the cached ducktools-env
 
 Future goals for this tool:
 
+* Generate lockfiles for bundled apps so dependencies can be restricted.
 * Bundle requirements inside the zipapp for use without a connection.
 * Bundle applications that are wheels with a `__main__.py` function.
 * Create 'permanent' named environments for stand-alone applications and update them
@@ -104,16 +112,12 @@ into a zipapp that will work on the other end with only Python as the requiremen
 ### pipx ###
 
 `pipx` is another tool that allows you to install packages from PyPI and run them as applications
-based on their `[project.scripts]` and `[project.gui-scripts]`. This is *somewhat* a goal of
-ducktools.env, except it would build separate zipapps for each script and the apps would share
-the same cached python environment.
+based on their `[project.scripts]` and `[project.gui-scripts]`. This is a goal of ducktools.env, 
+except it would build separate zipapps for each script and the apps would share the same cached 
+python environment.
 
-## Why not use UV for dependency management? ##
+## UV ##
 
-UV is new and fast, but in order to make the install portable **without** always requiring 
-an internet connection it would be necessary to bundle the binaries for UV for every 
-platform, meaning 16 copies at over 200MB. Even then there may be platforms where someone
-has built Python but not uv.
-
-By relying on pure python dependencies only, `ducktools-env` should work anywhere that Python
-works and does not require any additional compilation.
+UV may be used in the future as a potential performance boost and to generate lockfiles for
+bundled environments. However, it will not replace `pip` as the primary installer as one goal 
+is that bundled scripts created using this will run anywhere Python can run.
