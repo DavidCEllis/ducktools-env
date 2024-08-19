@@ -47,9 +47,9 @@ BASE_URL = "https://bootstrap.pypa.io/pip"
 
 _laz = LazyImporter(
     [
-        FromImport("packaging.version", "Version"),
         ModuleImport("hashlib"),
-        ModuleImport("urllib3"),
+        FromImport("urllib.request", "urlopen"),
+        FromImport("packaging.version", "Version"),
     ]
 )
 
@@ -114,12 +114,9 @@ def download_pip(
 
     url = latest_version.full_url
 
-    # Actual Download
-    http = _laz.urllib3.PoolManager()
-    resp = http.request("GET", url)
-    if resp.status != 200:
-        raise _laz.urllib3.HTTPError(f"Download Failed - status: {resp.status} ")
-    data = resp.data
+    # Actual download
+    with _laz.urlopen(url) as f:
+        data = f.read()
 
     # Check hash matches
     if _laz.hashlib.sha3_256(data).hexdigest() != latest_version.sha3_256:
