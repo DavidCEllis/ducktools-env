@@ -35,7 +35,7 @@ import os
 import os.path
 
 from ducktools.classbuilder.prefab import prefab
-from ducktools.lazyimporter import LazyImporter, FromImport
+from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport
 
 from ducktools.env.platform_paths import ManagedPaths
 from ducktools.env.config import log
@@ -45,7 +45,13 @@ from ducktools.env.exceptions import InvalidPipDownload
 BASE_URL = "https://bootstrap.pypa.io/pip"
 
 
-_laz = LazyImporter([FromImport("packaging.version", "Version")])
+_laz = LazyImporter(
+    [
+        FromImport("packaging.version", "Version"),
+        ModuleImport("hashlib"),
+        ModuleImport("urllib3"),
+    ]
+)
 
 
 @prefab(frozen=True)
@@ -106,16 +112,18 @@ def download_pip(
         latest_version: PipZipapp = LATEST_PIP
 ):
     import urllib.request
-    import hashlib
 
     url = latest_version.full_url
 
-    # Actual download
-    with urllib.request.urlopen(url) as f:
-        data = f.read()
+    # Actual Download
+    http = _laz.urllib3.PoolManager()
+    resp = http.request("GET", url)
+    if resp.status != 200:
+        raise _laz.urllib3.HTTPError(f"Download Failed - status: {resp.status} ")
+    data = resp.data
 
     # Check hash matches
-    if hashlib.sha3_256(data).hexdigest() != latest_version.sha3_256:
+    if _laz.hashlib.sha3_256(data).hexdigest() != latest_version.sha3_256:
         raise InvalidPipDownload(
             "The checksum of the downloaded PIP binary did not match the expected value."
         )
