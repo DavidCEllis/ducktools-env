@@ -111,7 +111,6 @@ def download_pip(
         pip_destination: str,
         latest_version: PipZipapp = LATEST_PIP
 ):
-    import urllib.request
 
     url = latest_version.full_url
 
