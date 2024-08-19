@@ -23,18 +23,13 @@
 import sys
 
 import argparse
-from ducktools.lazyimporter import LazyImporter, FromImport, MultiFromImport
+from ducktools.lazyimporter import LazyImporter, FromImport
+
+from ducktools.env import __version__, PROJECT_NAME
 
 _laz = LazyImporter(
     [
-        FromImport("ducktools.env", "__version__"),
-        FromImport("ducktools.env.run", "run_script"),
-        FromImport("ducktools.env.scripts.clear_cache", "clear_cache"),
-        FromImport("ducktools.env.bundle", "create_bundle"),
-        MultiFromImport(
-            "ducktools.env.scripts.create_zipapp",
-            ["build_env_folder", "build_zipapp"]
-        )
+        FromImport("ducktools.env.manager", "Manager"),
     ]
 )
 
@@ -45,7 +40,7 @@ def main():
         description="Script runner and bundler for scripts with inline dependencies",
     )
 
-    parser.add_argument("-V", "--version", action="version", version=_laz.__version__)
+    parser.add_argument("-V", "--version", action="version", version=__version__)
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -62,7 +57,13 @@ def main():
 
     clear_cache_parser = subparsers.add_parser(
         "clear_cache",
-        help="Completely clear the ducktools/env cache folder"
+        help="clear the temporary environment cache folder",
+    )
+
+    clear_cache_parser.add_argument(
+        "--full",
+        action="store_true",
+        help="clear the full ducktools/env application folder",
     )
 
     create_zipapp_parser = subparsers.add_parser(
@@ -81,30 +82,36 @@ def main():
 
     args, extras = parser.parse_known_args()
 
+    # Finally create a manager
+    manager = _laz.Manager(PROJECT_NAME)
+
     if args.command == "run":
-        _laz.run_script(args.script_filename, extras)
+        manager.run_script(args.script_filename, extras)
     elif args.command == "bundle":
         if extras:
             arg_text = ' '.join(extras)
             sys.stderr.write(f"Unrecognised arguments: {arg_text}")
             return
-
-        _laz.create_bundle(args.script_filename)
+        manager.create_bundle(args.script_filename)
     elif args.command == "clear_cache":
         if extras:
             arg_text = ' '.join(extras)
             sys.stderr.write(f"Unrecognised arguments: {arg_text}")
             return
 
-        _laz.clear_cache()
+        if args.full:
+            manager.clear_project_folder()
+        else:
+            manager.clear_temporary_cache()
     elif args.command == "rebuild_env":
         if extras:
             arg_text = ' '.join(extras)
             sys.stderr.write(f"Unrecognised arguments: {arg_text}")
             return
-        _laz.build_env_folder()
+
+        manager.build_env_folder()
         if args.zipapp:
-            _laz.build_zipapp()
+            manager.build_zipapp()
     else:
         # Should be unreachable
         raise ValueError("Invalid command")

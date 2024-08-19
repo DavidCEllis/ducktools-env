@@ -25,6 +25,7 @@ import sys
 
 from ._version import __version__, __version_tuple__
 
+PROJECT_NAME = "ducktools"
 MINIMUM_PYTHON = (3, 8)
 MINIMUM_PYTHON_STR = ".".join(str(v) for v in MINIMUM_PYTHON)
 

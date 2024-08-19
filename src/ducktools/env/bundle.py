@@ -31,11 +31,9 @@ from pathlib import Path
 
 import importlib_resources
 
-from .. import MINIMUM_PYTHON_STR, bootstrap_requires
-from ..platform_paths import default_paths
-from ..scripts.get_pip import retrieve_pip
-from ..scripts.create_zipapp import build_env_folder
-from ..exceptions import ScriptNameClash
+from . import MINIMUM_PYTHON_STR, bootstrap_requires
+from .platform_paths import ManagedPaths
+from .exceptions import ScriptNameClash
 
 invalid_script_names = {
     "__main__.py",
@@ -45,7 +43,7 @@ invalid_script_names = {
 }
 
 
-def create_bundle(script_file, *, paths=default_paths):
+def create_bundle(script_file: str, *, paths: ManagedPaths) -> None:
     if script_file.endswith(".pyz") or script_file.endswith(".pyzw"):
         sys.stderr.write(
             "Bundles must be created from .py scripts not .pyz[w] archives\n"
@@ -60,13 +58,6 @@ def create_bundle(script_file, *, paths=default_paths):
     build_folder = paths.build_folder()
 
     print(f"Building bundle in {build_folder!r}")
-
-    if not os.path.exists(paths.pip_zipapp):
-        retrieve_pip()
-
-    if not os.path.exists(paths.env_folder):
-        build_env_folder()
-
     print("Copying libraries into build folder")
     # Copy pip and ducktools zipapps into folder
     shutil.copytree(paths.manager_folder, build_folder, dirs_exist_ok=True)
@@ -75,8 +66,8 @@ def create_bundle(script_file, *, paths=default_paths):
 
     with importlib_resources.as_file(resources) as env_folder:
         platform_paths_path = env_folder / "platform_paths.py"
-        bootstrap_path = env_folder / "scripts" / "bootstrap.py"
-        main_zipapp_path = env_folder / "bundle" / "bundle_main.py"
+        bootstrap_path = env_folder / "bootstrapping" / "bootstrap.py"
+        main_zipapp_path = env_folder / "bootstrapping" / "bundle_main.py"
 
         shutil.copy(platform_paths_path, os.path.join(build_folder, "_platform_paths.py"))
         shutil.copy(bootstrap_path, os.path.join(build_folder, "_bootstrap.py"))

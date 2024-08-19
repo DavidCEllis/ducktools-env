@@ -39,18 +39,17 @@ from importlib.metadata import requires
 from packaging.requirements import Requirement
 
 import ducktools.env
-from ducktools.env import platform_paths, MINIMUM_PYTHON_STR, bootstrap_requires
+from ducktools.env import MINIMUM_PYTHON_STR, bootstrap_requires
+from ducktools.env.platform_paths import ManagedPaths
 from ducktools.env.scripts import get_pip
 
 
-def build_env_folder(*, clear_old_builds=True):
+def build_env_folder(*, paths: ManagedPaths, clear_old_builds=True):
     # Use the existing Python to build
     python_path = sys.executable
-    # pip is needed to build the zipapp
-    paths = platform_paths.default_paths
 
     latest_pip = get_pip.LATEST_PIP
-    pip_path = get_pip.retrieve_pip(latest_pip)
+    pip_path = get_pip.retrieve_pip(paths, latest_pip)
 
     # Get the full requirements for ducktools-env
     deps = []
@@ -129,16 +128,13 @@ def build_env_folder(*, clear_old_builds=True):
         pass  # clean up tempdir
 
 
-def build_zipapp(*, clear_old_builds=True):
+def build_zipapp(*, paths: ManagedPaths, clear_old_builds=True):
     archive_name = f"ducktools.pyz"
 
     # Just use the existing Python to build
     python_path = sys.executable
-    # pip is needed to build the zipapp
-    paths = platform_paths.default_paths
 
-    latest_pip = get_pip.LATEST_PIP
-    pip_path = get_pip.retrieve_pip(latest_pip)
+    pip_path = get_pip.retrieve_pip(paths=paths)
 
     build_folder = paths.build_folder()
 
@@ -157,8 +153,8 @@ def build_zipapp(*, clear_old_builds=True):
 
         with importlib_resources.as_file(resources) as env_folder:
             platform_paths_path = env_folder / "platform_paths.py"
-            bootstrap_path = env_folder / "scripts" / "bootstrap.py"
-            main_zipapp_path = env_folder / "scripts" / "zipapp_main.py"
+            bootstrap_path = env_folder / "bootstrapping" / "bootstrap.py"
+            main_zipapp_path = env_folder / "bootstrapping" / "zipapp_main.py"
 
             print("Copying platform paths")
             shutil.copy(platform_paths_path, os.path.join(build_folder, "_platform_paths.py"))
@@ -211,8 +207,3 @@ def build_zipapp(*, clear_old_builds=True):
 
     finally:
         pass  # clean up tempdir
-
-
-if __name__ == "__main__":
-    build_env_folder()
-    build_zipapp()

@@ -334,7 +334,13 @@ class TempCatalogue(BaseCatalogue):
 
         return env
 
-    def create_env(self, *, spec: EnvironmentSpec, config: Config) -> TemporaryEnv:
+    def create_env(
+        self,
+        *,
+        spec: EnvironmentSpec,
+        config: Config,
+        pip_zipapp: str
+    ) -> TemporaryEnv:
         # Check the spec is valid
         if spec_errors := spec.details.errors():
             raise InvalidEnvironmentSpec("; ".join(spec_errors))
@@ -348,9 +354,6 @@ class TempCatalogue(BaseCatalogue):
         new_cachename = f"env_{self.env_counter}"
         self.env_counter += 1
         cache_path = os.path.join(self.catalogue_folder, new_cachename)
-
-        # Check pip is installed
-        pip_zipapp = _laz.retrieve_pip()
 
         # Find a valid python executable
         for install in _laz.list_python_installs():
@@ -430,9 +433,15 @@ class TempCatalogue(BaseCatalogue):
 
         return new_env
 
-    def find_or_create_env(self, *, spec: EnvironmentSpec, config: Config) -> TemporaryEnv:
+    def find_or_create_env(
+        self,
+        *,
+        spec: EnvironmentSpec,
+        config: Config,
+        pip_zipapp: str
+    ) -> TemporaryEnv:
         env = self.find_env(spec=spec)
         if not env:
             log("Existing environment not found, creating new environment.")
-            env = self.create_env(spec=spec, config=config)
+            env = self.create_env(spec=spec, config=config, pip_zipapp=pip_zipapp)
         return env

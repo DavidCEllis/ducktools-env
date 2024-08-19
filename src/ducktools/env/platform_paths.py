@@ -158,11 +158,8 @@ class ManagedPaths:
         return tempfile.mkdtemp(dir=self.build_base)
 
 
-default_paths = ManagedPaths()
-
-
 if __name__ == "__main__":
-    paths = default_paths
+    paths = ManagedPaths("ducktools")
     print(paths.project_folder)
     print(paths.config_path)
     print(paths.cache_folder)

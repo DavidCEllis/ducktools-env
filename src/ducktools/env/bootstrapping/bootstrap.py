@@ -30,10 +30,13 @@ import os.path
 import sys
 import zipfile
 
-from _platform_paths import default_paths  # noqa
+from _platform_paths import ManagedPaths  # noqa
 
 from _vendor.ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport  # noqa
 from _vendor import zipp  # noqa
+
+# This bootstrap script exists without ducktools.env and so needs a copy of project_name
+PROJECT_NAME = "ducktools"
 
 _laz = LazyImporter(
     [
@@ -42,6 +45,8 @@ _laz = LazyImporter(
         ModuleImport("shutil"),
     ]
 )
+
+default_paths = ManagedPaths(PROJECT_NAME)
 
 
 def is_outdated(installed_version: str | None, bundled_version: str) -> bool:
@@ -92,8 +97,9 @@ def update_libraries():
 def launch_script(script_file, args):
     sys.path.insert(0, default_paths.env_folder)
     try:
-        from ducktools.env.run import run_script
-        run_script(script_file, args)
+        from ducktools.env.manager import Manager
+        manager = Manager(PROJECT_NAME)
+        manager.run_script(script_file, args)
     finally:
         sys.path.pop(0)
 
