@@ -79,6 +79,11 @@ def main():
 
     run_parser.add_argument("script_filename", help="Path to the script to run")
     bundle_parser.add_argument("script_filename", help="Path to the script to bundle into a zipapp")
+    bundle_parser.add_argument(
+        "-o",  "--output",
+        help="Output to given filename",
+        action="store",
+    )
 
     args, extras = parser.parse_known_args()
 
@@ -92,7 +97,10 @@ def main():
             arg_text = ' '.join(extras)
             sys.stderr.write(f"Unrecognised arguments: {arg_text}")
             return
-        manager.create_bundle(args.script_filename)
+        manager.create_bundle(
+            script_file=args.script_filename,
+            output_file=args.output,
+        )
     elif args.command == "clear_cache":
         if extras:
             arg_text = ' '.join(extras)

@@ -32,41 +32,35 @@ from pathlib import Path
 from _bootstrap import update_libraries, launch_script  # noqa
 
 
-def main():
+def main(script_name):
     # Get updated ducktools and pip
     update_libraries()
 
     # Get the path to this zipfile and the folder is is being run from
     zip_path = sys.argv[0]
 
-    script_path = Path(zip_path).with_suffix(".py")
-    script_name = script_path.name
-
-    temp_path = script_path.with_suffix(".temp.py")
+    script_dest = Path(zip_path).with_suffix(".py")
 
     i = 0
-    while temp_path.exists():
+    while script_dest.exists():
         # Keep adding .temp.py until the path doesn't exist - up to a point
-        temp_path = temp_path.with_suffix(".temp.py")
+        script_dest = script_dest.with_suffix(".temp.py")
         i += 1
         if i > 5:
             raise FileExistsError(
-                f"'{temp_path}' already exists, as did all the versions with fewer '.temp' segments"
+                f"'{script_dest}' already exists, as did all the versions with fewer '.temp' segments"
             )
 
     working_dir = Path(zip_path).parent
-    script_path = str(working_dir / script_name)
 
     try:
         with zipfile.ZipFile(zip_path) as zf:
             script_info = zf.getinfo(script_name)
-            script_info.filename = temp_path.name
+            script_info.filename = script_dest.name
             # Extract the script file to the existing folder
             zf.extract(script_info, path=working_dir)
-        launch_script(script_path, sys.argv[1:])
+        launch_script(str(script_dest), sys.argv[1:])
     finally:
-        temp_path.unlink()
+        script_dest.unlink()
 
-
-if __name__ == "__main__":
-    main()
+# BUNDLE CODE TO EXECUTE SCRIPT FOLLOWS

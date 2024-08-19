@@ -43,19 +43,26 @@ invalid_script_names = {
 }
 
 
-def create_bundle(script_file: str, *, paths: ManagedPaths) -> None:
-    if script_file.endswith(".pyz") or script_file.endswith(".pyzw"):
+def create_bundle(
+    *,
+    script_file: str,
+    output_file: str | None = None,
+    paths: ManagedPaths
+) -> None:
+    script_path = Path(script_file)
+
+    if script_path.suffix in {".pyz", ".pyzw"}:
         sys.stderr.write(
             "Bundles must be created from .py scripts not .pyz[w] archives\n"
         )
 
-    if script_file in invalid_script_names:
+    if script_path.name in invalid_script_names:
         raise ScriptNameClash(
             f"Script {script_file!r} can't be bundled as the name clashes with "
             f"a script or library required for unbundling"
         )
 
-    build_folder = paths.build_folder()
+    build_folder = Path(paths.build_folder())
 
     print(f"Building bundle in {build_folder!r}")
     print("Copying libraries into build folder")
@@ -69,12 +76,16 @@ def create_bundle(script_file: str, *, paths: ManagedPaths) -> None:
         bootstrap_path = env_folder / "bootstrapping" / "bootstrap.py"
         main_zipapp_path = env_folder / "bootstrapping" / "bundle_main.py"
 
-        shutil.copy(platform_paths_path, os.path.join(build_folder, "_platform_paths.py"))
-        shutil.copy(bootstrap_path, os.path.join(build_folder, "_bootstrap.py"))
-        shutil.copy(main_zipapp_path, os.path.join(build_folder, "__main__.py"))
+        shutil.copy(platform_paths_path, build_folder / "_platform_paths.py")
+        shutil.copy(bootstrap_path, build_folder / "_bootstrap.py")
+
+        # Write __main__.py with script name included
+        with open(build_folder / "__main__.py", 'w') as main_file:
+            main_file.write(main_zipapp_path.read_text())
+            main_file.write(f"\nmain({script_path.name!r})\n")
 
     print("Installing required unpacking libraries")
-    vendor_folder = os.path.join(build_folder, "_vendor")
+    vendor_folder = str(build_folder / "_vendor")
 
     pip_command = [
         sys.executable,
@@ -101,17 +112,19 @@ def create_bundle(script_file: str, *, paths: ManagedPaths) -> None:
     ]
 
     freeze = subprocess.run(freeze_command, capture_output=True, text=True)
-
     (Path(vendor_folder) / "requirements.txt").write_text(freeze.stdout)
 
     print("Copying script to build folder and bundling")
-    shutil.copy(script_file, build_folder)
+    shutil.copy(script_path, build_folder)
 
-    archive_path = Path(script_file).with_suffix(".pyz")
+    if output_file is None:
+        archive_path = Path(script_file).with_suffix(".pyz")
+    else:
+        archive_path = Path(output_file)
 
     zipapp.create_archive(
         source=build_folder,
-        target=Path(script_file).with_suffix(".pyz"),
+        target=archive_path,
         interpreter="/usr/bin/env python",
     )
 

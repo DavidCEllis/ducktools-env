@@ -122,8 +122,13 @@ class Manager:
         log(f"Using environment at: {env.path}")
         _laz.subprocess.run([env.python_path, script_file, *args])
 
-    def create_bundle(self, script_file: str) -> None:
+    def create_bundle(
+        self,
+        *,
+        script_file: str,
+        output_file: str | None = None
+    ) -> None:
         """Create a zipapp bundle for the provided script file"""
         if not self.is_installed:
             self.install()
-        _laz.create_bundle(script_file, paths=self.paths)
+        _laz.create_bundle(script_file=script_file, output_file=output_file, paths=self.paths)
