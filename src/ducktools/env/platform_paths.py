@@ -48,8 +48,7 @@ CONFIG_FILENAME = "config.json"
 CATALOGUE_FILENAME = "catalogue.json"
 
 
-# Each OS has a different place where you would expect to keep application data
-# Try to correctly use them
+# Store in LOCALAPPDATA for windows, User folder for other operating systems
 if sys.platform == "win32":
     # os.path.expandvars will actually import a whole bunch of other modules
     # Try just using the environment.
@@ -65,19 +64,8 @@ if sys.platform == "win32":
             "not found"
         )
     USER_FOLDER = _local_app_folder
-elif sys.platform == "linux":
-    USER_FOLDER = os.path.expanduser("~")
-elif sys.platform == "darwin":
-    raise UnsupportedPlatformError(
-        f"MacOS is not yet supported."
-    )
-    # PLATFORM_FOLDER = os.path.expanduser(
-    #     os.path.join("~", "Library", "Caches")
-    # )
 else:
-    raise UnsupportedPlatformError(
-        f"Platform {sys.platform!r} is not currently supported."
-    )
+    USER_FOLDER = os.path.expanduser("~")
 
 
 def get_platform_python(venv_folder):
@@ -88,10 +76,11 @@ def get_platform_python(venv_folder):
 
 
 def get_platform_folder(name):
-    if sys.platform == "linux":
-        return os.path.join(USER_FOLDER, f".{name}")
-    else:
+    if sys.platform == "win32":
         return os.path.join(USER_FOLDER, name)
+    else:
+        return os.path.join(USER_FOLDER, f".{name}")
+
 
 
 class ManagedPaths:
