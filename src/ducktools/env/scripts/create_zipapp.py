@@ -48,8 +48,7 @@ def build_env_folder(*, paths: ManagedPaths, clear_old_builds=True):
     # Use the existing Python to build
     python_path = sys.executable
 
-    latest_pip = get_pip.LATEST_PIP
-    pip_path = get_pip.retrieve_pip(paths, latest_pip)
+    pip_path = get_pip.retrieve_pip(paths)
 
     # Get the full requirements for ducktools-env
     deps = []
