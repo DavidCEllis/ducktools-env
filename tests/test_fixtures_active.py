@@ -17,4 +17,4 @@
 
 def test_python_install_fixture(this_python):
     from ducktools.env.catalogue import _laz
-    assert _laz.get_python_installs() == [this_python]
+    assert _laz.list_python_installs() == [this_python]

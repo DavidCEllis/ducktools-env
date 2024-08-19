@@ -21,6 +21,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+"""
+This is the bootstrapping script for the ducktools.pyz bundle itself
+"""
+
 from _bootstrap import update_libraries, launch_ducktools  # noqa
 
 if __name__ == "__main__":

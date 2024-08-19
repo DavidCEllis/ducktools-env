@@ -35,9 +35,9 @@ import os
 import os.path
 
 from ducktools.classbuilder.prefab import prefab
-from ducktools.lazyimporter import LazyImporter, FromImport
+from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport
 
-from ducktools.env import platform_paths
+from ducktools.env.platform_paths import ManagedPaths
 from ducktools.env.config import log
 from ducktools.env.exceptions import InvalidPipDownload
 
@@ -45,7 +45,13 @@ from ducktools.env.exceptions import InvalidPipDownload
 BASE_URL = "https://bootstrap.pypa.io/pip"
 
 
-_laz = LazyImporter([FromImport("packaging.version", "Version")])
+_laz = LazyImporter(
+    [
+        ModuleImport("hashlib"),
+        FromImport("urllib.request", "urlopen"),
+        FromImport("packaging.version", "Version"),
+    ]
+)
 
 
 @prefab(frozen=True)
@@ -82,7 +88,7 @@ LATEST_PIP = PipZipapp(
 
 
 def is_pip_outdated(
-        paths: platform_paths.ManagedPaths,
+        paths: ManagedPaths,
         latest_version: PipZipapp = LATEST_PIP
 ):
     pip_version = paths.get_pip_version()
@@ -105,17 +111,15 @@ def download_pip(
         pip_destination: str,
         latest_version: PipZipapp = LATEST_PIP
 ):
-    import urllib.request
-    import hashlib
 
     url = latest_version.full_url
 
     # Actual download
-    with urllib.request.urlopen(url) as f:
+    with _laz.urlopen(url) as f:
         data = f.read()
 
     # Check hash matches
-    if hashlib.sha3_256(data).hexdigest() != latest_version.sha3_256:
+    if _laz.hashlib.sha3_256(data).hexdigest() != latest_version.sha3_256:
         raise InvalidPipDownload(
             "The checksum of the downloaded PIP binary did not match the expected value."
         )
@@ -130,15 +134,18 @@ def download_pip(
         f.write(".".join(str(item) for item in latest_version.version_tuple))
 
 
-def retrieve_pip(latest_version: PipZipapp = LATEST_PIP) -> str:
+def retrieve_pip(
+    paths: ManagedPaths,
+    latest_version: PipZipapp = LATEST_PIP,
+) -> str:
     """
     If pip.pyz is not installed, download it and place it in the cache
     return the path to the .pyz
 
+    :param paths:
     :param latest_version:
     :return: path to pip.pyz
     """
-    paths = platform_paths.default_paths
 
     if is_pip_outdated(paths, latest_version=latest_version):
         log("Downloading PIP")
@@ -149,7 +156,3 @@ def retrieve_pip(latest_version: PipZipapp = LATEST_PIP) -> str:
         log("Pip is already up to date")
 
     return paths.pip_zipapp
-
-
-if __name__ == "__main__":
-    retrieve_pip()
