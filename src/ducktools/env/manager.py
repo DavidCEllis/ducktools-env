@@ -74,6 +74,9 @@ class Manager:
     def temp_catalogue(self):
         if self._temp_catalogue is None:
             self._temp_catalogue = TempCatalogue.load(self.paths.cache_db)
+
+            # Clear expired caches on load
+            self._temp_catalogue.expire_caches(self.config.cache_lifetime_delta)
         return self._temp_catalogue
 
     @property
