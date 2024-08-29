@@ -75,6 +75,7 @@ Subprocesses:
 * `venv` (via subprocess on python installs)
   * (Might eventually use `virtualenv` as there are python installs without `venv`)
 * `pip` (as a zipapp via subprocess)
+* `uv` where available as a faster installer and for locking dependencies for bundles
 
 PyPI: 
 * `ducktools-classbuilder` (A lazy, faster implementation of the building blocks behind things like dataclasses)
@@ -121,9 +122,3 @@ into a zipapp that will work on the other end with only Python as the requiremen
 based on their `[project.scripts]` and `[project.gui-scripts]`. This is a goal of ducktools.env, 
 except it would build separate zipapps for each script and the apps would share the same cached 
 python environment.
-
-## UV ##
-
-UV may be used in the future as a potential performance boost and to generate lockfiles for
-bundled environments. However, it will not replace `pip` as the primary installer as one goal 
-is that bundled scripts created using this will run anywhere Python can run.

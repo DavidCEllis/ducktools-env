@@ -62,70 +62,69 @@ def create_bundle(
             f"a script or library required for unbundling"
         )
 
-    build_folder = Path(paths.build_folder())
+    with paths.build_folder() as build_folder:
+        print(f"Building bundle in {build_folder!r}")
+        print("Copying libraries into build folder")
+        # Copy pip and ducktools zipapps into folder
+        shutil.copytree(paths.manager_folder, build_folder, dirs_exist_ok=True)
 
-    print(f"Building bundle in {build_folder!r}")
-    print("Copying libraries into build folder")
-    # Copy pip and ducktools zipapps into folder
-    shutil.copytree(paths.manager_folder, build_folder, dirs_exist_ok=True)
+        resources = importlib_resources.files("ducktools.env")
 
-    resources = importlib_resources.files("ducktools.env")
+        with importlib_resources.as_file(resources) as env_folder:
+            platform_paths_path = env_folder / "platform_paths.py"
+            bootstrap_path = env_folder / "bootstrapping" / "bootstrap.py"
+            main_zipapp_path = env_folder / "bootstrapping" / "bundle_main.py"
 
-    with importlib_resources.as_file(resources) as env_folder:
-        platform_paths_path = env_folder / "platform_paths.py"
-        bootstrap_path = env_folder / "bootstrapping" / "bootstrap.py"
-        main_zipapp_path = env_folder / "bootstrapping" / "bundle_main.py"
+            shutil.copy(platform_paths_path, build_folder / "_platform_paths.py")
+            shutil.copy(bootstrap_path, build_folder / "_bootstrap.py")
 
-        shutil.copy(platform_paths_path, build_folder / "_platform_paths.py")
-        shutil.copy(bootstrap_path, build_folder / "_bootstrap.py")
+            # Write __main__.py with script name included
+            with open(build_folder / "__main__.py", 'w') as main_file:
+                main_file.write(main_zipapp_path.read_text())
+                main_file.write(f"\nmain({script_path.name!r})\n")
 
-        # Write __main__.py with script name included
-        with open(build_folder / "__main__.py", 'w') as main_file:
-            main_file.write(main_zipapp_path.read_text())
-            main_file.write(f"\nmain({script_path.name!r})\n")
+        print("Installing required unpacking libraries")
+        vendor_folder = str(build_folder / "_vendor")
 
-    print("Installing required unpacking libraries")
-    vendor_folder = str(build_folder / "_vendor")
+        pip_command = [
+            sys.executable,
+            paths.pip_zipapp,
+            "--disable-pip-version-check",
+            "install",
+            *bootstrap_requires,
+            "--python-version",
+            MINIMUM_PYTHON_STR,
+            "--only-binary=:all:",
+            "--no-compile",
+            "--target",
+            vendor_folder
+        ]
 
-    pip_command = [
-        sys.executable,
-        paths.pip_zipapp,
-        "--disable-pip-version-check",
-        "install",
-        *bootstrap_requires,
-        "--python-version",
-        MINIMUM_PYTHON_STR,
-        "--only-binary=:all:",
-        "--no-compile",
-        "--target",
-        vendor_folder
-    ]
+        subprocess.run(pip_command)
 
-    subprocess.run(pip_command)
+        freeze_command = [
+            sys.executable,
+            paths.pip_zipapp,
+            "freeze",
+            "--path",
+            vendor_folder,
+        ]
 
-    freeze_command = [
-        sys.executable,
-        paths.pip_zipapp,
-        "freeze",
-        "--path",
-        vendor_folder,
-    ]
+        freeze = subprocess.run(freeze_command, capture_output=True, text=True)
+        (Path(vendor_folder) / "requirements.txt").write_text(freeze.stdout)
 
-    freeze = subprocess.run(freeze_command, capture_output=True, text=True)
-    (Path(vendor_folder) / "requirements.txt").write_text(freeze.stdout)
+        print("Copying script to build folder and bundling")
+        shutil.copy(script_path, build_folder)
 
-    print("Copying script to build folder and bundling")
-    shutil.copy(script_path, build_folder)
+        if output_file is None:
+            archive_path = Path(script_file).with_suffix(".pyz")
+        else:
+            archive_path = Path(output_file)
 
-    if output_file is None:
-        archive_path = Path(script_file).with_suffix(".pyz")
-    else:
-        archive_path = Path(output_file)
-
-    zipapp.create_archive(
-        source=build_folder,
-        target=archive_path,
-        interpreter="/usr/bin/env python",
-    )
+        zipapp.create_archive(
+            source=build_folder,
+            target=archive_path,
+            interpreter="/usr/bin/env python",
+        )
 
     print(f"Bundled {script_file!r} as '{archive_path}'")

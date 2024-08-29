@@ -67,7 +67,7 @@ class SpecType(enum.IntEnum):
     if needed.
     """
     INLINE_METADATA = 1
-    PYPROJECT_METADATA = 2
+    WHEEL_METADATA = 2
 
 
 class EnvironmentDetails(Prefab, kw_only=True):
@@ -77,8 +77,6 @@ class EnvironmentDetails(Prefab, kw_only=True):
     project_name: str | None
     project_owner: str | None
     project_version: str | None
-
-    override_tempenv: bool
 
     @property
     def requires_python_spec(self):
@@ -163,13 +161,11 @@ class EnvironmentSpec:
             version = env_project_table.get("version", None)
             owner = env_project_table.get("owner", None)
 
-        elif self.spec_type == SpecType.PYPROJECT_METADATA:
-            raise EnvironmentError("PyProject spec not implemented")
+        elif self.spec_type == SpecType.WHEEL_METADATA:
+            raise EnvironmentError("Wheel based spec not implemented")
 
         else:
             raise TypeError(f"'spec_type' must be an instance of {SpecType.__name__!r}")
-
-        override_tempenv = data_table.get("override_tempenv", False)
 
         # noinspection PyArgumentList
         return EnvironmentDetails(
@@ -178,7 +174,6 @@ class EnvironmentSpec:
             project_name=project_name,
             project_owner=owner,
             project_version=version,
-            override_tempenv=override_tempenv,
         )
 
     def as_dict(self):

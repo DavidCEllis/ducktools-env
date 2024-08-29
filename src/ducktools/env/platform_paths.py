@@ -82,7 +82,6 @@ def get_platform_folder(name):
         return os.path.join(USER_FOLDER, f".{name}")
 
 
-
 class ManagedPaths:
     project_name: str
     project_folder: str
@@ -90,6 +89,7 @@ class ManagedPaths:
 
     manager_folder: str
     pip_zipapp: str
+    uv_executable: str
     env_folder: str
 
     application_folder: str  # Not yet used
@@ -109,6 +109,10 @@ class ManagedPaths:
 
         self.manager_folder = os.path.join(self.project_folder, MANAGER_FOLDERNAME)
         self.pip_zipapp = os.path.join(self.manager_folder, "pip.pyz")
+        self.uv_executable = os.path.join(
+            self.manager_folder,
+            "uv.exe" if sys.platform == "win32" else "uv",
+        )
         self.env_folder = os.path.join(self.manager_folder, "ducktools-env")
 
         self.application_folder = os.path.join(self.project_folder, APPLICATION_FOLDERNAME)
@@ -119,13 +123,11 @@ class ManagedPaths:
 
     @staticmethod
     def get_app_version(versionfile):
-
         try:
             with open(versionfile, 'r') as f:
                 ver = f.read()
         except FileNotFoundError:
             return None
-
         return ver
 
     def get_pip_version(self):
@@ -136,6 +138,10 @@ class ManagedPaths:
         version_file = f"{self.env_folder}.version"
         return self.get_app_version(version_file)
 
+    def get_uv_version(self):
+        version_file = f"{self.uv_executable}.version"
+        return self.get_app_version(version_file)
+
     def build_folder(self):
         """
         Get a temporary folder to use for builds
@@ -144,7 +150,7 @@ class ManagedPaths:
         os.makedirs(self.build_base, exist_ok=True)
 
         import tempfile
-        return tempfile.mkdtemp(dir=self.build_base)
+        return tempfile.TemporaryDirectory(dir=self.build_base)
 
 
 if __name__ == "__main__":
