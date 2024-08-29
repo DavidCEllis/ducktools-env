@@ -29,7 +29,7 @@ import sys
 from ducktools.env.platform_paths import ManagedPaths
 from ducktools.env.scripts.get_pip import retrieve_pip
 
-uv_versionlimit = "<0.5.0"
+uv_versionspec = "~=0.4.0"
 
 uv_download = "bin/uv.exe" if sys.platform == "win32" else "bin/uv"
 
@@ -48,7 +48,7 @@ def retrieve_uv(paths: ManagedPaths) -> str | None:
             "--disable-pip-version-check",
             "install",
             "-q",
-            f"uv{uv_versionlimit}",
+            f"uv{uv_versionspec}",
             "--only-binary=:all:",
             "--target",
             install_folder,
