@@ -25,6 +25,7 @@
 This is the script that builds the inner ducktools-env folder
 and bundles ducktools-env into ducktools.pyz
 """
+import sys
 import os
 import os.path
 import shutil
@@ -136,8 +137,12 @@ def build_zipapp(
                 if p != build_folder_path:
                     shutil.rmtree(p)
 
+        # UV should not be bundled - binary is not cross platform
+        uv_base_exe = "uv.exe" if sys.platform == "win32" else "uv"
+        uv_pattern = shutil.ignore_patterns(uv_base_exe, f"{uv_base_exe}.version")
+
         print("Copying pip.pyz and ducktools-env")
-        shutil.copytree(paths.manager_folder, build_folder, dirs_exist_ok=True)
+        shutil.copytree(paths.manager_folder, build_folder, ignore=uv_pattern, dirs_exist_ok=True)
 
         # Get the paths for modules that need to be copied
         resources = importlib_resources.files("ducktools.env")
