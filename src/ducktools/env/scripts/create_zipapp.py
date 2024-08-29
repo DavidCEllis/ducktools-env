@@ -29,7 +29,6 @@ import os
 import os.path
 import shutil
 import subprocess
-import sys
 import zipapp
 
 from pathlib import Path
@@ -41,18 +40,14 @@ from packaging.requirements import Requirement
 import ducktools.env
 from ducktools.env import MINIMUM_PYTHON_STR, bootstrap_requires
 from ducktools.env.platform_paths import ManagedPaths
-from ducktools.env.scripts import get_pip, get_uv
 
 
-def build_env_folder(*, paths: ManagedPaths, clear_old_builds=True):
-    # Use the existing Python to build
-    python_path = sys.executable
-
-    pip_path = get_pip.retrieve_pip(paths)
-
-    # Get UV for internal usage (not bundled)
-    uv_path = get_uv.retrieve_uv(paths)
-
+def build_env_folder(
+        *,
+        paths: ManagedPaths,
+        install_base_command: list[str],
+        clear_old_builds=True
+) -> None:
     # Get the full requirements for ducktools-env
     deps = []
     reqs = requires("ducktools.env")
@@ -72,18 +67,6 @@ def build_env_folder(*, paths: ManagedPaths, clear_old_builds=True):
         print("Downloading application dependencies")
 
         # install packages into build folder
-        if uv_path:
-            install_base_command = [
-                uv_path,
-                "pip",
-            ]
-        else:
-            install_base_command = [
-                python_path,
-                pip_path,
-                "--disable-pip-version-check",
-            ]
-
         install_command = [
             *install_base_command,
             "install",
@@ -137,19 +120,13 @@ def build_env_folder(*, paths: ManagedPaths, clear_old_builds=True):
         f.write(ducktools.env.__version__)
 
 
-def build_zipapp(*, paths: ManagedPaths, clear_old_builds=True):
+def build_zipapp(
+        *,
+        paths: ManagedPaths,
+        install_base_command: list[str],
+        clear_old_builds=True
+) -> None:
     archive_name = f"ducktools.pyz"
-
-    # Just use the existing Python to build
-    python_path = sys.executable
-
-    pip_path = get_pip.retrieve_pip(paths=paths)
-    uv_path = get_uv.retrieve_uv(paths=paths)
-
-    if uv_path:
-        command_base = [uv_path, "pip"]
-    else:
-        command_base = [python_path, pip_path, "--disable-pip-version-check"]
 
     with paths.build_folder() as build_folder:
 
@@ -183,7 +160,7 @@ def build_zipapp(*, paths: ManagedPaths, clear_old_builds=True):
         vendor_folder = os.path.join(build_folder, "_vendor")
 
         pip_command = [
-            command_base,
+            *install_base_command,
             "install",
             *bootstrap_requires,
             "--python-version",
@@ -196,7 +173,7 @@ def build_zipapp(*, paths: ManagedPaths, clear_old_builds=True):
         subprocess.run(pip_command)
 
         freeze_command = [
-            command_base,
+            *install_base_command,
             "freeze",
             "--path",
             vendor_folder,

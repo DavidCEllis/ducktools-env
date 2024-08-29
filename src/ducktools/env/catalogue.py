@@ -47,7 +47,6 @@ _laz = LazyImporter(
         ModuleImport("subprocess"),
         ModuleImport("hashlib"),
         FromImport("ducktools.pythonfinder", "list_python_installs"),
-        FromImport(".scripts.get_pip", "retrieve_pip"),
     ],
     globs=globals(),
 )

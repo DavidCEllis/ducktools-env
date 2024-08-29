@@ -22,6 +22,7 @@
 # SOFTWARE.
 from __future__ import annotations
 
+import sys
 import os.path
 
 from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport, MultiFromImport
@@ -49,7 +50,8 @@ _laz = LazyImporter(
             ".scripts.create_zipapp",
             ["build_env_folder", "build_zipapp"]
         ),
-        FromImport(".scripts.get_pip", "retrieve_pip")
+        FromImport(".scripts.get_pip", "retrieve_pip"),
+        FromImport(".scripts.get_uv", "retrieve_uv"),
     ],
     globs=globals(),
 )
@@ -84,20 +86,40 @@ class Manager:
         return os.path.exists(self.paths.pip_zipapp) and os.path.exists(self.paths.env_folder)
 
     # Ducktools build commands
-    def retrieve_pip(self):
+    def retrieve_pip(self) -> str:
         return _laz.retrieve_pip(paths=self.paths)
 
+    def retrieve_uv(self) -> str | None:
+        return _laz.retrieve_uv(paths=self.paths)
+
+    @property
+    def install_base_command(self) -> list[str]:
+        # Get the installer command for python packages
+        # Pip or the faster uv_pip if it is available
+        if uv_path := self.retrieve_uv():
+            return [uv_path, "pip"]
+        else:
+            pip_path = self.retrieve_pip()
+            return [sys.executable, pip_path, "--disable-pip-version-check"]
+
     def build_env_folder(self, clear_old_builds=True) -> None:
-        _laz.build_env_folder(paths=self.paths, clear_old_builds=clear_old_builds)
+        _laz.build_env_folder(
+            paths=self.paths,
+            install_base_command=self.install_base_command,
+            clear_old_builds=clear_old_builds,
+        )
 
     def build_zipapp(self, clear_old_builds=True) -> None:
         """Build the ducktools.pyz zipapp"""
-        _laz.build_zipapp(paths=self.paths, clear_old_builds=clear_old_builds)
+        _laz.build_zipapp(
+            paths=self.paths,
+            install_base_command=self.install_base_command,
+            clear_old_builds=clear_old_builds,
+        )
 
     # Install and cleanup commands
     def install(self):
         # Install the ducktools package
-        self.retrieve_pip()
         self.build_env_folder(clear_old_builds=True)
 
     def clear_temporary_cache(self):
