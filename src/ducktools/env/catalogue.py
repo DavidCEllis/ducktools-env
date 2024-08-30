@@ -338,7 +338,8 @@ class TempCatalogue(BaseCatalogue):
         *,
         spec: EnvironmentSpec,
         config: Config,
-        pip_zipapp: str
+        uv_path: str | None,
+        installer_command: list[str],
     ) -> TemporaryEnv:
         # Check the spec is valid
         if spec_errors := spec.details.errors():
@@ -356,6 +357,9 @@ class TempCatalogue(BaseCatalogue):
 
         # Find a valid python executable
         for install in _laz.list_python_installs():
+            if install.implementation.lower() != "cpython":
+                # Ignore all non cpython installs for now
+                continue
             if (
                 not spec.details.requires_python
                 or spec.details.requires_python_spec.contains(install.version_str, prereleases=True)
@@ -377,9 +381,14 @@ class TempCatalogue(BaseCatalogue):
 
         try:
             log(f"Creating venv in: {cache_path}")
-            _laz.subprocess.run(
-                [python_exe, "-m", "venv", "--without-pip", cache_path], check=True
-            )
+            if uv_path:
+                _laz.subprocess.run(
+                    [uv_path, "venv", "-q", "--python", python_exe, cache_path], check=True
+                )
+            else:
+                _laz.subprocess.run(
+                    [python_exe, "-m", "venv", "--without-pip", cache_path], check=True
+                )
         except _laz.subprocess.CalledProcessError as e:
             raise VenvBuildError(f"Failed to build venv: {e}")
 
@@ -398,10 +407,11 @@ class TempCatalogue(BaseCatalogue):
             try:
                 _laz.subprocess.run(
                     [
-                        new_env.python_path,
-                        pip_zipapp,
-                        "-q",  # Quiet
+                        *installer_command,
                         "install",
+                        "-q",  # Quiet
+                        "--python",
+                        new_env.python_path,
                         *spec.details.dependencies,
                     ],
                     check=True,
@@ -413,8 +423,9 @@ class TempCatalogue(BaseCatalogue):
 
             freeze = _laz.subprocess.run(
                 [
+                    *installer_command,
+                    "--python",
                     new_env.python_path,
-                    pip_zipapp,
                     "freeze",
                 ],
                 capture_output=True,
@@ -437,10 +448,17 @@ class TempCatalogue(BaseCatalogue):
         *,
         spec: EnvironmentSpec,
         config: Config,
-        pip_zipapp: str
+        uv_path: str | None,
+        installer_command: list[str],
+
     ) -> TemporaryEnv:
         env = self.find_env(spec=spec)
         if not env:
             log("Existing environment not found, creating new environment.")
-            env = self.create_env(spec=spec, config=config, pip_zipapp=pip_zipapp)
+            env = self.create_env(
+                spec=spec,
+                config=config,
+                uv_path=uv_path,
+                installer_command=installer_command,
+            )
         return env

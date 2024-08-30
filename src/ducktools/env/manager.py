@@ -137,7 +137,10 @@ class Manager:
     def get_script_env(self, path):
         spec = EnvironmentSpec.from_script(path)
         env = self.temp_catalogue.find_or_create_env(
-            spec=spec, config=self.config, pip_zipapp=self.retrieve_pip()
+            spec=spec,
+            config=self.config,
+            uv_path=self.retrieve_uv(),
+            installer_command=self.install_base_command,
         )
         return env
 
