@@ -26,6 +26,7 @@ import sys
 import os.path
 
 from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport, MultiFromImport
+from ducktools.classbuilder.prefab import Prefab, attribute
 
 from . import PROJECT_NAME
 from .config import Config, log
@@ -57,20 +58,16 @@ _laz = LazyImporter(
 )
 
 
-class Manager:
-    project_name: str
-    paths: ManagedPaths
-    config: Config
+class Manager(Prefab):
+    project_name: str = PROJECT_NAME
+    config: Config = None
 
-    def __init__(self, project_name=PROJECT_NAME):
-        self.project_name = project_name
+    paths: ManagedPaths = attribute(init=False, repr=False)
+    _temp_catalogue: TempCatalogue | None = attribute(default=None, private=True)
 
+    def __prefab_post_init__(self, config):
         self.paths = ManagedPaths(PROJECT_NAME)
-        self.config = Config.load(self.paths.config_path)
-        self._temp_catalogue = None
-
-    def __repr__(self):
-        return f"{type(self).__name__}(project_name={self.project_name!r})"
+        self.config = Config.load(self.paths.config_path) if config is None else config
 
     @property
     def temp_catalogue(self):

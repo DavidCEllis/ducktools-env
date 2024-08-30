@@ -22,7 +22,7 @@ from ducktools.env.environment_specs import EnvironmentSpec, SpecType
 class TestBuildRetrieve:
     def test_build_retrieve(self, testing_catalogue, test_config):
 
-        manager = Manager(PROJECT_NAME)
+        manager = Manager(project_name=PROJECT_NAME)
 
         spec = EnvironmentSpec(
             spec_type=SpecType.INLINE_METADATA,
