@@ -47,7 +47,8 @@ def create_bundle(
     *,
     script_file: str,
     output_file: str | None = None,
-    paths: ManagedPaths
+    paths: ManagedPaths,
+    installer_command: list[str],
 ) -> None:
     script_path = Path(script_file)
 
@@ -63,10 +64,11 @@ def create_bundle(
         )
 
     with paths.build_folder() as build_folder:
-        print(f"Building bundle in {build_folder!r}")
+        build_path = Path(build_folder)
+        print(f"Building bundle in {build_path!r}")
         print("Copying libraries into build folder")
         # Copy pip and ducktools zipapps into folder
-        shutil.copytree(paths.manager_folder, build_folder, dirs_exist_ok=True)
+        shutil.copytree(paths.manager_folder, build_path, dirs_exist_ok=True)
 
         resources = importlib_resources.files("ducktools.env")
 
@@ -75,21 +77,19 @@ def create_bundle(
             bootstrap_path = env_folder / "bootstrapping" / "bootstrap.py"
             main_zipapp_path = env_folder / "bootstrapping" / "bundle_main.py"
 
-            shutil.copy(platform_paths_path, build_folder / "_platform_paths.py")
-            shutil.copy(bootstrap_path, build_folder / "_bootstrap.py")
+            shutil.copy(platform_paths_path, build_path / "_platform_paths.py")
+            shutil.copy(bootstrap_path, build_path / "_bootstrap.py")
 
             # Write __main__.py with script name included
-            with open(build_folder / "__main__.py", 'w') as main_file:
+            with open(build_path / "__main__.py", 'w') as main_file:
                 main_file.write(main_zipapp_path.read_text())
                 main_file.write(f"\nmain({script_path.name!r})\n")
 
         print("Installing required unpacking libraries")
-        vendor_folder = str(build_folder / "_vendor")
+        vendor_folder = str(build_path / "_vendor")
 
         pip_command = [
-            sys.executable,
-            paths.pip_zipapp,
-            "--disable-pip-version-check",
+            *installer_command,
             "install",
             *bootstrap_requires,
             "--python-version",
@@ -103,8 +103,7 @@ def create_bundle(
         subprocess.run(pip_command)
 
         freeze_command = [
-            sys.executable,
-            paths.pip_zipapp,
+            *installer_command,
             "freeze",
             "--path",
             vendor_folder,
@@ -114,7 +113,7 @@ def create_bundle(
         (Path(vendor_folder) / "requirements.txt").write_text(freeze.stdout)
 
         print("Copying script to build folder and bundling")
-        shutil.copy(script_path, build_folder)
+        shutil.copy(script_path, build_path)
 
         if output_file is None:
             archive_path = Path(script_file).with_suffix(".pyz")

@@ -159,4 +159,10 @@ class Manager:
         """Create a zipapp bundle for the provided script file"""
         if not self.is_installed:
             self.install()
-        _laz.create_bundle(script_file=script_file, output_file=output_file, paths=self.paths)
+
+        _laz.create_bundle(
+            script_file=script_file,
+            output_file=output_file,
+            paths=self.paths,
+            installer_command=self.install_base_command
+        )
