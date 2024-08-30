@@ -114,6 +114,9 @@ def create_bundle(
 
         subprocess.run(pip_command)
 
+        # Get Lock file
+        # uv pip compile -q --universal --no-strip-markers --no-build
+
         print("Copying script to build folder and bundling")
         shutil.copy(script_path, build_path)
 
