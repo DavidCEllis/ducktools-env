@@ -32,6 +32,7 @@ from pathlib import Path
 import importlib_resources
 
 from . import MINIMUM_PYTHON_STR, bootstrap_requires
+from .environment_specs import EnvironmentSpec
 from .platform_paths import ManagedPaths
 from .exceptions import ScriptNameClash
 
@@ -48,6 +49,7 @@ def create_bundle(
     script_file: str,
     output_file: str | None = None,
     paths: ManagedPaths,
+    uv_path: str | None,
     installer_command: list[str],
 ) -> None:
     script_path = Path(script_file)
@@ -100,6 +102,7 @@ def create_bundle(
         pip_command = [
             *installer_command,
             "install",
+            "-q",
             *bootstrap_requires,
             "--python-version",
             MINIMUM_PYTHON_STR,
@@ -110,16 +113,6 @@ def create_bundle(
         ]
 
         subprocess.run(pip_command)
-
-        freeze_command = [
-            *installer_command,
-            "freeze",
-            "--path",
-            vendor_folder,
-        ]
-
-        freeze = subprocess.run(freeze_command, capture_output=True, text=True)
-        (Path(vendor_folder) / "requirements.txt").write_text(freeze.stdout)
 
         print("Copying script to build folder and bundling")
         shutil.copy(script_path, build_path)

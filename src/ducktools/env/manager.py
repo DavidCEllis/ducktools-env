@@ -168,5 +168,6 @@ class Manager:
             script_file=script_file,
             output_file=output_file,
             paths=self.paths,
-            installer_command=self.install_base_command
+            uv_path=self.retrieve_uv(),
+            installer_command=self.install_base_command,
         )
