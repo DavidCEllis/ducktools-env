@@ -452,7 +452,9 @@ class TempCatalogue(BaseCatalogue):
             )
 
             installed_modules = [
-                item.strip() for item in freeze.stdout.split(os.linesep) if item
+                item.strip()
+                for item in freeze.stdout.split("\n")
+                if item
             ]
 
             new_env.installed_modules.extend(installed_modules)
