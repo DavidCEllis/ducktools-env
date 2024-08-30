@@ -92,7 +92,7 @@ class Manager:
         return _laz.retrieve_pip(paths=self.paths)
 
     def retrieve_uv(self) -> str | None:
-        if use_uv:
+        if self.use_uv:
             return _laz.retrieve_uv(paths=self.paths)
         return None
 
