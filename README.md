@@ -8,17 +8,21 @@ applications and scripts written in Python that require additional dependencies.
 If you have a script with external dependencies, you can define them with 
 [inline script metadata](https://packaging.python.org/en/latest/specifications/inline-script-metadata/#inline-script-metadata)
 and run them using
-`python ducktools.pyz run my_script.py`
+`python ducktools.pyz run my_script.py`.
+This is similar to how `uv run my_script.py` or `hatch run my_script.py` work.
 
-If you wish to then provide them to someone else who does not have `ducktools-env` installed
-you can use
+If you wish to then provide them to someone else who does not have `ducktools-env` (or hatch or UV) 
+installed you can use
 `python ducktools.pyz bundle my_script.py`
 in order to create a zipapp version of your script which will self-extract and run in the same
 way.
 
-This makes it easier to send scripts (and eventually applications) that are written in Python
-without having to bundle everything into large platform dependent files and without needing
-anything else installed other than an appropriate Python version.
+This bundle will include `ducktools-env` and the `pip` zipapp in order to bootstrap the unbundling
+process.
+
+This makes it easier to send scripts that are written in Python without having to create 
+large platform dependent files and without needing anything else installed other than an 
+appropriate Python version.
 
 ## How it does this ##
 
@@ -62,7 +66,7 @@ Future goals for this tool:
   * Currently, generating these will probably require `UV` and hence a UV supported platform
   * These should *run* under PIP though, so UV would only be needed for generation
 * Optionally bundle requirements inside the zipapp for use without a connection.
-* Bundle `entry-points` from a wheel into zipapps.
+* Allow bundling of local wheel files unavailable on PyPI
 * Create 'permanent' named environments for stand-alone applications and update them
   * Currently there is a maximum of 2 temporary environments that expire in a day
     (this is due to the pre-release nature of the project, the future defaults will be higher/longer)
