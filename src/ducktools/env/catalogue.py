@@ -405,35 +405,54 @@ class TempCatalogue(BaseCatalogue):
             dep_list = ", ".join(spec.details.dependencies)
             log(f"Installing dependencies from PyPI: {dep_list}")
             try:
-                _laz.subprocess.run(
-                    [
+                if uv_path:
+                    dependency_command = [
                         *installer_command,
                         "install",
                         "-q",  # Quiet
                         "--python",
                         new_env.python_path,
                         *spec.details.dependencies,
-                    ],
+                    ]
+                else:
+                    dependency_command = [
+                        *installer_command,
+                        "--python",
+                        new_env.python_path,
+                        "install",
+                        "-q",  # Quiet
+                        *spec.details.dependencies,
+                    ]
+                _laz.subprocess.run(
+                    dependency_command,
                     check=True,
                 )
             except _laz.subprocess.CalledProcessError as e:
                 raise VenvBuildError(f"Failed to install dependencies: {e}")
 
             # Get pip-freeze list to use for installed modules
-
-            freeze = _laz.subprocess.run(
-                [
+            if uv_path:
+                freeze_command = [
+                    *installer_command,
+                    "freeze",
+                    "--python",
+                    new_env.python_path,
+                ]
+            else:
+                freeze_command = [
                     *installer_command,
                     "--python",
                     new_env.python_path,
                     "freeze",
-                ],
+                ]
+            freeze = _laz.subprocess.run(
+                freeze_command,
                 capture_output=True,
                 text=True,
             )
 
             installed_modules = [
-                item for item in freeze.stdout.split(os.linesep) if item
+                item.strip() for item in freeze.stdout.split(os.linesep) if item
             ]
 
             new_env.installed_modules.extend(installed_modules)
