@@ -61,14 +61,12 @@ class Manager:
     project_name: str
     paths: ManagedPaths
     config: Config
-    use_uv: bool
 
     def __init__(self, project_name=PROJECT_NAME):
         self.project_name = project_name
 
         self.paths = ManagedPaths(PROJECT_NAME)
         self.config = Config.load(self.paths.config_path)
-        self.use_uv = True
         self._temp_catalogue = None
 
     def __repr__(self):
@@ -92,7 +90,7 @@ class Manager:
         return _laz.retrieve_pip(paths=self.paths)
 
     def retrieve_uv(self) -> str | None:
-        if self.use_uv:
+        if self.config.use_uv:
             return _laz.retrieve_uv(paths=self.paths)
         return None
 
