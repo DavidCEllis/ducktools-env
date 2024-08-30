@@ -35,42 +35,45 @@ uv_download = "bin/uv.exe" if sys.platform == "win32" else "bin/uv"
 
 
 def retrieve_uv(paths: ManagedPaths) -> str | None:
-    pip_install = retrieve_pip(paths=paths)
-    with paths.build_folder() as build_folder:
+    if os.path.exists(paths.uv_executable):
+        uv_path = paths.uv_executable
+    else:
+        pip_install = retrieve_pip(paths=paths)
+        with paths.build_folder() as build_folder:
 
-        install_folder = os.path.join(build_folder, "uv")
+            install_folder = os.path.join(build_folder, "uv")
 
-        uv_dl = os.path.join(install_folder, uv_download)
+            uv_dl = os.path.join(install_folder, uv_download)
 
-        pip_command = [
-            sys.executable,
-            pip_install,
-            "--disable-pip-version-check",
-            "install",
-            "-q",
-            f"uv{uv_versionspec}",
-            "--only-binary=:all:",
-            "--target",
-            install_folder,
-        ]
+            pip_command = [
+                sys.executable,
+                pip_install,
+                "--disable-pip-version-check",
+                "install",
+                "-q",
+                f"uv{uv_versionspec}",
+                "--only-binary=:all:",
+                "--target",
+                install_folder,
+            ]
 
-        # Download UV with pip - handles getting the correct platform version
-        try:
-            subprocess.run(
-                pip_command,
-                check=True,
-            )
-        except subprocess.CalledProcessError:
-            uv_path = None
-        else:
-            # Copy the executable out of the pip install
-            shutil.copy(uv_dl, paths.uv_executable)
-            uv_path = paths.uv_executable
+            # Download UV with pip - handles getting the correct platform version
+            try:
+                subprocess.run(
+                    pip_command,
+                    check=True,
+                )
+            except subprocess.CalledProcessError:
+                uv_path = None
+            else:
+                # Copy the executable out of the pip install
+                shutil.copy(uv_dl, paths.uv_executable)
+                uv_path = paths.uv_executable
 
-            version_command = [uv_path, "-V"]
-            version_output = subprocess.run(version_command, capture_output=True, text=True)
-            uv_version = version_output.stdout.split()[1]
-            with open(f"{uv_path}.version", 'w') as ver_file:
-                ver_file.write(uv_version)
+                version_command = [uv_path, "-V"]
+                version_output = subprocess.run(version_command, capture_output=True, text=True)
+                uv_version = version_output.stdout.split()[1]
+                with open(f"{uv_path}.version", 'w') as ver_file:
+                    ver_file.write(uv_version)
 
     return uv_path
