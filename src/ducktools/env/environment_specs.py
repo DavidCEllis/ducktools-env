@@ -45,6 +45,7 @@ _laz = LazyImporter(
             "tomllib",
         ),
         ModuleImport("warnings"),
+        ModuleImport("subprocess"),
         ModuleImport("hashlib"),
         MultiFromImport(
             "packaging.requirements",
@@ -56,7 +57,7 @@ _laz = LazyImporter(
         ),
         FromImport(
             "importlib", "metadata"
-        )
+        ),
     ],
 )
 
@@ -175,6 +176,38 @@ class EnvironmentSpec:
             project_owner=owner,
             project_version=version,
         )
+
+    def generate_lockfile(self, uv_path: str) -> str | None:
+        """
+        Generate a lockfile from the dependency data
+        :param uv_path: Path to the UV executable
+        :return: lockfile data as a text string or None if there are no dependencies
+        """
+        # Only make a lockfile if there is anything to lock
+        if deps := "\n".join(self.details.dependencies):
+            lock_cmd = [
+                uv_path,
+                "pip",
+                "compile",
+                "--universal",
+                "--no-strip-markers",
+                "--generate-hashes",
+                "-",
+            ]
+
+            print("Locking dependency tree")
+            lock_output = _laz.subprocess.run(
+                lock_cmd,
+                input=deps,
+                capture_output=True,
+                text=True,
+            )
+
+            hash_line = f"# Original Specification Hash: {self.spec_hash}\n"
+
+            return hash_line + lock_output.stdout
+
+        return None
 
     def as_dict(self):
         return {

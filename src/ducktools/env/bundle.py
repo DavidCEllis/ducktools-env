@@ -21,7 +21,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os.path
 import shutil
 import subprocess
 import sys
@@ -114,8 +113,12 @@ def create_bundle(
 
         subprocess.run(pip_command)
 
-        # Get Lock file
-        # uv pip compile -q --universal --no-strip-markers --no-build
+        if uv_path:
+            # Get a lockfile from UV
+            spec = EnvironmentSpec.from_script(script_file)
+            if lock_data := spec.generate_lockfile(uv_path):
+                lock_path = Path(build_path) / "env_lock.txt"
+                lock_path.write_text(lock_data)
 
         print("Copying script to build folder and bundling")
         shutil.copy(script_path, build_path)
