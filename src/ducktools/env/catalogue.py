@@ -453,7 +453,7 @@ class TempCatalogue(BaseCatalogue):
 
             installed_modules = [
                 item.strip()
-                for item in freeze.stdout.split("\n")
+                for item in freeze.stdout.splitlines()
                 if item
             ]
 
