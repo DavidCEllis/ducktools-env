@@ -148,3 +148,19 @@ def test_spec_errors():
         "Invalid python version specifier: '!!>=3.10'",
         "Invalid dependency specification: 'invalid_spec!'",
     ]
+
+@pytest.mark.parametrize("test_data", envs)
+def test_asdict(test_data):
+    env = EnvironmentSpec(test_data.raw_spec)
+
+    assert env.as_dict() == {
+        "spec_hash": env.spec_hash,
+        "raw_spec": test_data.raw_spec,
+        "details": {
+            "requires_python": test_data.requires_python,
+            "dependencies": test_data.dependencies,
+            "project_name": None,
+            "project_owner": None,
+            "project_version": None,
+        }
+    }
