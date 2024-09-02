@@ -21,6 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import sys
+from datetime import datetime, timedelta
 
 import unittest.mock as mock
 from pathlib import Path
@@ -57,6 +58,8 @@ def fake_temp_envs(catalogue_path):
         path=env_0_path,
         python_version="3.12.5",
         parent_python=python_path,
+        created_on="2024-09-02T14:55:53.102038",
+        last_used="2024-09-02T14:55:53.102038",
         spec_hashes=["6986c6ae4a2965a4456333b8c60c5ac923ddca0d7edaa70b36b50f545ed8b24b"],
         installed_modules=[
             "certifi==2024.8.30",
@@ -76,6 +79,8 @@ def fake_temp_envs(catalogue_path):
         path=env_1_path,
         python_version="3.12.5",
         parent_python=python_path,
+        created_on="2024-09-02T14:55:58.827666",
+        last_used="2024-09-02T14:55:58.827666",
         spec_hashes=["85cdf5c0f9b109ba70cd936b153fd175307406eb802e05df453d5ccf5a19383f"],
         installed_modules=["cowsay==6.1"],
     )
@@ -119,9 +124,35 @@ class TestTempCatalogue:
         with mock.patch.object(_laz, "shutil") as shutil_patch:
             rmtree = mock.MagicMock()
             shutil_patch.rmtree = rmtree
-            
+
             fake_temp_catalogue.purge_folder()
             rmtree.assert_called_once_with(fake_temp_catalogue.catalogue_folder)
 
         assert fake_temp_catalogue.environments == {}
         
+    def test_oldest_cache(self, fake_temp_catalogue):
+        assert fake_temp_catalogue.oldest_cache == "env_0"
+
+        # "Use" env_0
+        fake_temp_catalogue.environments["env_0"].last_used = datetime.now().isoformat()
+        
+        assert fake_temp_catalogue.oldest_cache == "env_1"
+
+        # Empty catalogue returns None as oldest cache
+        fake_temp_catalogue.environments = {}
+
+        assert fake_temp_catalogue.oldest_cache is None
+
+    def test_expire_caches(self, fake_temp_catalogue, mock_save):
+        with mock.patch.object(fake_temp_catalogue, "delete_env") as del_env:
+            # Expire all caches
+            fake_temp_catalogue.expire_caches(timedelta(seconds=1))
+
+            calls = [
+                mock.call("env_0"),
+                mock.call("env_1"),
+            ]
+
+            del_env.assert_has_calls(calls)
+
+        mock_save.assert_called_once()
