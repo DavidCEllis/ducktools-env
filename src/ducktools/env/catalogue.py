@@ -182,16 +182,17 @@ class BaseCatalogue:
         """
         Clear the cache folder when things have gone wrong or for a new version.
         """
+        # This does not save as the act of deleting the catalogue folder 
+        # will delete the file. It should not automatically be recreated.
+
         # Clear the folder
         try:
             _laz.shutil.rmtree(self.catalogue_folder)
-        except FileNotFoundError:
+        except FileNotFoundError:  # pragma: no cover
             pass
 
-        # Remove caches that no longer exist
-        for cache_name, cache in self.environments.copy().items():
-            if not cache.is_valid:
-                del self.environments[cache_name]
+        # Clear environment list
+        self.environments = {}
 
 
 @prefab(kw_only=True)
