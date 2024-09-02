@@ -162,10 +162,12 @@ class EnvironmentSpec:
             version = env_project_table.get("version", None)
             owner = env_project_table.get("owner", None)
 
-        elif self.spec_type == SpecType.WHEEL_METADATA:
+        # I think spec_type is going to be removed and everything
+        # will be handled by script metadata.
+        elif self.spec_type == SpecType.WHEEL_METADATA:  # pragma: no cover
             raise EnvironmentError("Wheel based spec not implemented")
 
-        else:
+        else: # pragma: no cover
             raise TypeError(f"'spec_type' must be an instance of {SpecType.__name__!r}")
 
         # noinspection PyArgumentList
