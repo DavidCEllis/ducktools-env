@@ -3,41 +3,47 @@
 `ducktools-env` intends to provide a few tools to aid in running and distributing
 applications and scripts written in Python that require additional dependencies.
 
-## What is this for ##
+## What is this for? ##
 
-If you have a script with external dependencies, you can define them with 
+*Or: uv/hatch/pipx already exist, why are you creating yet another packaging tool?*
+
+PEP-723 introduced 
 [inline script metadata](https://packaging.python.org/en/latest/specifications/inline-script-metadata/#inline-script-metadata)
-and run them using
-`python ducktools.pyz run my_script.py`.
-This is similar to how `uv run my_script.py` or `hatch run my_script.py` work.
+which allows users to declare dependencies for single python files in a standardized format.
 
-If you wish to then provide them to someone else who does not have `ducktools-env` (or hatch or UV) 
-installed you can use
+Using this format requires the use of an extra package such as 'UV' or 'hatch'
+using a specific command such as `uv run my_script.py` or `hatch run my_script.py`.
+
+`ducktools.env` provides a similar command 
+`python ducktools.pyz run my_script.py` or `python -m ducktools.env run my_script.py`.
+
+The problem that `ducktools.env` seeks to solve is what if you want to share your 
+script or application with someone **who doesn't already have** `uv` or `hatch` or 
+any other script runner that recognises this format.
+
+To aid this, `ducktools.env` provides the `bundle` command.
+
 `python ducktools.pyz bundle my_script.py`
-in order to create a zipapp version of your script which will self-extract and run in the same
-way.
+
+This will generate a [zipapp](https://docs.python.org/3/library/zipapp.html) from your script
+that will automatically extract and run it in the same way as with the `run` command.
 
 This bundle will include `ducktools-env` and the `pip` zipapp in order to bootstrap the unbundling
-process.
+process. `UV` will be downloaded and installed on unbundling if it is available (on PyPI) 
+for the platform.
 
-This makes it easier to send scripts that are written in Python without having to create 
-large platform dependent files and without needing anything else installed other than an 
-appropriate Python version.
+Environment data and the application itself will be stored in the following locations:
 
-## How it does this ##
+* Windows: `%LOCALAPPDATA%\ducktools\env`
+* Linux/Mac/Other: `~/.ducktools/env`
+
+## Discovering Python Installs ##
 
 When you run a script with ducktools-env it will look at the inline dependencies.
 
 It will use [ducktools-pythonfinder](https://github.com/DavidCEllis/ducktools-pythonfinder) to attempt
-to find the newest valid python install (not a venv) that satisfies any python requirement.
-
-Having done that it will create a temporary venv with any dependencies listed and execute the script in the
-venv.
-
-Environments and the requirements to create/run them can be found in the following locations:
-
-* Windows: `%LOCALAPPDATA%\ducktools\environments`
-* Linux/Mac/Other: `~/.ducktools/environments`
+to find the newest valid python install (not a venv) that satisfies any python requirement. See its own 
+page for which python installs it can find.
 
 ## Usage ##
 
@@ -70,6 +76,8 @@ Future goals for this tool:
 * Create 'permanent' named environments for stand-alone applications and update them
   * Currently there is a maximum of 2 temporary environments that expire in a day
     (this is due to the pre-release nature of the project, the future defaults will be higher/longer)
+* If UV is available, potentially use that to download an appropriate Python version if
+  one is not already installed.
 
 ## Dependencies ##
 
