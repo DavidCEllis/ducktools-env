@@ -22,8 +22,6 @@
 # SOFTWARE.
 from __future__ import annotations
 
-import enum
-
 from ducktools.lazyimporter import (
     LazyImporter,
     FromImport,
@@ -62,15 +60,6 @@ _laz = LazyImporter(
 )
 
 
-class SpecType(enum.IntEnum):
-    """
-    Enum to inform EnvironmentSpec how to parse the metadata
-    if needed.
-    """
-    INLINE_METADATA = 1
-    WHEEL_METADATA = 2
-
-
 class EnvironmentDetails(Prefab, kw_only=True):
     requires_python: str | None
     dependencies: list[str]
@@ -107,18 +96,15 @@ class EnvironmentDetails(Prefab, kw_only=True):
 
 
 class EnvironmentSpec:
-    spec_type: SpecType
     raw_spec: str
 
     def __init__(
             self,
-            spec_type: SpecType,
             raw_spec: str,
             *,
             spec_hash: str | None = None,
             details: EnvironmentDetails | None = None,
     ) -> None:
-        self.spec_type = spec_type
         self.raw_spec = raw_spec
 
         self._spec_hash: str | None = spec_hash
@@ -126,9 +112,8 @@ class EnvironmentSpec:
 
     @classmethod
     def from_script(cls, script_path):
-        spec_type = SpecType.INLINE_METADATA
         raw_spec = scriptmetadata.parse_file(script_path).blocks.get("script", "")
-        return cls(spec_type=spec_type, raw_spec=raw_spec)
+        return cls(raw_spec=raw_spec)
 
     @property
     def details(self) -> EnvironmentDetails:
@@ -154,21 +139,12 @@ class EnvironmentSpec:
 
         env_project_table = data_table.get("project", {})
 
-        if self.spec_type == SpecType.INLINE_METADATA:
-            requires_python = base_table.get("requires-python", None)
-            dependencies = base_table.get("dependencies", [])
+        requires_python = base_table.get("requires-python", None)
+        dependencies = base_table.get("dependencies", [])
 
-            project_name = env_project_table.get("name", None)
-            version = env_project_table.get("version", None)
-            owner = env_project_table.get("owner", None)
-
-        # I think spec_type is going to be removed and everything
-        # will be handled by script metadata.
-        elif self.spec_type == SpecType.WHEEL_METADATA:  # pragma: no cover
-            raise EnvironmentError("Wheel based spec not implemented")
-
-        else: # pragma: no cover
-            raise TypeError(f"'spec_type' must be an instance of {SpecType.__name__!r}")
+        project_name = env_project_table.get("name", None)
+        version = env_project_table.get("version", None)
+        owner = env_project_table.get("owner", None)
 
         # noinspection PyArgumentList
         return EnvironmentDetails(
@@ -214,7 +190,6 @@ class EnvironmentSpec:
     def as_dict(self):
         return {
             "spec_hash": self.spec_hash,
-            "spec_type": self.spec_type,
             "raw_spec": self.raw_spec,
             "details": as_dict(self.details),
         }

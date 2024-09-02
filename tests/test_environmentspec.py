@@ -16,7 +16,7 @@
 
 import unittest.mock as mock
 
-from ducktools.env.environment_specs import EnvironmentSpec, SpecType
+from ducktools.env.environment_specs import EnvironmentSpec
 from ducktools.env.environment_specs import _laz  # noqa
 
 from ducktools.classbuilder.prefab import prefab, attribute
@@ -73,7 +73,7 @@ envs = [
 
 @pytest.mark.parametrize("test_data", envs)
 def test_envspec_pythononly(test_data):
-    env = EnvironmentSpec(SpecType.INLINE_METADATA, test_data.raw_spec)
+    env = EnvironmentSpec(test_data.raw_spec)
 
     assert env.details.requires_python == test_data.requires_python
     assert env.details.dependencies == test_data.dependencies
@@ -81,7 +81,7 @@ def test_envspec_pythononly(test_data):
 
 @pytest.mark.parametrize("test_data", envs)
 def test_generate_lockfile(test_data, subprocess_run_mock):
-    env = EnvironmentSpec(SpecType.INLINE_METADATA, test_data.raw_spec)
+    env = EnvironmentSpec(test_data.raw_spec)
     fake_uv_path = "fake/uv/path"
 
     lock_data = env.generate_lockfile(fake_uv_path)
@@ -119,7 +119,7 @@ def test_generate_lockfile(test_data, subprocess_run_mock):
 @pytest.mark.parametrize("test_data", envs)
 def test_requires_python_spec(test_data):
     # Test that the requires_)python_spec function returns the correct specifierset
-    env = EnvironmentSpec(SpecType.INLINE_METADATA, test_data.raw_spec)
+    env = EnvironmentSpec(test_data.raw_spec)
 
     if test_data.requires_python:
         assert env.details.requires_python_spec == SpecifierSet(test_data.requires_python)
@@ -129,7 +129,7 @@ def test_requires_python_spec(test_data):
 
 @pytest.mark.parametrize("test_data", envs)
 def test_dependencies_spec(test_data):
-    env = EnvironmentSpec(SpecType.INLINE_METADATA, test_data.raw_spec)
+    env = EnvironmentSpec(test_data.raw_spec)
 
     assert env.details.dependencies_spec == [Requirement(s) for s in test_data.dependencies]
 
@@ -140,7 +140,7 @@ def test_spec_errors():
         "dependencies = ['invalid_spec!', 'valid_spec>=3.10']\n"
     )
 
-    env = EnvironmentSpec(SpecType.INLINE_METADATA, fake_spec)
+    env = EnvironmentSpec(fake_spec)
 
     errs = env.details.errors()
 

@@ -16,7 +16,7 @@
 
 from ducktools.env import PROJECT_NAME
 from ducktools.env.manager import Manager
-from ducktools.env.environment_specs import EnvironmentSpec, SpecType
+from ducktools.env.environment_specs import EnvironmentSpec
 
 
 class TestBuildRetrieve:
@@ -25,7 +25,6 @@ class TestBuildRetrieve:
         manager = Manager(project_name=PROJECT_NAME)
 
         spec = EnvironmentSpec(
-            spec_type=SpecType.INLINE_METADATA,
             raw_spec="requires-python='>=3.8'\ndependencies=[]\n",
         )
 
