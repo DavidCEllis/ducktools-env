@@ -51,7 +51,7 @@ __version_tuple__ = {version_tuple}
 """
 
 [tool.pytest.ini_options]
-addopts= "--cov=src/ --cov-report=term-missing"
+addopts= "--cov=src/ --cov-report=term-missing --cov-report xml:cov.xml"
 testpaths = [
     "tests",
 ]
