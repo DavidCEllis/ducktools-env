@@ -64,6 +64,31 @@ Clear the temporary environment cache:
 Re-install the cached ducktools-env
 `python ducktools.pyz rebuild_env`
 
+## Locking environments ##
+
+When generating zipapp bundles it may be desirable to also generate a lockfile
+to make sure that the versions of installed dependencies do not change between 
+generation and execution without having to over specify in the original
+script.
+
+This generation feature uses `uv` which will be automatically installed.
+`uv` is **not** required to use the generated lockfile (but will usually be installed).
+
+Create a lockfile without running a script
+`python ducktools.pyz generate_lock my_script.py`
+
+Run a script and output the generated lockfile (output as my_script.py.lock)
+`python ducktools.pyz run --generate-lock my_script.py`
+
+Run a script using a pre-generated lockfile
+`python ducktools.pyz run --with-lock my_script.py.lock my_script.py`
+
+Bundle a script and generate a lockfile (that will be bundled)
+`python ducktools.pyz bundle --generate-lock my_script.py`
+
+Bundle a script with a pre-generated lockfile
+`python ducktools.pyz bundle --with-lock my_script.py.lock my_script.py`
+
 ## Goals ##
 
 Future goals for this tool:
