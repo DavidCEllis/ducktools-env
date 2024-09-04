@@ -163,12 +163,21 @@ class EnvironmentSpec:
         """
         # Only make a lockfile if there is anything to lock
         if deps := "\n".join(self.details.dependencies):
+            python_version = []
+            if python_spec := self.details.requires_python_spec:
+                # Try to find the minimum python version that satisfies the spec
+                for s in python_spec:
+                    if s.operator in {"==", ">=", "~="}:
+                        python_version = ["--python-version", s.version]
+                        break
+
             lock_cmd = [
                 uv_path,
                 "pip",
                 "compile",
                 "--universal",
                 "--generate-hashes",
+                *python_version,
                 "-",
             ]
 
