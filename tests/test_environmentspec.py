@@ -55,20 +55,16 @@ envs = [
         raw_spec="",
     ),
     DataSet(
-        raw_spec=(
-            "requires-python = '>=3.10'\n"
-            "dependencies = []\n"
-        ),
+        raw_spec=("requires-python = '>=3.10'\n" "dependencies = []\n"),
         requires_python=">=3.10",
     ),
     DataSet(
         raw_spec=(
-            "requires-python = '>=3.11'\n"
-            "dependencies = ['ducktools-env>=0.1.0']\n"
+            "requires-python = '>=3.11'\n" "dependencies = ['ducktools-env>=0.1.0']\n"
         ),
         requires_python=">=3.11",
         dependencies=["ducktools-env>=0.1.0"],
-    )
+    ),
 ]
 
 
@@ -101,13 +97,14 @@ def test_generate_lockfile(test_data, subprocess_run_mock):
                 "pip",
                 "compile",
                 "--universal",
-                "--no-strip-markers",
                 "--generate-hashes",
+                "--python-version",
+                "3.11",
                 "-",
             ],
             input=deps,
             capture_output=True,
-            text=True
+            text=True,
         )
 
     else:
@@ -123,7 +120,9 @@ def test_requires_python_spec(test_data):
     env = EnvironmentSpec(test_data.raw_spec)
 
     if test_data.requires_python:
-        assert env.details.requires_python_spec == SpecifierSet(test_data.requires_python)
+        assert env.details.requires_python_spec == SpecifierSet(
+            test_data.requires_python
+        )
     else:
         assert env.details.requires_python_spec is None
 
@@ -132,7 +131,9 @@ def test_requires_python_spec(test_data):
 def test_dependencies_spec(test_data):
     env = EnvironmentSpec(test_data.raw_spec)
 
-    assert env.details.dependencies_spec == [Requirement(s) for s in test_data.dependencies]
+    assert env.details.dependencies_spec == [
+        Requirement(s) for s in test_data.dependencies
+    ]
 
 
 def test_spec_errors():
@@ -150,6 +151,7 @@ def test_spec_errors():
         "Invalid dependency specification: 'invalid_spec!'",
     ]
 
+
 @pytest.mark.parametrize("test_data", envs)
 def test_asdict(test_data):
     env = EnvironmentSpec(test_data.raw_spec)
@@ -163,5 +165,5 @@ def test_asdict(test_data):
             "project_name": None,
             "project_owner": None,
             "project_version": None,
-        }
+        },
     }
