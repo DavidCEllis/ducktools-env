@@ -168,7 +168,6 @@ class EnvironmentSpec:
                 "pip",
                 "compile",
                 "--universal",
-                "--no-strip-markers",
                 "--generate-hashes",
                 "-",
             ]
