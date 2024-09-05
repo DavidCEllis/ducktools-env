@@ -440,7 +440,7 @@ class TempCatalogue(BaseCatalogue):
             if spec.lockdata:
                 log("Using lockfile")
                 # Need a temporary file to use as the lockfile
-                with _laz.tempfile.TemporaryDirectory(delete=False) as tempfld:
+                with _laz.tempfile.TemporaryDirectory() as tempfld:
                     requirements_path = os.path.join(tempfld, "requirements.txt")
                     with open(requirements_path, 'w') as f:
                         f.write(spec.lockdata)
