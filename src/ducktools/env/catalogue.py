@@ -46,8 +46,8 @@ _laz = LazyImporter(
         ModuleImport("json"),
         ModuleImport("subprocess"),
         ModuleImport("hashlib"),
+        ModuleImport("tempfile"),
         FromImport("ducktools.pythonfinder", "list_python_installs"),
-        FromImport(".scripts.get_pip", "retrieve_pip"),
     ],
     globs=globals(),
 )
@@ -121,6 +121,7 @@ class TemporaryEnv(BaseEnv, kw_only=True):
     This is for temporary environments that expire after a certain period
     """
     spec_hashes: list[str]
+    lock_hash: str | None = None
     installed_modules: list[str] = attribute(default_factory=list)
 
 
@@ -183,16 +184,17 @@ class BaseCatalogue:
         """
         Clear the cache folder when things have gone wrong or for a new version.
         """
+        # This does not save as the act of deleting the catalogue folder 
+        # will delete the file. It should not automatically be recreated.
+
         # Clear the folder
         try:
             _laz.shutil.rmtree(self.catalogue_folder)
-        except FileNotFoundError:
+        except FileNotFoundError:  # pragma: no cover
             pass
 
-        # Remove caches that no longer exist
-        for cache_name, cache in self.environments.copy().items():
-            if not cache.is_valid:
-                del self.environments[cache_name]
+        # Clear environment list
+        self.environments = {}
 
 
 @prefab(kw_only=True)
@@ -252,7 +254,7 @@ class TempCatalogue(BaseCatalogue):
         """
         for cache in self.environments.values():
             if spec.spec_hash in cache.spec_hashes:
-                log(f"Hash {spec.spec_hash} matched environment {cache.name}")
+                log(f"Hash {spec.spec_hash!r} matched environment {cache.name}")
 
                 if not cache.is_valid:
                     log(f"Cache {cache.name!r} does not point to a valid python, removing.")
@@ -320,6 +322,30 @@ class TempCatalogue(BaseCatalogue):
         else:
             return None
 
+    def find_locked_env(
+        self, 
+        *, 
+        spec: EnvironmentSpec,
+    ) -> TemporaryEnv | None:
+        """
+        Find a cached TemporaryEnv that matches the hash of the lockfile
+
+        :param spec: Environment specification (needed for lock)
+        :param lockdata: _description_
+        :return: _description_
+        """
+        # Get lock data hash
+        for cache in self.environments.values():
+            if (
+                cache.lock_hash == spec.lock_hash 
+                and cache.python_version in spec.details.requires_python_spec
+            ):
+                log(f"Lockfile hash {spec.lock_hash!r} matched environment {cache.name}")
+                return cache
+        else:
+            return None
+                
+
     def find_env(self, *, spec: EnvironmentSpec) -> TemporaryEnv | None:
         """
         Try to find an existing cached environment that satisfies the spec
@@ -327,10 +353,14 @@ class TempCatalogue(BaseCatalogue):
         :param spec:
         :return:
         """
-        env = self.find_env_hash(spec=spec)
+        if spec.lock_hash:
+            env = self.find_locked_env(spec=spec)
+        
+        else:
+            env = self.find_env_hash(spec=spec)
 
-        if not env:
-            env = self.find_sufficient_env(spec=spec)
+            if not env:
+                env = self.find_sufficient_env(spec=spec)
 
         return env
 
@@ -339,7 +369,8 @@ class TempCatalogue(BaseCatalogue):
         *,
         spec: EnvironmentSpec,
         config: Config,
-        pip_zipapp: str
+        uv_path: str | None,
+        installer_command: list[str],
     ) -> TemporaryEnv:
         # Check the spec is valid
         if spec_errors := spec.details.errors():
@@ -357,6 +388,9 @@ class TempCatalogue(BaseCatalogue):
 
         # Find a valid python executable
         for install in _laz.list_python_installs():
+            if install.implementation.lower() != "cpython":
+                # Ignore all non cpython installs for now
+                continue
             if (
                 not spec.details.requires_python
                 or spec.details.requires_python_spec.contains(install.version_str, prereleases=True)
@@ -378,9 +412,14 @@ class TempCatalogue(BaseCatalogue):
 
         try:
             log(f"Creating venv in: {cache_path}")
-            _laz.subprocess.run(
-                [python_exe, "-m", "venv", "--without-pip", cache_path], check=True
-            )
+            if uv_path:
+                _laz.subprocess.run(
+                    [uv_path, "venv", "-q", "--python", python_exe, cache_path], check=True
+                )
+            else:
+                _laz.subprocess.run(
+                    [python_exe, "-m", "venv", "--without-pip", cache_path], check=True
+                )
         except _laz.subprocess.CalledProcessError as e:
             raise VenvBuildError(f"Failed to build venv: {e}")
 
@@ -391,39 +430,99 @@ class TempCatalogue(BaseCatalogue):
             python_version=python_version,
             parent_python=python_exe,
             spec_hashes=[spec.spec_hash],
+            lock_hash=spec.lock_hash,
         )
 
-        if spec.details.dependencies:
-            dep_list = ", ".join(spec.details.dependencies)
+        if deps := spec.details.dependencies:
+            dep_list = ", ".join(deps)
             log(f"Installing dependencies from PyPI: {dep_list}")
-            try:
-                _laz.subprocess.run(
-                    [
-                        new_env.python_path,
-                        pip_zipapp,
-                        "-q",  # Quiet
-                        "install",
-                        *spec.details.dependencies,
-                    ],
-                    check=True,
-                )
-            except _laz.subprocess.CalledProcessError as e:
-                raise VenvBuildError(f"Failed to install dependencies: {e}")
+
+            if spec.lockdata:
+                log("Using lockfile")
+                # Need a temporary file to use as the lockfile
+                with _laz.tempfile.TemporaryDirectory() as tempfld:
+                    requirements_path = os.path.join(tempfld, "requirements.txt")
+                    with open(requirements_path, 'w') as f:
+                        f.write(spec.lockdata)
+                    try:
+                        if uv_path:
+                            dependency_command = [
+                                *installer_command,
+                                "install",
+                                "-q",  # Quiet
+                                "--python",
+                                new_env.python_path,
+                                "-r",
+                                requirements_path,
+                            ]
+                        else:
+                            dependency_command = [
+                                *installer_command,
+                                "--python",
+                                new_env.python_path,
+                                "install",
+                                "-q",  # Quiet
+                                "-r", 
+                                requirements_path,
+                            ]
+                        _laz.subprocess.run(
+                            dependency_command,
+                            check=True,
+                        )
+                    except _laz.subprocess.CalledProcessError as e:
+                        raise VenvBuildError(f"Failed to install dependencies: {e}")
+            else:
+                try:
+                    if uv_path:
+                        dependency_command = [
+                            *installer_command,
+                            "install",
+                            "-q",  # Quiet
+                            "--python",
+                            new_env.python_path,
+                            *deps,
+                        ]
+                    else:
+                        dependency_command = [
+                            *installer_command,
+                            "--python",
+                            new_env.python_path,
+                            "install",
+                            "-q",  # Quiet
+                            *deps,
+                        ]
+                    _laz.subprocess.run(
+                        dependency_command,
+                        check=True,
+                    )
+                except _laz.subprocess.CalledProcessError as e:
+                    raise VenvBuildError(f"Failed to install dependencies: {e}")
 
             # Get pip-freeze list to use for installed modules
-
-            freeze = _laz.subprocess.run(
-                [
-                    new_env.python_path,
-                    pip_zipapp,
+            if uv_path:
+                freeze_command = [
+                    *installer_command,
                     "freeze",
-                ],
+                    "--python",
+                    new_env.python_path,
+                ]
+            else:
+                freeze_command = [
+                    *installer_command,
+                    "--python",
+                    new_env.python_path,
+                    "freeze",
+                ]
+            freeze = _laz.subprocess.run(
+                freeze_command,
                 capture_output=True,
                 text=True,
             )
 
             installed_modules = [
-                item for item in freeze.stdout.split(os.linesep) if item
+                item.strip()
+                for item in freeze.stdout.splitlines()
+                if item
             ]
 
             new_env.installed_modules.extend(installed_modules)
@@ -438,10 +537,17 @@ class TempCatalogue(BaseCatalogue):
         *,
         spec: EnvironmentSpec,
         config: Config,
-        pip_zipapp: str
+        uv_path: str | None,
+        installer_command: list[str],
     ) -> TemporaryEnv:
         env = self.find_env(spec=spec)
+
         if not env:
             log("Existing environment not found, creating new environment.")
-            env = self.create_env(spec=spec, config=config, pip_zipapp=pip_zipapp)
+            env = self.create_env(
+                spec=spec,
+                config=config,
+                uv_path=uv_path,
+                installer_command=installer_command,
+            )
         return env

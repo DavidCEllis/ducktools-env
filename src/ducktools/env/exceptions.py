@@ -48,6 +48,10 @@ class InvalidPipDownload(EnvError):
     the value this application has for that version.
     """
 
+class UVUnavailableError(EnvError):
+    """
+    Error if UV is not available and can't be installed.
+    """
 
 class ScriptNameClash(EnvError):
     """

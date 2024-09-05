@@ -30,10 +30,11 @@ import os.path
 import sys
 import zipfile
 
-from _platform_paths import ManagedPaths  # noqa
+# This file is moved and these imports created when bundling
+from _platform_paths import ManagedPaths  # type: ignore
 
-from _vendor.ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport  # noqa
-from _vendor import zipp  # noqa
+from _vendor.ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport  # type: ignore
+from _vendor import zipp  # type: ignore
 
 # This bootstrap script exists without ducktools.env and so needs a copy of project_name
 PROJECT_NAME = "ducktools"
@@ -94,12 +95,16 @@ def update_libraries():
             zf.extract("pip.pyz.version", default_paths.manager_folder)
 
 
-def launch_script(script_file, args):
+def launch_script(script_file, args, lockdata=None):
     sys.path.insert(0, default_paths.env_folder)
     try:
         from ducktools.env.manager import Manager
         manager = Manager(PROJECT_NAME)
-        manager.run_script(script_file, args)
+        manager.run_script(
+            script_file=script_file, 
+            args=args,
+            lockdata=lockdata,
+        )
     finally:
         sys.path.pop(0)
 

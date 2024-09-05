@@ -25,11 +25,11 @@
 This is the script that builds the inner ducktools-env folder
 and bundles ducktools-env into ducktools.pyz
 """
+import sys
 import os
 import os.path
 import shutil
 import subprocess
-import sys
 import zipapp
 
 from pathlib import Path
@@ -41,15 +41,14 @@ from packaging.requirements import Requirement
 import ducktools.env
 from ducktools.env import MINIMUM_PYTHON_STR, bootstrap_requires
 from ducktools.env.platform_paths import ManagedPaths
-from ducktools.env.scripts import get_pip
 
 
-def build_env_folder(*, paths: ManagedPaths, clear_old_builds=True):
-    # Use the existing Python to build
-    python_path = sys.executable
-
-    pip_path = get_pip.retrieve_pip(paths)
-
+def build_env_folder(
+        *,
+        paths: ManagedPaths,
+        install_base_command: list[str],
+        clear_old_builds=True
+) -> None:
     # Get the full requirements for ducktools-env
     deps = []
     reqs = requires("ducktools.env")
@@ -58,21 +57,19 @@ def build_env_folder(*, paths: ManagedPaths, clear_old_builds=True):
         if not (req.marker and not req.marker.evaluate({"python_version": MINIMUM_PYTHON_STR})):
             deps.append(f"{req.name}{req.specifier}")
 
-    build_folder = paths.build_folder()
+    with paths.build_folder() as build_folder:
 
-    if clear_old_builds:
-        build_folder_path = Path(build_folder)
-        for p in build_folder_path.parent.glob("*"):
-            if p != build_folder_path:
-                shutil.rmtree(p)
+        if clear_old_builds:
+            build_folder_path = Path(build_folder)
+            for p in build_folder_path.parent.glob("*"):
+                if p != build_folder_path:
+                    shutil.rmtree(p)
 
-    try:
         print("Downloading application dependencies")
-        # Pip install packages into build folder
-        pip_command = [
-            python_path,
-            pip_path,
-            "--disable-pip-version-check",
+
+        # install packages into build folder
+        install_command = [
+            *install_base_command,
             "install",
             *deps,
             "--python-version",
@@ -82,11 +79,11 @@ def build_env_folder(*, paths: ManagedPaths, clear_old_builds=True):
             "--target",
             build_folder,
         ]
-        subprocess.run(pip_command)
+
+        subprocess.run(install_command)
 
         freeze_command = [
-            python_path,
-            pip_path,
+            *install_base_command,
             "freeze",
             "--path",
             build_folder,
@@ -119,34 +116,34 @@ def build_env_folder(*, paths: ManagedPaths, clear_old_builds=True):
             paths.env_folder,
         )
 
-        print("Writing env version number")
-        with open(paths.env_folder + ".version", 'w') as f:
-            f.write(ducktools.env.__version__)
-
-    finally:
-        pass  # clean up tempdir
+    print("Writing env version number")
+    with open(paths.env_folder + ".version", 'w') as f:
+        f.write(ducktools.env.__version__)
 
 
-def build_zipapp(*, paths: ManagedPaths, clear_old_builds=True):
+def build_zipapp(
+        *,
+        paths: ManagedPaths,
+        install_base_command: list[str],
+        clear_old_builds=True
+) -> None:
     archive_name = f"ducktools.pyz"
 
-    # Just use the existing Python to build
-    python_path = sys.executable
+    with paths.build_folder() as build_folder:
 
-    pip_path = get_pip.retrieve_pip(paths=paths)
+        if clear_old_builds:
+            build_folder_path = Path(build_folder)
+            for p in build_folder_path.parent.glob("*"):
+                if p != build_folder_path:
+                    shutil.rmtree(p)
 
-    build_folder = paths.build_folder()
+        # UV should not be bundled - binary is not cross platform
+        uv_base_exe = "uv.exe" if sys.platform == "win32" else "uv"
+        uv_pattern = shutil.ignore_patterns(uv_base_exe, f"{uv_base_exe}.version")
 
-    if clear_old_builds:
-        build_folder_path = Path(build_folder)
-        for p in build_folder_path.parent.glob("*"):
-            if p != build_folder_path:
-                shutil.rmtree(p)
+        print("Copying pip.pyz and ducktools-env")
+        shutil.copytree(paths.manager_folder, build_folder, ignore=uv_pattern, dirs_exist_ok=True)
 
-    print("Copying pip.pyz and ducktools-env")
-    shutil.copytree(paths.manager_folder, build_folder, dirs_exist_ok=True)
-
-    try:
         # Get the paths for modules that need to be copied
         resources = importlib_resources.files("ducktools.env")
 
@@ -168,9 +165,7 @@ def build_zipapp(*, paths: ManagedPaths, clear_old_builds=True):
         vendor_folder = os.path.join(build_folder, "_vendor")
 
         pip_command = [
-            python_path,
-            pip_path,
-            "--disable-pip-version-check",
+            *install_base_command,
             "install",
             *bootstrap_requires,
             "--python-version",
@@ -183,8 +178,7 @@ def build_zipapp(*, paths: ManagedPaths, clear_old_builds=True):
         subprocess.run(pip_command)
 
         freeze_command = [
-            python_path,
-            pip_path,
+            *install_base_command,
             "freeze",
             "--path",
             vendor_folder,
@@ -203,6 +197,3 @@ def build_zipapp(*, paths: ManagedPaths, clear_old_builds=True):
             target=dist_folder / archive_name,
             interpreter="/usr/bin/env python"
         )
-
-    finally:
-        pass  # clean up tempdir

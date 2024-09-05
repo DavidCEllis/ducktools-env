@@ -17,7 +17,7 @@ dependencies = [
     "ducktools-classbuilder>=0.7.1",
     "ducktools-lazyimporter>=0.5.1",
     "ducktools-scriptmetadata",
-    "ducktools-pythonfinder>=0.3.0",
+    "ducktools-pythonfinder>=0.5.0",
     "tomli; python_version < '3.11'",
     "packaging>=23.2",
     "importlib-resources>=6.0",  # Older python lacks nice version of this.
@@ -51,7 +51,7 @@ __version_tuple__ = {version_tuple}
 """
 
 [tool.pytest.ini_options]
-addopts= "--cov=src/ --cov-report=term-missing"
+addopts= "--cov=src/ --cov-report=term-missing --cov-report xml:cov.xml"
 testpaths = [
     "tests",
 ]

@@ -152,7 +152,5 @@ def retrieve_pip(
         download_pip(paths.pip_zipapp, latest_version=latest_version)
 
         log(f"Pip zipapp installed at {paths.pip_zipapp!r}")
-    else:
-        log("Pip is already up to date")
 
     return paths.pip_zipapp

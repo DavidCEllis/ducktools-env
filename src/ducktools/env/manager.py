@@ -22,15 +22,18 @@
 # SOFTWARE.
 from __future__ import annotations
 
+import sys
 import os.path
 
 from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport, MultiFromImport
+from ducktools.classbuilder.prefab import Prefab, attribute
 
 from . import PROJECT_NAME
 from .config import Config, log
 from .platform_paths import ManagedPaths
 from .catalogue import TempCatalogue
 from .environment_specs import EnvironmentSpec
+from .exceptions import UVUnavailableError
 
 
 _laz = LazyImporter(
@@ -49,26 +52,23 @@ _laz = LazyImporter(
             ".scripts.create_zipapp",
             ["build_env_folder", "build_zipapp"]
         ),
-        FromImport(".scripts.get_pip", "retrieve_pip")
+        FromImport(".scripts.get_pip", "retrieve_pip"),
+        FromImport(".scripts.get_uv", "retrieve_uv"),
     ],
     globs=globals(),
 )
 
 
-class Manager:
-    project_name: str
-    paths: ManagedPaths
-    config: Config
+class Manager(Prefab):
+    project_name: str = PROJECT_NAME
+    config: Config = None
 
-    def __init__(self, project_name=PROJECT_NAME):
-        self.project_name = project_name
+    paths: ManagedPaths = attribute(init=False, repr=False)
+    _temp_catalogue: TempCatalogue | None = attribute(default=None, private=True)
 
+    def __prefab_post_init__(self, config):
         self.paths = ManagedPaths(PROJECT_NAME)
-        self.config = Config.load(self.paths.config_path)
-        self._temp_catalogue = None
-
-    def __repr__(self):
-        return f"{type(self).__name__}(project_name={self.project_name!r})"
+        self.config = Config.load(self.paths.config_path) if config is None else config
 
     @property
     def temp_catalogue(self):
@@ -84,20 +84,42 @@ class Manager:
         return os.path.exists(self.paths.pip_zipapp) and os.path.exists(self.paths.env_folder)
 
     # Ducktools build commands
-    def retrieve_pip(self):
+    def retrieve_pip(self) -> str:
         return _laz.retrieve_pip(paths=self.paths)
 
+    def retrieve_uv(self) -> str | None:
+        if self.config.use_uv:
+            return _laz.retrieve_uv(paths=self.paths)
+        return None
+
+    @property
+    def install_base_command(self) -> list[str]:
+        # Get the installer command for python packages
+        # Pip or the faster uv_pip if it is available
+        if uv_path := self.retrieve_uv():
+            return [uv_path, "pip"]
+        else:
+            pip_path = self.retrieve_pip()
+            return [sys.executable, pip_path, "--disable-pip-version-check"]
+
     def build_env_folder(self, clear_old_builds=True) -> None:
-        _laz.build_env_folder(paths=self.paths, clear_old_builds=clear_old_builds)
+        _laz.build_env_folder(
+            paths=self.paths,
+            install_base_command=self.install_base_command,
+            clear_old_builds=clear_old_builds,
+        )
 
     def build_zipapp(self, clear_old_builds=True) -> None:
         """Build the ducktools.pyz zipapp"""
-        _laz.build_zipapp(paths=self.paths, clear_old_builds=clear_old_builds)
+        _laz.build_zipapp(
+            paths=self.paths,
+            install_base_command=self.install_base_command,
+            clear_old_builds=clear_old_builds,
+        )
 
     # Install and cleanup commands
     def install(self):
         # Install the ducktools package
-        self.retrieve_pip()
         self.build_env_folder(clear_old_builds=True)
 
     def clear_temporary_cache(self):
@@ -112,16 +134,38 @@ class Manager:
         _laz.shutil.rmtree(root_path, ignore_errors=True)
 
     # Script running and bundling commands
-    def get_script_env(self, path):
-        spec = EnvironmentSpec.from_script(path)
+    def get_script_env(self, path: str, *, lockdata: str | None = None):
+        spec = EnvironmentSpec.from_script(path, lockdata=lockdata)
         env = self.temp_catalogue.find_or_create_env(
-            spec=spec, config=self.config, pip_zipapp=self.retrieve_pip()
+            spec=spec,
+            config=self.config,
+            uv_path=self.retrieve_uv(),
+            installer_command=self.install_base_command,
         )
         return env
 
-    def run_script(self, script_file, args) -> None:
-        """Execute the provided script file with the given arguments"""
-        env = self.get_script_env(script_file)
+    def get_lockdata(self, script_file):
+        if uv_path := self.retrieve_uv():
+            spec = EnvironmentSpec.from_script(script_file)
+            lock_data = spec.generate_lockdata(uv_path=uv_path)
+            return lock_data
+        else:
+            raise UVUnavailableError("UV is required to generate lockfiles.")
+
+    def run_script(
+        self,
+        *,
+        script_file: str,
+        args: list[str],
+        lockdata: str | None = None,
+    ) -> None:
+        """Execute the provided script file with the given arguments
+
+        :param script_file: path to the script file to run
+        :param args: arguments to be provided to the script file
+        :param lockfile: string lockfile data
+        """
+        env = self.get_script_env(script_file, lockdata=lockdata)
         log(f"Using environment at: {env.path}")
         _laz.subprocess.run([env.python_path, script_file, *args])
 
@@ -129,9 +173,22 @@ class Manager:
         self,
         *,
         script_file: str,
-        output_file: str | None = None
+        output_file: str | None = None,
+        lockdata: str | None = None,
     ) -> None:
-        """Create a zipapp bundle for the provided script file"""
+        """Create a zipapp bundle for the provided script file
+
+        :param script_file: path to the script file to bundle
+        :param output_file: output path to zipapp bundle (script_file.pyz default)
+        :param lockfile: lockfile data if provided
+        """
         if not self.is_installed:
             self.install()
-        _laz.create_bundle(script_file=script_file, output_file=output_file, paths=self.paths)
+
+        _laz.create_bundle(
+            script_file=script_file,
+            output_file=output_file,
+            paths=self.paths,
+            installer_command=self.install_base_command,
+            lockdata=lockdata,
+        )

@@ -22,8 +22,6 @@
 # SOFTWARE.
 from __future__ import annotations
 
-import enum
-
 from ducktools.lazyimporter import (
     LazyImporter,
     FromImport,
@@ -45,6 +43,7 @@ _laz = LazyImporter(
             "tomllib",
         ),
         ModuleImport("warnings"),
+        ModuleImport("subprocess"),
         ModuleImport("hashlib"),
         MultiFromImport(
             "packaging.requirements",
@@ -56,18 +55,9 @@ _laz = LazyImporter(
         ),
         FromImport(
             "importlib", "metadata"
-        )
+        ),
     ],
 )
-
-
-class SpecType(enum.IntEnum):
-    """
-    Enum to inform EnvironmentSpec how to parse the metadata
-    if needed.
-    """
-    INLINE_METADATA = 1
-    PYPROJECT_METADATA = 2
 
 
 class EnvironmentDetails(Prefab, kw_only=True):
@@ -77,8 +67,6 @@ class EnvironmentDetails(Prefab, kw_only=True):
     project_name: str | None
     project_owner: str | None
     project_version: str | None
-
-    override_tempenv: bool
 
     @property
     def requires_python_spec(self):
@@ -108,28 +96,28 @@ class EnvironmentDetails(Prefab, kw_only=True):
 
 
 class EnvironmentSpec:
-    spec_type: SpecType
     raw_spec: str
+    lockdata: str | None
 
     def __init__(
             self,
-            spec_type: SpecType,
             raw_spec: str,
             *,
+            lockdata: str | None = None,
             spec_hash: str | None = None,
             details: EnvironmentDetails | None = None,
     ) -> None:
-        self.spec_type = spec_type
         self.raw_spec = raw_spec
+        self.lockdata = lockdata
 
         self._spec_hash: str | None = spec_hash
+        self._lock_hash: str | None = None
         self._details: EnvironmentDetails | None = details
 
     @classmethod
-    def from_script(cls, script_path):
-        spec_type = SpecType.INLINE_METADATA
+    def from_script(cls, script_path, lockdata: str | None = None):
         raw_spec = scriptmetadata.parse_file(script_path).blocks.get("script", "")
-        return cls(spec_type=spec_type, raw_spec=raw_spec)
+        return cls(raw_spec=raw_spec, lockdata=lockdata)
 
     @property
     def details(self) -> EnvironmentDetails:
@@ -143,6 +131,13 @@ class EnvironmentSpec:
             spec_bytes = self.raw_spec.encode("utf8")
             self._spec_hash = _laz.hashlib.sha3_256(spec_bytes).hexdigest()
         return self._spec_hash
+    
+    @property
+    def lock_hash(self) -> str:
+        if self.lockdata:
+            lock_bytes = self.lockdata.encode("utf8")
+            self._lock_hash = _laz.hashlib.sha3_256(lock_bytes).hexdigest()
+        return self._lock_hash
 
     def parse_raw(self) -> EnvironmentDetails:
         base_table = _laz.tomllib.loads(self.raw_spec)
@@ -155,21 +150,12 @@ class EnvironmentSpec:
 
         env_project_table = data_table.get("project", {})
 
-        if self.spec_type == SpecType.INLINE_METADATA:
-            requires_python = base_table.get("requires-python", None)
-            dependencies = base_table.get("dependencies", [])
+        requires_python = base_table.get("requires-python", None)
+        dependencies = base_table.get("dependencies", [])
 
-            project_name = env_project_table.get("name", None)
-            version = env_project_table.get("version", None)
-            owner = env_project_table.get("owner", None)
-
-        elif self.spec_type == SpecType.PYPROJECT_METADATA:
-            raise EnvironmentError("PyProject spec not implemented")
-
-        else:
-            raise TypeError(f"'spec_type' must be an instance of {SpecType.__name__!r}")
-
-        override_tempenv = data_table.get("override_tempenv", False)
+        project_name = env_project_table.get("name", None)
+        version = env_project_table.get("version", None)
+        owner = env_project_table.get("owner", None)
 
         # noinspection PyArgumentList
         return EnvironmentDetails(
@@ -178,13 +164,54 @@ class EnvironmentSpec:
             project_name=project_name,
             project_owner=owner,
             project_version=version,
-            override_tempenv=override_tempenv,
         )
+
+    def generate_lockdata(self, uv_path: str) -> str | None:
+        """
+        Generate a lockfile from the dependency data
+        :param uv_path: Path to the UV executable
+        :return: lockfile data as a text string or None if there are no dependencies
+        """
+        if not self.lockdata:
+            # Only make a lockfile if there is anything to lock
+            if deps := "\n".join(self.details.dependencies):
+                python_version = []
+                if python_spec := self.details.requires_python_spec:
+                    # Try to find the minimum python version that satisfies the spec
+                    for s in python_spec:
+                        if s.operator in {"==", ">=", "~="}:
+                            python_version = ["--python-version", s.version]
+                            break
+
+                lock_cmd = [
+                    uv_path,
+                    "pip",
+                    "compile",
+                    "--universal",
+                    "--generate-hashes",
+                    "--no-annotate",
+                    *python_version,
+                    "-",
+                ]
+
+                print("Locking dependency tree")
+                lock_output = _laz.subprocess.run(
+                    lock_cmd,
+                    input=deps,
+                    capture_output=True,
+                    text=True,
+                )
+
+                hash_line = f"# Original Specification Hash: {self.spec_hash}\n"
+
+                self.lockdata = hash_line + lock_output.stdout
+
+        return self.lockdata
 
     def as_dict(self):
         return {
             "spec_hash": self.spec_hash,
-            "spec_type": self.spec_type,
             "raw_spec": self.raw_spec,
+            "lock_hash": self.lock_hash,
             "details": as_dict(self.details),
         }

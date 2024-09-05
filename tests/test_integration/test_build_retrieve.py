@@ -16,15 +16,15 @@
 
 from ducktools.env import PROJECT_NAME
 from ducktools.env.manager import Manager
-from ducktools.env.environment_specs import EnvironmentSpec, SpecType
+from ducktools.env.environment_specs import EnvironmentSpec
 
 
 class TestBuildRetrieve:
     def test_build_retrieve(self, testing_catalogue, test_config):
-        manager = Manager(PROJECT_NAME)
+
+        manager = Manager(project_name=PROJECT_NAME)
 
         spec = EnvironmentSpec(
-            spec_type=SpecType.INLINE_METADATA,
             raw_spec="requires-python='>=3.8'\ndependencies=[]\n",
         )
 
@@ -34,7 +34,8 @@ class TestBuildRetrieve:
         real_env = testing_catalogue.find_or_create_env(
             spec=spec,
             config=test_config,
-            pip_zipapp=manager.retrieve_pip()
+            uv_path=manager.retrieve_uv(),
+            installer_command=manager.install_base_command,
         )
 
         assert real_env is not None

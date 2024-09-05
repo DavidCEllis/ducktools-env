@@ -51,6 +51,8 @@ class Config(Prefab, kw_only=True):
     applications_expire: bool = False
     applications_lifetime: float = 28.0
 
+    use_uv: bool = True
+
     @property
     def cache_lifetime_delta(self) -> _timedelta:
         return _timedelta(days=self.cache_lifetime)

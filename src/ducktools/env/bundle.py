@@ -21,7 +21,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os.path
 import shutil
 import subprocess
 import sys
@@ -47,8 +46,23 @@ def create_bundle(
     *,
     script_file: str,
     output_file: str | None = None,
-    paths: ManagedPaths
+    paths: ManagedPaths,
+    installer_command: list[str],
+    lockdata: str | None = None,
 ) -> None:
+    """
+    Create a zipapp bundle for the inline script
+
+    :param script_file: path to the source script file
+    :param paths: ManagedPaths object containing application path info
+    :param installer_command: appropriate UV or PIP 'install' command
+    :param output_file: output path for the bundle, if not provided the
+                        scriptfile path will be used with `.pyz` added as
+                        file extension
+    :param lockdata: Content of lockfile or None
+    :raises ScriptNameClash: error raised if the script name clashes with a 
+                             name required for bootstrapping.
+    """
     script_path = Path(script_file)
 
     if script_path.suffix in {".pyz", ".pyzw"}:
@@ -62,70 +76,75 @@ def create_bundle(
             f"a script or library required for unbundling"
         )
 
-    build_folder = Path(paths.build_folder())
+    with paths.build_folder() as build_folder:
+        build_path = Path(build_folder)
+        print(f"Building bundle in {build_folder!r}")
+        print("Copying libraries into build folder")
+        # Don't copy UV - it's platform dependent
+        uv_base_exe = "uv.exe" if sys.platform == "win32" else "uv"
+        uv_pattern = shutil.ignore_patterns(uv_base_exe, f"{uv_base_exe}.version")
 
-    print(f"Building bundle in {build_folder!r}")
-    print("Copying libraries into build folder")
-    # Copy pip and ducktools zipapps into folder
-    shutil.copytree(paths.manager_folder, build_folder, dirs_exist_ok=True)
+        # Copy pip and ducktools zipapps into folder
+        shutil.copytree(
+            paths.manager_folder,
+            build_path,
+            ignore=uv_pattern,
+            dirs_exist_ok=True,
+        )
 
-    resources = importlib_resources.files("ducktools.env")
+        resources = importlib_resources.files("ducktools.env")
 
-    with importlib_resources.as_file(resources) as env_folder:
-        platform_paths_path = env_folder / "platform_paths.py"
-        bootstrap_path = env_folder / "bootstrapping" / "bootstrap.py"
-        main_zipapp_path = env_folder / "bootstrapping" / "bundle_main.py"
+        with importlib_resources.as_file(resources) as env_folder:
+            platform_paths_path = env_folder / "platform_paths.py"
+            bootstrap_path = env_folder / "bootstrapping" / "bootstrap.py"
+            main_zipapp_path = env_folder / "bootstrapping" / "bundle_main.py"
 
-        shutil.copy(platform_paths_path, build_folder / "_platform_paths.py")
-        shutil.copy(bootstrap_path, build_folder / "_bootstrap.py")
+            shutil.copy(platform_paths_path, build_path / "_platform_paths.py")
+            shutil.copy(bootstrap_path, build_path / "_bootstrap.py")
 
-        # Write __main__.py with script name included
-        with open(build_folder / "__main__.py", 'w') as main_file:
-            main_file.write(main_zipapp_path.read_text())
-            main_file.write(f"\nmain({script_path.name!r})\n")
+            # Write __main__.py with script name included
+            with open(build_path / "__main__.py", 'w') as main_file:
+                main_file.write(main_zipapp_path.read_text())
+                main_file.write(f"\nmain({script_path.name!r})\n")
 
-    print("Installing required unpacking libraries")
-    vendor_folder = str(build_folder / "_vendor")
+        print("Installing required unpacking libraries")
+        vendor_folder = str(build_path / "_vendor")
 
-    pip_command = [
-        sys.executable,
-        paths.pip_zipapp,
-        "--disable-pip-version-check",
-        "install",
-        *bootstrap_requires,
-        "--python-version",
-        MINIMUM_PYTHON_STR,
-        "--only-binary=:all:",
-        "--no-compile",
-        "--target",
-        vendor_folder
-    ]
+        # Unpacking libraries use a ducktools determined minimum python
+        # This is for the bootstrapping python and not the python that will
+        # run the script.
+        pip_command = [
+            *installer_command,
+            "install",
+            "-q",
+            *bootstrap_requires,
+            "--python-version",
+            MINIMUM_PYTHON_STR,
+            "--only-binary=:all:",
+            "--no-compile",
+            "--target",
+            vendor_folder
+        ]
 
-    subprocess.run(pip_command)
+        subprocess.run(pip_command)
 
-    freeze_command = [
-        sys.executable,
-        paths.pip_zipapp,
-        "freeze",
-        "--path",
-        vendor_folder,
-    ]
+        if lockdata:
+            # Copy the lockfile to the lock folder
+            lock_path = Path(build_path) / f"{script_path.name}.lock"
+            lock_path.write_text(lockdata)
 
-    freeze = subprocess.run(freeze_command, capture_output=True, text=True)
-    (Path(vendor_folder) / "requirements.txt").write_text(freeze.stdout)
+        print("Copying script to build folder and bundling")
+        shutil.copy(script_path, build_path)
 
-    print("Copying script to build folder and bundling")
-    shutil.copy(script_path, build_folder)
+        if output_file is None:
+            archive_path = Path(script_file).with_suffix(".pyz")
+        else:
+            archive_path = Path(output_file)
 
-    if output_file is None:
-        archive_path = Path(script_file).with_suffix(".pyz")
-    else:
-        archive_path = Path(output_file)
-
-    zipapp.create_archive(
-        source=build_folder,
-        target=archive_path,
-        interpreter="/usr/bin/env python",
-    )
+        zipapp.create_archive(
+            source=build_folder,
+            target=archive_path,
+            interpreter="/usr/bin/env python",
+        )
 
     print(f"Bundled {script_file!r} as '{archive_path}'")
