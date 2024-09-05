@@ -144,20 +144,11 @@ class Manager(Prefab):
         )
         return env
 
-    def create_lockfile(
-        self, 
-        script_file: str, 
-        lockfile: str | None = None
-    ) -> None:
+    def get_lockdata(self, script_file):
         if uv_path := self.retrieve_uv():
             spec = EnvironmentSpec.from_script(script_file)
             lock_data = spec.generate_lockdata(uv_path=uv_path)
-            if lockfile is None:
-                lockfile = f"{script_file}.lock"
-
-            log(f"Writing lockfile to {lockfile!r}")
-            with open(lockfile, "w") as f:
-                f.write(lock_data)
+            return lock_data
         else:
             raise UVUnavailableError("UV is required to generate lockfiles.")
 
@@ -183,13 +174,13 @@ class Manager(Prefab):
         *,
         script_file: str,
         output_file: str | None = None,
-        lockfile: str | None = None,
+        lockdata: str | None = None,
     ) -> None:
         """Create a zipapp bundle for the provided script file
 
         :param script_file: path to the script file to bundle
         :param output_file: output path to zipapp bundle (script_file.pyz default)
-        :param lockfile: lockfile path if provided
+        :param lockfile: lockfile data if provided
         """
         if not self.is_installed:
             self.install()
@@ -199,5 +190,5 @@ class Manager(Prefab):
             output_file=output_file,
             paths=self.paths,
             installer_command=self.install_base_command,
-            lockfile=lockfile,
+            lockdata=lockdata,
         )

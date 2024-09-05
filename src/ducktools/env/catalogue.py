@@ -46,6 +46,7 @@ _laz = LazyImporter(
         ModuleImport("json"),
         ModuleImport("subprocess"),
         ModuleImport("hashlib"),
+        ModuleImport("tempfile"),
         FromImport("ducktools.pythonfinder", "list_python_installs"),
     ],
     globs=globals(),
@@ -436,33 +437,66 @@ class TempCatalogue(BaseCatalogue):
             dep_list = ", ".join(deps)
             log(f"Installing dependencies from PyPI: {dep_list}")
 
-            dependencies = [spec.lockdata] if spec.lockdata else deps
-
-            try:
-                if uv_path:
-                    dependency_command = [
-                        *installer_command,
-                        "install",
-                        "-q",  # Quiet
-                        "--python",
-                        new_env.python_path,
-                        *dependencies,
-                    ]
-                else:
-                    dependency_command = [
-                        *installer_command,
-                        "--python",
-                        new_env.python_path,
-                        "install",
-                        "-q",  # Quiet
-                        *dependencies,
-                    ]
-                _laz.subprocess.run(
-                    dependency_command,
-                    check=True,
-                )
-            except _laz.subprocess.CalledProcessError as e:
-                raise VenvBuildError(f"Failed to install dependencies: {e}")
+            if spec.lockdata:
+                log("Using lockfile")
+                # Need a temporary file to use as the lockfile
+                with _laz.tempfile.TemporaryDirectory(delete=False) as tempfld:
+                    requirements_path = os.path.join(tempfld, "requirements.txt")
+                    with open(requirements_path, 'w') as f:
+                        f.write(spec.lockdata)
+                    try:
+                        if uv_path:
+                            dependency_command = [
+                                *installer_command,
+                                "install",
+                                "-q",  # Quiet
+                                "--python",
+                                new_env.python_path,
+                                "-r",
+                                requirements_path,
+                            ]
+                        else:
+                            dependency_command = [
+                                *installer_command,
+                                "--python",
+                                new_env.python_path,
+                                "install",
+                                "-q",  # Quiet
+                                "-r", 
+                                requirements_path,
+                            ]
+                        _laz.subprocess.run(
+                            dependency_command,
+                            check=True,
+                        )
+                    except _laz.subprocess.CalledProcessError as e:
+                        raise VenvBuildError(f"Failed to install dependencies: {e}")
+            else:
+                try:
+                    if uv_path:
+                        dependency_command = [
+                            *installer_command,
+                            "install",
+                            "-q",  # Quiet
+                            "--python",
+                            new_env.python_path,
+                            *deps,
+                        ]
+                    else:
+                        dependency_command = [
+                            *installer_command,
+                            "--python",
+                            new_env.python_path,
+                            "install",
+                            "-q",  # Quiet
+                            *deps,
+                        ]
+                    _laz.subprocess.run(
+                        dependency_command,
+                        check=True,
+                    )
+                except _laz.subprocess.CalledProcessError as e:
+                    raise VenvBuildError(f"Failed to install dependencies: {e}")
 
             # Get pip-freeze list to use for installed modules
             if uv_path:

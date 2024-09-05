@@ -98,6 +98,7 @@ def test_generate_lockdata(test_data, subprocess_run_mock):
                 "compile",
                 "--universal",
                 "--generate-hashes",
+                "--no-annotate",
                 "--python-version",
                 "3.11",
                 "-",

@@ -81,10 +81,10 @@ Create a lockfile without running a script
 `python ducktools.pyz generate_lock my_script.py`
 
 Run a script and output the generated lockfile (output as my_script.py.lock)
-`python ducktools.pyz run --generate-lock my_script.py`
+`python ducktools.pyz run ++generate-lock my_script.py`
 
 Run a script using a pre-generated lockfile
-`python ducktools.pyz run --with-lock my_script.py.lock my_script.py`
+`python ducktools.pyz run ++with-lock my_script.py.lock my_script.py`
 
 Bundle a script and generate a lockfile (that will be bundled)
 `python ducktools.pyz bundle --generate-lock my_script.py`

@@ -60,6 +60,11 @@ def main():
         help="clear the temporary environment cache folder",
     )
 
+    generate_lock_parser = subparsers.add_parser(
+        "generate_lock",
+        help="Generate a lockfile based on inline dependencies in a script"
+    )
+
     clear_cache_parser.add_argument(
         "--full",
         action="store_true",
@@ -78,11 +83,46 @@ def main():
     )
 
     run_parser.add_argument("script_filename", help="Path to the script to run")
+    
+    run_lock_group = run_parser.add_mutually_exclusive_group()
+    run_lock_group.add_argument(
+        "++with-lock",
+        help="Include a lockfile to use when running the script",
+        action="store"
+    )
+    run_lock_group.add_argument(
+        "++generate-lock",
+        help="Generate a lockfile based on the dependencies in the script",
+        action="store_true",
+    )
+
     bundle_parser.add_argument("script_filename", help="Path to the script to bundle into a zipapp")
     bundle_parser.add_argument(
         "-o",  "--output",
         help="Output to given filename",
         action="store",
+    )
+    
+    bundle_lock_group = bundle_parser.add_mutually_exclusive_group()
+    bundle_lock_group.add_argument(
+        "--with-lock",
+        help="Include a lockfile to use when running the script",
+        action="store"
+    )
+    bundle_lock_group.add_argument(
+        "--generate-lock",
+        help="Generate a lockfile to use when unbundling",
+        action="store_true"
+    )
+
+    generate_lock_parser.add_argument(
+        "script_filename", 
+        help="Path to the script to use to generate a lockfile"
+    )
+
+    generate_lock_parser.add_argument(
+        "-o", "--output",
+        help="Output to given filename",
     )
 
     args, extras = parser.parse_known_args()
@@ -91,19 +131,53 @@ def main():
     manager = _laz.Manager(PROJECT_NAME)
 
     if args.command == "run":
+        if args.generate_lock:
+            lockdata = manager.get_lockdata(
+                script_file=args.script_filename,
+            )
+            lock_path = f"{args.script_filename}.lock"
+            with open(lock_path, 'w') as f:
+                f.write(lockdata)
+        elif lock_path := args.with_lock:
+            with open(lock_path, 'r') as f:
+                lockdata = f.read()
+        else:
+            lockdata = None
+
         manager.run_script(
             script_file=args.script_filename,
             args=extras,
+            lockdata=lockdata,
         )
     elif args.command == "bundle":
         if extras:
             arg_text = ' '.join(extras)
             sys.stderr.write(f"Unrecognised arguments: {arg_text}")
             return
+        
+        if args.generate_lock:
+            lockdata = manager.get_lockdata(
+                script_file=args.script_filename,
+            )
+        elif lock_path := args.with_lock:
+            with open(lock_path, 'r') as f:
+                lockdata = f.read()
+        else:
+            lockdata = None
+
         manager.create_bundle(
             script_file=args.script_filename,
             output_file=args.output,
+            lockdata=lockdata,
         )
+    elif args.command == "generate_lock":
+        lock_data = manager.get_lockdata(
+            script_file=args.script_filename,
+        )
+        out_path = args.output if args.output else f"{args.script_filename}.lock"
+        with open(out_path, "w") as f:
+            f.write(lock_data)
+
     elif args.command == "clear_cache":
         if extras:
             arg_text = ' '.join(extras)

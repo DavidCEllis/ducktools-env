@@ -48,7 +48,7 @@ def create_bundle(
     output_file: str | None = None,
     paths: ManagedPaths,
     installer_command: list[str],
-    lockfile: str | None = None,
+    lockdata: str | None = None,
 ) -> None:
     """
     Create a zipapp bundle for the inline script
@@ -59,7 +59,7 @@ def create_bundle(
     :param output_file: output path for the bundle, if not provided the
                         scriptfile path will be used with `.pyz` added as
                         file extension
-    :param lockfile: path to the lockfile for the associated bundle
+    :param lockdata: Content of lockfile or None
     :raises ScriptNameClash: error raised if the script name clashes with a 
                              name required for bootstrapping.
     """
@@ -128,10 +128,10 @@ def create_bundle(
 
         subprocess.run(pip_command)
 
-        if lockfile:
+        if lockdata:
             # Copy the lockfile to the lock folder
             lock_path = Path(build_path) / f"{script_path.name}.lock"
-            shutil.copy(lockfile, lock_path)
+            lock_path.write_text(lockdata)
 
         print("Copying script to build folder and bundling")
         shutil.copy(script_path, build_path)

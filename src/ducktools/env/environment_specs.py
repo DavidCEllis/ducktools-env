@@ -115,7 +115,7 @@ class EnvironmentSpec:
         self._details: EnvironmentDetails | None = details
 
     @classmethod
-    def from_script(cls, script_path, lockdata):
+    def from_script(cls, script_path, lockdata: str | None = None):
         raw_spec = scriptmetadata.parse_file(script_path).blocks.get("script", "")
         return cls(raw_spec=raw_spec, lockdata=lockdata)
 
@@ -189,6 +189,7 @@ class EnvironmentSpec:
                     "compile",
                     "--universal",
                     "--generate-hashes",
+                    "--no-annotate",
                     *python_version,
                     "-",
                 ]
