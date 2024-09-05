@@ -113,13 +113,6 @@ def create_bundle(
 
         subprocess.run(pip_command)
 
-        if uv_path:
-            # Get a lockfile from UV
-            spec = EnvironmentSpec.from_script(script_file)
-            if lock_data := spec.generate_lockfile(uv_path):
-                lock_path = Path(build_path) / f"{script_path.name}.lock"
-                lock_path.write_text(lock_data)
-
         print("Copying script to build folder and bundling")
         shutil.copy(script_path, build_path)
 
