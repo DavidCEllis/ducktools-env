@@ -91,7 +91,10 @@ def main():
     manager = _laz.Manager(PROJECT_NAME)
 
     if args.command == "run":
-        manager.run_script(args.script_filename, extras)
+        manager.run_script(
+            script_file=args.script_filename,
+            args=extras,
+        )
     elif args.command == "bundle":
         if extras:
             arg_text = ' '.join(extras)
