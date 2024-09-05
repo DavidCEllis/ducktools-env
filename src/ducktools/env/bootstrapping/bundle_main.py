@@ -29,7 +29,7 @@ from pathlib import Path
 
 
 # Included in bundle
-from _bootstrap import update_libraries, launch_script  # noqa
+from _bootstrap import update_libraries, launch_script  # type: ignore
 
 
 def main(script_name):
@@ -57,9 +57,23 @@ def main(script_name):
         with zipfile.ZipFile(zip_path) as zf:
             script_info = zf.getinfo(script_name)
             script_info.filename = script_dest.name
+
+            # Get lockfile if it exists
+            lock_name = f"{script_name}.lock"
+            try:
+                with zf.open(lock_name) as lock:
+                    lockdata = lock.read()
+            except FileNotFoundError:
+                # No lockfile
+                lockdata = None
+            
             # Extract the script file to the existing folder
             zf.extract(script_info, path=working_dir)
-        launch_script(str(script_dest), sys.argv[1:])
+        launch_script(
+            script_file=str(script_dest), 
+            args=sys.argv[1:],
+            lockdata=lockdata,
+        )
     finally:
         script_dest.unlink()
 

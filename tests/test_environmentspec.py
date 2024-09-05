@@ -77,11 +77,11 @@ def test_envspec_pythononly(test_data):
 
 
 @pytest.mark.parametrize("test_data", envs)
-def test_generate_lockfile(test_data, subprocess_run_mock):
+def test_generate_lockdata(test_data, subprocess_run_mock):
     env = EnvironmentSpec(test_data.raw_spec)
     fake_uv_path = "fake/uv/path"
 
-    lock_data = env.generate_lockfile(fake_uv_path)
+    lock_data = env.generate_lockdata(fake_uv_path)
 
     if test_data.dependencies:
         deps = "\n".join(env.details.dependencies)
@@ -166,4 +166,5 @@ def test_asdict(test_data):
             "project_owner": None,
             "project_version": None,
         },
+        "lock_hash": None,
     }

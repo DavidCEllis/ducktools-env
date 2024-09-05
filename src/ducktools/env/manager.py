@@ -33,6 +33,7 @@ from .config import Config, log
 from .platform_paths import ManagedPaths
 from .catalogue import TempCatalogue
 from .environment_specs import EnvironmentSpec
+from .exceptions import UVUnavailableError
 
 
 _laz = LazyImporter(
@@ -133,8 +134,8 @@ class Manager(Prefab):
         _laz.shutil.rmtree(root_path, ignore_errors=True)
 
     # Script running and bundling commands
-    def get_script_env(self, path):
-        spec = EnvironmentSpec.from_script(path)
+    def get_script_env(self, path: str, *, lockdata: str | None = None):
+        spec = EnvironmentSpec.from_script(path, lockdata=lockdata)
         env = self.temp_catalogue.find_or_create_env(
             spec=spec,
             config=self.config,
@@ -143,14 +144,37 @@ class Manager(Prefab):
         )
         return env
 
+    def create_lockfile(
+        self, 
+        script_file: str, 
+        lockfile: str | None = None
+    ) -> None:
+        if uv_path := self.retrieve_uv():
+            spec = EnvironmentSpec.from_script(script_file)
+            lock_data = spec.generate_lockdata(uv_path=uv_path)
+            if lockfile is None:
+                lockfile = f"{script_file}.lock"
+
+            log(f"Writing lockfile to {lockfile!r}")
+            with open(lockfile, "w") as f:
+                f.write(lock_data)
+        else:
+            raise UVUnavailableError("UV is required to generate lockfiles.")
+
     def run_script(
         self,
         *,
-        script_file,
-        args
+        script_file: str,
+        args: list[str],
+        lockdata: str | None = None,
     ) -> None:
-        """Execute the provided script file with the given arguments"""
-        env = self.get_script_env(script_file)
+        """Execute the provided script file with the given arguments
+
+        :param script_file: path to the script file to run
+        :param args: arguments to be provided to the script file
+        :param lockfile: string lockfile data
+        """
+        env = self.get_script_env(script_file, lockdata=lockdata)
         log(f"Using environment at: {env.path}")
         _laz.subprocess.run([env.python_path, script_file, *args])
 
@@ -158,9 +182,15 @@ class Manager(Prefab):
         self,
         *,
         script_file: str,
-        output_file: str | None = None
+        output_file: str | None = None,
+        lockfile: str | None = None,
     ) -> None:
-        """Create a zipapp bundle for the provided script file"""
+        """Create a zipapp bundle for the provided script file
+
+        :param script_file: path to the script file to bundle
+        :param output_file: output path to zipapp bundle (script_file.pyz default)
+        :param lockfile: lockfile path if provided
+        """
         if not self.is_installed:
             self.install()
 
@@ -168,6 +198,6 @@ class Manager(Prefab):
             script_file=script_file,
             output_file=output_file,
             paths=self.paths,
-            uv_path=self.retrieve_uv(),
             installer_command=self.install_base_command,
+            lockfile=lockfile,
         )

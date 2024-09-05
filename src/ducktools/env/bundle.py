@@ -31,7 +31,6 @@ from pathlib import Path
 import importlib_resources
 
 from . import MINIMUM_PYTHON_STR, bootstrap_requires
-from .environment_specs import EnvironmentSpec
 from .platform_paths import ManagedPaths
 from .exceptions import ScriptNameClash
 
@@ -48,9 +47,22 @@ def create_bundle(
     script_file: str,
     output_file: str | None = None,
     paths: ManagedPaths,
-    uv_path: str | None,
     installer_command: list[str],
+    lockfile: str | None = None,
 ) -> None:
+    """
+    Create a zipapp bundle for the inline script
+
+    :param script_file: path to the source script file
+    :param paths: ManagedPaths object containing application path info
+    :param installer_command: appropriate UV or PIP 'install' command
+    :param output_file: output path for the bundle, if not provided the
+                        scriptfile path will be used with `.pyz` added as
+                        file extension
+    :param lockfile: path to the lockfile for the associated bundle
+    :raises ScriptNameClash: error raised if the script name clashes with a 
+                             name required for bootstrapping.
+    """
     script_path = Path(script_file)
 
     if script_path.suffix in {".pyz", ".pyzw"}:
@@ -98,6 +110,9 @@ def create_bundle(
         print("Installing required unpacking libraries")
         vendor_folder = str(build_path / "_vendor")
 
+        # Unpacking libraries use a ducktools determined minimum python
+        # This is for the bootstrapping python and not the python that will
+        # run the script.
         pip_command = [
             *installer_command,
             "install",
@@ -112,6 +127,11 @@ def create_bundle(
         ]
 
         subprocess.run(pip_command)
+
+        if lockfile:
+            # Copy the lockfile to the lock folder
+            lock_path = Path(build_path) / f"{script_path.name}.lock"
+            shutil.copy(lockfile, lock_path)
 
         print("Copying script to build folder and bundling")
         shutil.copy(script_path, build_path)

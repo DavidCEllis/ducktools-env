@@ -120,6 +120,7 @@ class TemporaryEnv(BaseEnv, kw_only=True):
     This is for temporary environments that expire after a certain period
     """
     spec_hashes: list[str]
+    lock_hash: str | None = None
     installed_modules: list[str] = attribute(default_factory=list)
 
 
@@ -252,7 +253,7 @@ class TempCatalogue(BaseCatalogue):
         """
         for cache in self.environments.values():
             if spec.spec_hash in cache.spec_hashes:
-                log(f"Hash {spec.spec_hash} matched environment {cache.name}")
+                log(f"Hash {spec.spec_hash!r} matched environment {cache.name}")
 
                 if not cache.is_valid:
                     log(f"Cache {cache.name!r} does not point to a valid python, removing.")
@@ -320,6 +321,30 @@ class TempCatalogue(BaseCatalogue):
         else:
             return None
 
+    def find_locked_env(
+        self, 
+        *, 
+        spec: EnvironmentSpec,
+    ) -> TemporaryEnv | None:
+        """
+        Find a cached TemporaryEnv that matches the hash of the lockfile
+
+        :param spec: Environment specification (needed for lock)
+        :param lockdata: _description_
+        :return: _description_
+        """
+        # Get lock data hash
+        for cache in self.environments.values():
+            if (
+                cache.lock_hash == spec.lock_hash 
+                and cache.python_version in spec.details.requires_python_spec
+            ):
+                log(f"Lockfile hash {spec.lock_hash!r} matched environment {cache.name}")
+                return cache
+        else:
+            return None
+                
+
     def find_env(self, *, spec: EnvironmentSpec) -> TemporaryEnv | None:
         """
         Try to find an existing cached environment that satisfies the spec
@@ -327,10 +352,14 @@ class TempCatalogue(BaseCatalogue):
         :param spec:
         :return:
         """
-        env = self.find_env_hash(spec=spec)
+        if spec.lock_hash:
+            env = self.find_locked_env(spec=spec)
+        
+        else:
+            env = self.find_env_hash(spec=spec)
 
-        if not env:
-            env = self.find_sufficient_env(spec=spec)
+            if not env:
+                env = self.find_sufficient_env(spec=spec)
 
         return env
 
@@ -400,11 +429,15 @@ class TempCatalogue(BaseCatalogue):
             python_version=python_version,
             parent_python=python_exe,
             spec_hashes=[spec.spec_hash],
+            lock_hash=spec.lock_hash,
         )
 
-        if spec.details.dependencies:
-            dep_list = ", ".join(spec.details.dependencies)
+        if deps := spec.details.dependencies:
+            dep_list = ", ".join(deps)
             log(f"Installing dependencies from PyPI: {dep_list}")
+
+            dependencies = [spec.lockdata] if spec.lockdata else deps
+
             try:
                 if uv_path:
                     dependency_command = [
@@ -413,7 +446,7 @@ class TempCatalogue(BaseCatalogue):
                         "-q",  # Quiet
                         "--python",
                         new_env.python_path,
-                        *spec.details.dependencies,
+                        *dependencies,
                     ]
                 else:
                     dependency_command = [
@@ -422,7 +455,7 @@ class TempCatalogue(BaseCatalogue):
                         new_env.python_path,
                         "install",
                         "-q",  # Quiet
-                        *spec.details.dependencies,
+                        *dependencies,
                     ]
                 _laz.subprocess.run(
                     dependency_command,
@@ -472,9 +505,9 @@ class TempCatalogue(BaseCatalogue):
         config: Config,
         uv_path: str | None,
         installer_command: list[str],
-
     ) -> TemporaryEnv:
         env = self.find_env(spec=spec)
+
         if not env:
             log("Existing environment not found, creating new environment.")
             env = self.create_env(

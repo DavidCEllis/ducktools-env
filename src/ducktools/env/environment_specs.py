@@ -97,23 +97,27 @@ class EnvironmentDetails(Prefab, kw_only=True):
 
 class EnvironmentSpec:
     raw_spec: str
+    lockdata: str | None
 
     def __init__(
             self,
             raw_spec: str,
             *,
+            lockdata: str | None = None,
             spec_hash: str | None = None,
             details: EnvironmentDetails | None = None,
     ) -> None:
         self.raw_spec = raw_spec
+        self.lockdata = lockdata
 
         self._spec_hash: str | None = spec_hash
+        self._lock_hash: str | None = None
         self._details: EnvironmentDetails | None = details
 
     @classmethod
-    def from_script(cls, script_path):
+    def from_script(cls, script_path, lockdata):
         raw_spec = scriptmetadata.parse_file(script_path).blocks.get("script", "")
-        return cls(raw_spec=raw_spec)
+        return cls(raw_spec=raw_spec, lockdata=lockdata)
 
     @property
     def details(self) -> EnvironmentDetails:
@@ -127,6 +131,13 @@ class EnvironmentSpec:
             spec_bytes = self.raw_spec.encode("utf8")
             self._spec_hash = _laz.hashlib.sha3_256(spec_bytes).hexdigest()
         return self._spec_hash
+    
+    @property
+    def lock_hash(self) -> str:
+        if self.lockdata:
+            lock_bytes = self.lockdata.encode("utf8")
+            self._lock_hash = _laz.hashlib.sha3_256(lock_bytes).hexdigest()
+        return self._lock_hash
 
     def parse_raw(self) -> EnvironmentDetails:
         base_table = _laz.tomllib.loads(self.raw_spec)
@@ -155,49 +166,51 @@ class EnvironmentSpec:
             project_version=version,
         )
 
-    def generate_lockfile(self, uv_path: str) -> str | None:
+    def generate_lockdata(self, uv_path: str) -> str | None:
         """
         Generate a lockfile from the dependency data
         :param uv_path: Path to the UV executable
         :return: lockfile data as a text string or None if there are no dependencies
         """
-        # Only make a lockfile if there is anything to lock
-        if deps := "\n".join(self.details.dependencies):
-            python_version = []
-            if python_spec := self.details.requires_python_spec:
-                # Try to find the minimum python version that satisfies the spec
-                for s in python_spec:
-                    if s.operator in {"==", ">=", "~="}:
-                        python_version = ["--python-version", s.version]
-                        break
+        if not self.lockdata:
+            # Only make a lockfile if there is anything to lock
+            if deps := "\n".join(self.details.dependencies):
+                python_version = []
+                if python_spec := self.details.requires_python_spec:
+                    # Try to find the minimum python version that satisfies the spec
+                    for s in python_spec:
+                        if s.operator in {"==", ">=", "~="}:
+                            python_version = ["--python-version", s.version]
+                            break
 
-            lock_cmd = [
-                uv_path,
-                "pip",
-                "compile",
-                "--universal",
-                "--generate-hashes",
-                *python_version,
-                "-",
-            ]
+                lock_cmd = [
+                    uv_path,
+                    "pip",
+                    "compile",
+                    "--universal",
+                    "--generate-hashes",
+                    *python_version,
+                    "-",
+                ]
 
-            print("Locking dependency tree")
-            lock_output = _laz.subprocess.run(
-                lock_cmd,
-                input=deps,
-                capture_output=True,
-                text=True,
-            )
+                print("Locking dependency tree")
+                lock_output = _laz.subprocess.run(
+                    lock_cmd,
+                    input=deps,
+                    capture_output=True,
+                    text=True,
+                )
 
-            hash_line = f"# Original Specification Hash: {self.spec_hash}\n"
+                hash_line = f"# Original Specification Hash: {self.spec_hash}\n"
 
-            return hash_line + lock_output.stdout
+                self.lockdata = hash_line + lock_output.stdout
 
-        return None
+        return self.lockdata
 
     def as_dict(self):
         return {
             "spec_hash": self.spec_hash,
             "raw_spec": self.raw_spec,
+            "lock_hash": self.lock_hash,
             "details": as_dict(self.details),
         }
