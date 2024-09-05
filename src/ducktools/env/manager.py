@@ -144,10 +144,10 @@ class Manager(Prefab):
         return env
 
     def run_script(
-            self,
-            *,
-            script_file,
-            args
+        self,
+        *,
+        script_file,
+        args
     ) -> None:
         """Execute the provided script file with the given arguments"""
         env = self.get_script_env(script_file)
