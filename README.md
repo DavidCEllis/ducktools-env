@@ -61,6 +61,9 @@ Bundle the script into a zipapp:
 Clear the temporary environment cache:
 `python ducktools.pyz clear_cache`
 
+Clear the full `ducktools/env` install directory:
+`python ducktools.pyz clear_cache --full`
+
 Re-install the cached ducktools-env
 `python ducktools.pyz rebuild_env`
 
