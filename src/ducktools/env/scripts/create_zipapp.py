@@ -20,6 +20,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from __future__ import annotations
 
 """
 This is the script that builds the inner ducktools-env folder
@@ -51,7 +52,7 @@ def build_env_folder(
 ) -> None:
     # Get the full requirements for ducktools-env
     deps = []
-    reqs = requires("ducktools.env")
+    reqs = requires("ducktools-env")  # Use hyphen name to be recognised by older python
     for req in reqs:
         req = Requirement(req)
         if not (req.marker and not req.marker.evaluate({"python_version": MINIMUM_PYTHON_STR})):
@@ -88,6 +89,9 @@ def build_env_folder(
             "--path",
             build_folder,
         ]
+
+        # don't include executable scripts
+        shutil.rmtree(os.path.join(build_folder, "bin"), ignore_errors=True)
 
         freeze = subprocess.run(freeze_command, capture_output=True, text=True)
 

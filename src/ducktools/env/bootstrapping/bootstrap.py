@@ -85,7 +85,8 @@ def update_libraries():
         # Copy ducktools if outdated
         if is_outdated(default_paths.get_env_version(), bundled_ducktools_ver):
             sys.stderr.write("Installed ducktools is older than bundled, replacing.\n")
-            zf.extract("ducktools-env/", default_paths.manager_folder)
+            extract_names = sorted(n for n in zf.namelist() if n.startswith("ducktools-env/"))
+            zf.extractall(default_paths.manager_folder, members=extract_names)
             zf.extract("ducktools-env.version", default_paths.manager_folder)
 
         # Copy pip if outdated
