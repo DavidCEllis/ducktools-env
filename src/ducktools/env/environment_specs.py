@@ -169,7 +169,9 @@ class EnvironmentSpec:
         :return: lockfile data as a text string or None if there are no dependencies
         """
         if not self.lockdata:
-            # Only make a lockfile if there is anything to lock
+            hash_line = f"# Original Specification Hash: {self.spec_hash}\n"
+
+            # Only go through the process if there is anything to lock
             if deps := "\n".join(self.details.dependencies):
                 python_version = []
                 if python_spec := self.details.requires_python_spec:
@@ -198,9 +200,11 @@ class EnvironmentSpec:
                     text=True,
                 )
 
-                hash_line = f"# Original Specification Hash: {self.spec_hash}\n"
-
                 self.lockdata = hash_line + lock_output.stdout
+
+            else:
+                # There are no dependencies - just write out the spec hash
+                self.lockdata = hash_line
 
         return self.lockdata
 

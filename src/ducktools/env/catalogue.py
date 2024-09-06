@@ -375,7 +375,7 @@ class TempCatalogue(BaseCatalogue):
             raise InvalidEnvironmentSpec("; ".join(spec_errors))
 
         # Delete the oldest cache if there are too many
-        while len(self.environments) > config.cache_maxcount:
+        while len(self.environments) >= config.cache_maxcount:
             del_cache = self.oldest_cache
             log(f"Deleting {del_cache}")
             self.delete_env(del_cache)
