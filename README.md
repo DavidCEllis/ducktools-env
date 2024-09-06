@@ -96,16 +96,12 @@ Bundle a script with a pre-generated lockfile
 
 Future goals for this tool:
 
-* Optionally generate lockfiles with hashes for bundled apps so dependencies can be restricted
-  * Currently, generating these will probably require `UV` and hence a UV supported platform
-  * These should *run* under PIP though, so UV would only be needed for generation
 * Optionally bundle requirements inside the zipapp for use without a connection.
 * Allow bundling of local wheel files unavailable on PyPI
 * Create 'permanent' named environments for stand-alone applications and update them
   * Currently there is a maximum of 2 temporary environments that expire in a day
     (this is due to the pre-release nature of the project, the future defaults will be higher/longer)
-* If UV is available, potentially use that to download an appropriate Python version if
-  one is not already installed.
+* Automatically install required Python if UV is available
 
 ## Dependencies ##
 
@@ -149,6 +145,13 @@ for temporary environments by matching specification.
 `pex` provides an assortment of related tools for developers alongside a `.pex` bundler.
 It doesn't (to my knowledge) have support for inline script metadata and it makes `.pex` files
 instead of `.pyz` files.
+
+### PyInstaller ###
+
+Pyinstaller will generate an executable from your script but will also bundle all of your 
+dependencies in a platform specific way. It also bundles Python itself, which while 
+convenient if python is not installed, is unnecessary if we can treat Python as a shared
+library.
 
 ### Hatch ###
 
