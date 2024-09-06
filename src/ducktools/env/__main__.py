@@ -44,65 +44,39 @@ def main():
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    # 'run' command and args
     run_parser = subparsers.add_parser(
         "run",
         help="Launch the provided python script with inline dependencies",
-        prefix_chars="+/",
     )
 
+    run_parser.add_argument("script_filename", help="Path to the script to run")
+
+    run_lock_group = run_parser.add_mutually_exclusive_group()
+    run_lock_group.add_argument(
+        "--with-lock",
+        help="Include a lockfile to use when running the script",
+        action="store"
+    )
+    run_lock_group.add_argument(
+        "--generate-lock",
+        help="Generate a lockfile based on the dependencies in the script",
+        action="store_true",
+    )
+
+    # 'bundle' command and args
     bundle_parser = subparsers.add_parser(
         "bundle",
         help="Bundle the provided python script with inline dependencies into a python zipapp",
     )
 
-    clear_cache_parser = subparsers.add_parser(
-        "clear_cache",
-        help="clear the temporary environment cache folder",
-    )
-
-    generate_lock_parser = subparsers.add_parser(
-        "generate_lock",
-        help="Generate a lockfile based on inline dependencies in a script"
-    )
-
-    clear_cache_parser.add_argument(
-        "--full",
-        action="store_true",
-        help="clear the full ducktools/env application folder",
-    )
-
-    create_zipapp_parser = subparsers.add_parser(
-        "rebuild_env",
-        help="Recreate the ducktools-env library cache from the installed package"
-    )
-
-    create_zipapp_parser.add_argument(
-        "--zipapp",
-        action="store_true",
-        help="Also create the portable ducktools.pyz zipapp",
-    )
-
-    run_parser.add_argument("script_filename", help="Path to the script to run")
-    
-    run_lock_group = run_parser.add_mutually_exclusive_group()
-    run_lock_group.add_argument(
-        "++with-lock",
-        help="Include a lockfile to use when running the script",
-        action="store"
-    )
-    run_lock_group.add_argument(
-        "++generate-lock",
-        help="Generate a lockfile based on the dependencies in the script",
-        action="store_true",
-    )
-
     bundle_parser.add_argument("script_filename", help="Path to the script to bundle into a zipapp")
     bundle_parser.add_argument(
-        "-o",  "--output",
+        "-o", "--output",
         help="Output to given filename",
         action="store",
     )
-    
+
     bundle_lock_group = bundle_parser.add_mutually_exclusive_group()
     bundle_lock_group.add_argument(
         "--with-lock",
@@ -115,14 +89,44 @@ def main():
         action="store_true"
     )
 
+    # 'generate_lock' command and args
+    generate_lock_parser = subparsers.add_parser(
+        "generate_lock",
+        help="Generate a lockfile based on inline dependencies in a script"
+    )
+
     generate_lock_parser.add_argument(
-        "script_filename", 
+        "script_filename",
         help="Path to the script to use to generate a lockfile"
     )
 
     generate_lock_parser.add_argument(
         "-o", "--output",
         help="Output to given filename",
+    )
+
+    # 'clear_cache' command and args
+    clear_cache_parser = subparsers.add_parser(
+        "clear_cache",
+        help="clear the temporary environment cache folder",
+    )
+
+    clear_cache_parser.add_argument(
+        "--full",
+        action="store_true",
+        help="clear the full ducktools/env application folder",
+    )
+
+    # 'rebuild_env' command and args
+    create_zipapp_parser = subparsers.add_parser(
+        "rebuild_env",
+        help="Recreate the ducktools-env library cache from the installed package"
+    )
+
+    create_zipapp_parser.add_argument(
+        "--zipapp",
+        action="store_true",
+        help="Also create the portable ducktools.pyz zipapp",
     )
 
     args, extras = parser.parse_known_args()
