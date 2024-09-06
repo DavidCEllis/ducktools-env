@@ -138,7 +138,7 @@ class EnvironmentSpec:
     
     @property
     def lock_hash(self) -> str:
-        if self.lockdata is not None and self._lock_hash is None:
+        if self.lockdata and self._lock_hash is None:
             lock_bytes = self.lockdata.encode("utf8")
             self._lock_hash = _laz.hashlib.sha3_256(lock_bytes).hexdigest()
         return self._lock_hash
@@ -201,8 +201,9 @@ class EnvironmentSpec:
                 self.lockdata = lock_output.stdout
 
             else:
-                # There are no dependencies - write empty data
-                self.lockdata = ""
+                # There are no dependencies - Make a note of this
+                # This makes lockdata Truthy
+                self.lockdata = "# No Dependencies Declared"
 
         return self.lockdata
 
