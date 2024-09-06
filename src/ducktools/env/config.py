@@ -51,7 +51,9 @@ class Config(Prefab, kw_only=True):
     applications_expire: bool = False
     applications_lifetime: float = 28.0
 
+    # Use uv and allow uv to auto install Python
     use_uv: bool = True
+    uv_install_python: bool = True  # Not yet functional
 
     @property
     def cache_lifetime_delta(self) -> _timedelta:

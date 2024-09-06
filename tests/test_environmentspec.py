@@ -70,7 +70,10 @@ envs = [
 
 @pytest.mark.parametrize("test_data", envs)
 def test_envspec_pythononly(test_data):
-    env = EnvironmentSpec(test_data.raw_spec)
+    env = EnvironmentSpec(
+        "path/to/script.py",
+        test_data.raw_spec
+    )
 
     assert env.details.requires_python == test_data.requires_python
     assert env.details.dependencies == test_data.dependencies
@@ -78,7 +81,10 @@ def test_envspec_pythononly(test_data):
 
 @pytest.mark.parametrize("test_data", envs)
 def test_generate_lockdata(test_data, subprocess_run_mock):
-    env = EnvironmentSpec(test_data.raw_spec)
+    env = EnvironmentSpec(
+        "path/to/script.py",
+        test_data.raw_spec,
+    )
     fake_uv_path = "fake/uv/path"
 
     lock_data = env.generate_lockdata(fake_uv_path)
@@ -86,9 +92,7 @@ def test_generate_lockdata(test_data, subprocess_run_mock):
     if test_data.dependencies:
         deps = "\n".join(env.details.dependencies)
         # Check the mock output is there
-        lock_lines = lock_data.splitlines()
-        assert lock_lines[0].startswith("# Original Specification Hash: ")
-        assert lock_lines[1] == MOCK_RUN_STDOUT
+        assert lock_data == MOCK_RUN_STDOUT
 
         # Check the mock is called correctly
         subprocess_run_mock.assert_called_once_with(
@@ -112,13 +116,16 @@ def test_generate_lockdata(test_data, subprocess_run_mock):
         # No dependencies, shouldn't call subprocess
         subprocess_run_mock.assert_not_called()
 
-        assert lock_data is None
+        assert lock_data == "# No Dependencies Declared"
 
 
 @pytest.mark.parametrize("test_data", envs)
 def test_requires_python_spec(test_data):
-    # Test that the requires_)python_spec function returns the correct specifierset
-    env = EnvironmentSpec(test_data.raw_spec)
+    # Test that the requires_python_spec function returns the correct specifierset
+    env = EnvironmentSpec(
+        "path/to/script.py",
+        test_data.raw_spec,
+    )
 
     if test_data.requires_python:
         assert env.details.requires_python_spec == SpecifierSet(
@@ -130,7 +137,10 @@ def test_requires_python_spec(test_data):
 
 @pytest.mark.parametrize("test_data", envs)
 def test_dependencies_spec(test_data):
-    env = EnvironmentSpec(test_data.raw_spec)
+    env = EnvironmentSpec(
+        "path/to/script.py",
+        test_data.raw_spec,
+    )
 
     assert env.details.dependencies_spec == [
         Requirement(s) for s in test_data.dependencies
@@ -143,7 +153,10 @@ def test_spec_errors():
         "dependencies = ['invalid_spec!', 'valid_spec>=3.10']\n"
     )
 
-    env = EnvironmentSpec(fake_spec)
+    env = EnvironmentSpec(
+        "path/to/script.py",
+        fake_spec,
+    )
 
     errs = env.details.errors()
 
@@ -155,7 +168,10 @@ def test_spec_errors():
 
 @pytest.mark.parametrize("test_data", envs)
 def test_asdict(test_data):
-    env = EnvironmentSpec(test_data.raw_spec)
+    env = EnvironmentSpec(
+        "path/to/script.py",
+        test_data.raw_spec,
+    )
 
     assert env.as_dict() == {
         "spec_hash": env.spec_hash,
@@ -163,9 +179,7 @@ def test_asdict(test_data):
         "details": {
             "requires_python": test_data.requires_python,
             "dependencies": test_data.dependencies,
-            "project_name": None,
-            "project_owner": None,
-            "project_version": None,
+            "tool_table": {},
         },
         "lock_hash": None,
     }

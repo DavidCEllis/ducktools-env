@@ -25,6 +25,7 @@ class TestBuildRetrieve:
         manager = Manager(project_name=PROJECT_NAME)
 
         spec = EnvironmentSpec(
+            script_path="path/to/script.py",
             raw_spec="requires-python='>=3.8'\ndependencies=[]\n",
         )
 

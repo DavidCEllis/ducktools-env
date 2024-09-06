@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import sys
+import os
 import os.path
 
 from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport, MultiFromImport
@@ -87,10 +88,18 @@ class Manager(Prefab):
     def retrieve_pip(self) -> str:
         return _laz.retrieve_pip(paths=self.paths)
 
-    def retrieve_uv(self) -> str | None:
-        if self.config.use_uv:
-            return _laz.retrieve_uv(paths=self.paths)
-        return None
+    def retrieve_uv(self, required=False) -> str | None:
+        if self.config.use_uv or required:
+            uv_path = _laz.retrieve_uv(paths=self.paths)
+        else:
+            uv_path = None
+
+        if uv_path is None and required:
+            raise UVUnavailableError(
+                "UV is required for this process but is unavailable"
+            )
+
+        return uv_path
 
     @property
     def install_base_command(self) -> list[str]:
@@ -134,8 +143,7 @@ class Manager(Prefab):
         _laz.shutil.rmtree(root_path, ignore_errors=True)
 
     # Script running and bundling commands
-    def get_script_env(self, path: str, *, lockdata: str | None = None):
-        spec = EnvironmentSpec.from_script(path, lockdata=lockdata)
+    def get_script_env(self, spec: EnvironmentSpec):
         env = self.temp_catalogue.find_or_create_env(
             spec=spec,
             config=self.config,
@@ -144,51 +152,78 @@ class Manager(Prefab):
         )
         return env
 
-    def get_lockdata(self, script_file: str):
-        if uv_path := self.retrieve_uv():
-            spec = EnvironmentSpec.from_script(script_file)
-            lock_data = spec.generate_lockdata(uv_path=uv_path)
-            return lock_data
-        else:
-            raise UVUnavailableError("UV is required to generate lockfiles.")
+    def run_bundled_script(
+        self,
+        *,
+        spec: EnvironmentSpec,
+        zipapp_path: str,
+        args: list[str],
+    ):
+        env_vars = {
+            "DUCKTOOLS_ENV_LAUNCH_TYPE": "BUNDLE",
+            "DUCKTOOLS_ENV_LAUNCH_PATH": zipapp_path,
+        }
+        self.run_script(
+            spec=spec,
+            args=args,
+            env_vars=env_vars,
+        )
+
+    def run_direct_script(
+        self,
+        *,
+        spec: EnvironmentSpec,
+        args: list[str],
+    ):
+        env_vars = {
+            "DUCKTOOLS_ENV_LAUNCH_TYPE": "SCRIPT",
+            "DUCKTOOLS_ENV_LAUNCH_PATH": spec.script_path,
+        }
+        self.run_script(
+            spec=spec,
+            args=args,
+            env_vars=env_vars,
+        )
 
     def run_script(
         self,
         *,
-        script_file: str,
+        spec: EnvironmentSpec,
         args: list[str],
-        lockdata: str | None = None,
+        env_vars: dict[str, str] | None = None,
     ) -> None:
         """Execute the provided script file with the given arguments
 
-        :param script_file: path to the script file to run
+        :param spec: EnvironmentSpec
         :param args: arguments to be provided to the script file
-        :param lockdata: string lockfile data
+        :param env_vars: Environment variables to set
         """
-        env = self.get_script_env(script_file, lockdata=lockdata)
+        env = self.get_script_env(spec)
+        env_vars["DUCKTOOLS_ENV_LAUNCH_ENVIRONMENT"] = env.path
         log(f"Using environment at: {env.path}")
-        _laz.subprocess.run([env.python_path, script_file, *args])
+
+        # Update environment variables for access from subprocess
+        os.environ.update(env_vars)
+        _laz.subprocess.run([env.python_path, spec.script_path, *args])
 
     def create_bundle(
         self,
         *,
-        script_file: str,
+        spec: EnvironmentSpec,
         output_file: str | None = None,
-        lockdata: str | None = None,
     ) -> None:
         """Create a zipapp bundle for the provided script file
 
-        :param script_file: path to the script file to bundle
+        :param spec: EnvironmentSpec
         :param output_file: output path to zipapp bundle (script_file.pyz default)
-        :param lockdata: lockfile data if provided
         """
         if not self.is_installed:
             self.install()
 
         _laz.create_bundle(
-            script_file=script_file,
+            script_file=spec.script_path,
             output_file=output_file,
             paths=self.paths,
             installer_command=self.install_base_command,
-            lockdata=lockdata,
+            lockdata=spec.lockdata,
         )

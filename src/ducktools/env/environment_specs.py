@@ -63,10 +63,7 @@ _laz = LazyImporter(
 class EnvironmentDetails(Prefab, kw_only=True):
     requires_python: str | None
     dependencies: list[str]
-
-    project_name: str | None
-    project_owner: str | None
-    project_version: str | None
+    tool_table: dict[str, str]
 
     @property
     def requires_python_spec(self):
@@ -96,17 +93,20 @@ class EnvironmentDetails(Prefab, kw_only=True):
 
 
 class EnvironmentSpec:
+    script_path: str
     raw_spec: str
     lockdata: str | None
 
     def __init__(
-            self,
-            raw_spec: str,
-            *,
-            lockdata: str | None = None,
-            spec_hash: str | None = None,
-            details: EnvironmentDetails | None = None,
+        self,
+        script_path: str,
+        raw_spec: str,
+        *,
+        lockdata: str | None = None,
+        spec_hash: str | None = None,
+        details: EnvironmentDetails | None = None,
     ) -> None:
+        self.script_path = script_path
         self.raw_spec = raw_spec
         self.lockdata = lockdata
 
@@ -117,7 +117,11 @@ class EnvironmentSpec:
     @classmethod
     def from_script(cls, script_path, lockdata: str | None = None):
         raw_spec = scriptmetadata.parse_file(script_path).blocks.get("script", "")
-        return cls(raw_spec=raw_spec, lockdata=lockdata)
+        return cls(
+            script_path=script_path,
+            raw_spec=raw_spec,
+            lockdata=lockdata
+        )
 
     @property
     def details(self) -> EnvironmentDetails:
@@ -134,7 +138,7 @@ class EnvironmentSpec:
     
     @property
     def lock_hash(self) -> str:
-        if self.lockdata:
+        if self.lockdata and self._lock_hash is None:
             lock_bytes = self.lockdata.encode("utf8")
             self._lock_hash = _laz.hashlib.sha3_256(lock_bytes).hexdigest()
         return self._lock_hash
@@ -142,28 +146,20 @@ class EnvironmentSpec:
     def parse_raw(self) -> EnvironmentDetails:
         base_table = _laz.tomllib.loads(self.raw_spec)
 
-        data_table = (
+        requires_python = base_table.get("requires-python", None)
+        dependencies = base_table.get("dependencies", [])
+
+        tool_table = (
             base_table.get("tool", {})
             .get("ducktools", {})
             .get("env", {})
         )
 
-        env_project_table = data_table.get("project", {})
-
-        requires_python = base_table.get("requires-python", None)
-        dependencies = base_table.get("dependencies", [])
-
-        project_name = env_project_table.get("name", None)
-        version = env_project_table.get("version", None)
-        owner = env_project_table.get("owner", None)
-
         # noinspection PyArgumentList
         return EnvironmentDetails(
             requires_python=requires_python,
             dependencies=dependencies,
-            project_name=project_name,
-            project_owner=owner,
-            project_version=version,
+            tool_table=tool_table,
         )
 
     def generate_lockdata(self, uv_path: str) -> str | None:
@@ -173,7 +169,7 @@ class EnvironmentSpec:
         :return: lockfile data as a text string or None if there are no dependencies
         """
         if not self.lockdata:
-            # Only make a lockfile if there is anything to lock
+            # Only go through the process if there is anything to lock
             if deps := "\n".join(self.details.dependencies):
                 python_version = []
                 if python_spec := self.details.requires_python_spec:
@@ -202,9 +198,12 @@ class EnvironmentSpec:
                     text=True,
                 )
 
-                hash_line = f"# Original Specification Hash: {self.spec_hash}\n"
+                self.lockdata = lock_output.stdout
 
-                self.lockdata = hash_line + lock_output.stdout
+            else:
+                # There are no dependencies - Make a note of this
+                # This makes lockdata Truthy
+                self.lockdata = "# No Dependencies Declared"
 
         return self.lockdata
 

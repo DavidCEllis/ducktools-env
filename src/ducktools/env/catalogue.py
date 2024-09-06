@@ -375,13 +375,14 @@ class TempCatalogue(BaseCatalogue):
             raise InvalidEnvironmentSpec("; ".join(spec_errors))
 
         # Delete the oldest cache if there are too many
-        while len(self.environments) > config.cache_maxcount:
+        while len(self.environments) >= config.cache_maxcount:
             del_cache = self.oldest_cache
             log(f"Deleting {del_cache}")
             self.delete_env(del_cache)
 
         new_cachename = f"env_{self.env_counter}"
         self.env_counter += 1
+
         cache_path = os.path.join(self.catalogue_folder, new_cachename)
 
         # Find a valid python executable
@@ -419,6 +420,8 @@ class TempCatalogue(BaseCatalogue):
                     [python_exe, "-m", "venv", "--without-pip", cache_path], check=True
                 )
         except _laz.subprocess.CalledProcessError as e:
+            # Try to delete the folder if it exists
+            _laz.shutil.rmtree(cache_path, ignore_errors=True)
             raise VenvBuildError(f"Failed to build venv: {e}")
 
         # Construct the TemporaryEnv to get the path to python.exe
@@ -494,6 +497,8 @@ class TempCatalogue(BaseCatalogue):
                         check=True,
                     )
                 except _laz.subprocess.CalledProcessError as e:
+                    # Try to delete the folder if it exists
+                    _laz.shutil.rmtree(cache_path, ignore_errors=True)
                     raise VenvBuildError(f"Failed to install dependencies: {e}")
 
             # Get pip-freeze list to use for installed modules

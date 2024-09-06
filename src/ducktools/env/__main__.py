@@ -26,10 +26,12 @@ import argparse
 from ducktools.lazyimporter import LazyImporter, FromImport
 
 from ducktools.env import __version__, PROJECT_NAME
+from ducktools.env.exceptions import UVUnavailableError
 
 _laz = LazyImporter(
     [
         FromImport("ducktools.env.manager", "Manager"),
+        FromImport("ducktools.env.environment_specs", "EnvironmentSpec"),
     ]
 )
 
@@ -135,52 +137,56 @@ def main():
     manager = _laz.Manager(PROJECT_NAME)
 
     if args.command == "run":
+        spec = _laz.EnvironmentSpec.from_script(
+            script_path=args.script_filename
+        )
         if args.generate_lock:
-            lockdata = manager.get_lockdata(
-                script_file=args.script_filename,
-            )
+            uv_path = manager.retrieve_uv(required=True)
+            lockdata = spec.generate_lockdata(uv_path=uv_path)
             lock_path = f"{args.script_filename}.lock"
             with open(lock_path, 'w') as f:
                 f.write(lockdata)
         elif lock_path := args.with_lock:
             with open(lock_path, 'r') as f:
                 lockdata = f.read()
-        else:
-            lockdata = None
+            spec.lockdata = lockdata
 
-        manager.run_script(
-            script_file=args.script_filename,
+        manager.run_direct_script(
+            spec=spec,
             args=extras,
-            lockdata=lockdata,
         )
     elif args.command == "bundle":
         if extras:
             arg_text = ' '.join(extras)
             sys.stderr.write(f"Unrecognised arguments: {arg_text}")
             return
+
+        spec = _laz.EnvironmentSpec.from_script(
+            script_path=args.script_filename
+        )
         
         if args.generate_lock:
-            lockdata = manager.get_lockdata(
-                script_file=args.script_filename,
-            )
+            uv_path = manager.retrieve_uv(required=True)
+            spec.generate_lockdata(uv_path=uv_path)
         elif lock_path := args.with_lock:
             with open(lock_path, 'r') as f:
                 lockdata = f.read()
-        else:
-            lockdata = None
+            spec.lockdata = lockdata
 
         manager.create_bundle(
-            script_file=args.script_filename,
+            spec=spec,
             output_file=args.output,
-            lockdata=lockdata,
         )
     elif args.command == "generate_lock":
-        lock_data = manager.get_lockdata(
-            script_file=args.script_filename,
+        uv_path = manager.retrieve_uv(required=True)
+        spec = _laz.EnvironmentSpec.from_script(
+            script_path=args.script_filename
         )
+        lockdata = spec.generate_lockdata(uv_path=uv_path)
+
         out_path = args.output if args.output else f"{args.script_filename}.lock"
         with open(out_path, "w") as f:
-            f.write(lock_data)
+            f.write(lockdata)
 
     elif args.command == "clear_cache":
         if extras:

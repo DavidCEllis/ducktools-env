@@ -70,7 +70,8 @@ def main(script_name):
             # Extract the script file to the existing folder
             zf.extract(script_info, path=working_dir)
         launch_script(
-            script_file=str(script_dest), 
+            script_file=str(script_dest),
+            zipapp_path=zip_path,
             args=sys.argv[1:],
             lockdata=lockdata,
         )
