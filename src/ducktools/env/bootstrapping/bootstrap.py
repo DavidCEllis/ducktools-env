@@ -99,12 +99,17 @@ def launch_script(script_file, zipapp_path, args, lockdata=None):
     sys.path.insert(0, default_paths.env_folder)
     try:
         from ducktools.env.manager import Manager
+        from ducktools.env.environment_specs import EnvironmentSpec
         manager = Manager(PROJECT_NAME)
+        spec = EnvironmentSpec.from_script(
+            script_path=script_file,
+            lockdata=lockdata,
+        )
+
         manager.run_bundled_script(
-            script_file=script_file,
+            spec=spec,
             zipapp_path=zipapp_path,
             args=args,
-            lockdata=lockdata,
         )
     finally:
         sys.path.pop(0)
