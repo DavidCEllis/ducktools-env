@@ -148,7 +148,7 @@ def main():
         else:
             lockdata = None
 
-        manager.run_script(
+        manager.run_direct_script(
             script_file=args.script_filename,
             args=extras,
             lockdata=lockdata,

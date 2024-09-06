@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import sys
+import os
 import os.path
 
 from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport, MultiFromImport
@@ -152,21 +153,63 @@ class Manager(Prefab):
         else:
             raise UVUnavailableError("UV is required to generate lockfiles.")
 
+    def run_bundled_script(
+        self,
+        *,
+        script_file: str,
+        zipapp_path: str,
+        args: list[str],
+        lockdata: str | None = None,
+    ):
+        env_vars = {
+            "DUCKTOOLS_ENV_LAUNCH_TYPE": "BUNDLE",
+            "DUCKTOOLS_ENV_LAUNCH_PATH": zipapp_path,
+        }
+        self.run_script(
+            script_file=script_file,
+            args=args,
+            lockdata=lockdata,
+            env_vars=env_vars,
+        )
+
+    def run_direct_script(
+        self,
+        *,
+        script_file: str,
+        args: list[str],
+        lockdata: str | None = None,
+    ):
+        env_vars = {
+            "DUCKTOOLS_ENV_LAUNCH_TYPE": "SCRIPT",
+            "DUCKTOOLS_ENV_LAUNCH_PATH": script_file,
+        }
+        self.run_script(
+            script_file=script_file,
+            args=args,
+            lockdata=lockdata,
+            env_vars=env_vars,
+        )
+
     def run_script(
         self,
         *,
         script_file: str,
         args: list[str],
         lockdata: str | None = None,
+        env_vars: dict[str, str] | None = None,
     ) -> None:
         """Execute the provided script file with the given arguments
 
         :param script_file: path to the script file to run
         :param args: arguments to be provided to the script file
         :param lockdata: string lockfile data
+        :param env_vars: Environment variables to set
         """
         env = self.get_script_env(script_file, lockdata=lockdata)
         log(f"Using environment at: {env.path}")
+
+        # Update environment variables for access from subprocess
+        os.environ.update(env_vars)
         _laz.subprocess.run([env.python_path, script_file, *args])
 
     def create_bundle(

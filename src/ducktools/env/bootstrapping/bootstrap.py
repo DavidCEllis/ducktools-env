@@ -95,13 +95,14 @@ def update_libraries():
             zf.extract("pip.pyz.version", default_paths.manager_folder)
 
 
-def launch_script(script_file, args, lockdata=None):
+def launch_script(script_file, zipapp_path, args, lockdata=None):
     sys.path.insert(0, default_paths.env_folder)
     try:
         from ducktools.env.manager import Manager
         manager = Manager(PROJECT_NAME)
-        manager.run_script(
-            script_file=script_file, 
+        manager.run_bundled_script(
+            script_file=script_file,
+            zipapp_path=zipapp_path,
             args=args,
             lockdata=lockdata,
         )
