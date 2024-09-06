@@ -92,9 +92,7 @@ def test_generate_lockdata(test_data, subprocess_run_mock):
     if test_data.dependencies:
         deps = "\n".join(env.details.dependencies)
         # Check the mock output is there
-        lock_lines = lock_data.splitlines()
-        assert lock_lines[0].startswith("# Original Specification Hash: ")
-        assert lock_lines[1] == MOCK_RUN_STDOUT
+        assert lock_data == MOCK_RUN_STDOUT
 
         # Check the mock is called correctly
         subprocess_run_mock.assert_called_once_with(
@@ -118,7 +116,7 @@ def test_generate_lockdata(test_data, subprocess_run_mock):
         # No dependencies, shouldn't call subprocess
         subprocess_run_mock.assert_not_called()
 
-        assert lock_data is None
+        assert lock_data == "# No Dependencies Declared"
 
 
 @pytest.mark.parametrize("test_data", envs)
