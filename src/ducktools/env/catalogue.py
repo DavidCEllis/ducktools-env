@@ -249,7 +249,7 @@ class TempCatalogue(BaseCatalogue):
         This means that either the exact text was used to generate the environment
         or that it has previously matched in sufficient mode.
 
-        :param spec: InlineSpec of requirements
+        :param spec: EnvironmentSpec of requirements
         :return: CacheFolder details of python env that satisfies it or None
         """
         for cache in self.environments.values():
@@ -273,8 +273,8 @@ class TempCatalogue(BaseCatalogue):
 
         If found, add the text of the spec to raw_specs for that module and return it.
 
-        :param spec: InlineSpec requirements for a python environment
-        :return: CacheFolder python environment details or None
+        :param spec: EnvironmentSpec requirements for a python environment
+        :return: TemporaryEnv environment or None
         """
 
         for cache in self.environments.values():
@@ -331,8 +331,7 @@ class TempCatalogue(BaseCatalogue):
         Find a cached TemporaryEnv that matches the hash of the lockfile
 
         :param spec: Environment specification (needed for lock)
-        :param lockdata: _description_
-        :return: _description_
+        :return: TemporaryEnv environment or None
         """
         # Get lock data hash
         for cache in self.environments.values():
@@ -344,14 +343,13 @@ class TempCatalogue(BaseCatalogue):
                 return cache
         else:
             return None
-                
 
     def find_env(self, *, spec: EnvironmentSpec) -> TemporaryEnv | None:
         """
         Try to find an existing cached environment that satisfies the spec
 
-        :param spec:
-        :return:
+        :param spec: Environment specification
+        :return: TemporaryEnv environment or None
         """
         if spec.lock_hash:
             env = self.find_locked_env(spec=spec)
