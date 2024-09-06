@@ -144,7 +144,7 @@ class Manager(Prefab):
         )
         return env
 
-    def get_lockdata(self, script_file):
+    def get_lockdata(self, script_file: str):
         if uv_path := self.retrieve_uv():
             spec = EnvironmentSpec.from_script(script_file)
             lock_data = spec.generate_lockdata(uv_path=uv_path)
@@ -163,7 +163,7 @@ class Manager(Prefab):
 
         :param script_file: path to the script file to run
         :param args: arguments to be provided to the script file
-        :param lockfile: string lockfile data
+        :param lockdata: string lockfile data
         """
         env = self.get_script_env(script_file, lockdata=lockdata)
         log(f"Using environment at: {env.path}")
@@ -180,7 +180,7 @@ class Manager(Prefab):
 
         :param script_file: path to the script file to bundle
         :param output_file: output path to zipapp bundle (script_file.pyz default)
-        :param lockfile: lockfile data if provided
+        :param lockdata: lockfile data if provided
         """
         if not self.is_installed:
             self.install()
