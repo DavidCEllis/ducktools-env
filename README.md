@@ -64,8 +64,9 @@ Clear the temporary environment cache:
 Clear the full `ducktools/env` install directory:
 `python ducktools.pyz clear_cache --full`
 
-Re-install the cached ducktools-env
-`python ducktools.pyz rebuild_env`
+Build the env folder from the installed package
+**This does not currently work from the zipapp**
+`python -m ducktools.env rebuild_env`
 
 ## Locking environments ##
 
