@@ -181,9 +181,7 @@ def test_asdict(test_data):
         "details": {
             "requires_python": test_data.requires_python,
             "dependencies": test_data.dependencies,
-            "project_name": None,
-            "project_owner": None,
-            "project_version": None,
+            "tool_table": {},
         },
         "lock_hash": None,
     }
