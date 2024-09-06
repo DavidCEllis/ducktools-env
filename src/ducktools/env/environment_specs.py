@@ -100,12 +100,12 @@ class EnvironmentSpec:
     lockdata: str | None
 
     def __init__(
-            self,
-            raw_spec: str,
-            *,
-            lockdata: str | None = None,
-            spec_hash: str | None = None,
-            details: EnvironmentDetails | None = None,
+        self,
+        raw_spec: str,
+        *,
+        lockdata: str | None = None,
+        spec_hash: str | None = None,
+        details: EnvironmentDetails | None = None,
     ) -> None:
         self.raw_spec = raw_spec
         self.lockdata = lockdata
