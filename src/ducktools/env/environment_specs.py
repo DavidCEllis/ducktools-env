@@ -138,7 +138,7 @@ class EnvironmentSpec:
     
     @property
     def lock_hash(self) -> str:
-        if self.lockdata:
+        if self.lockdata is not None and self._lock_hash is None:
             lock_bytes = self.lockdata.encode("utf8")
             self._lock_hash = _laz.hashlib.sha3_256(lock_bytes).hexdigest()
         return self._lock_hash
@@ -169,8 +169,6 @@ class EnvironmentSpec:
         :return: lockfile data as a text string or None if there are no dependencies
         """
         if not self.lockdata:
-            hash_line = f"# Original Specification Hash: {self.spec_hash}\n"
-
             # Only go through the process if there is anything to lock
             if deps := "\n".join(self.details.dependencies):
                 python_version = []
@@ -200,11 +198,11 @@ class EnvironmentSpec:
                     text=True,
                 )
 
-                self.lockdata = hash_line + lock_output.stdout
+                self.lockdata = lock_output.stdout
 
             else:
-                # There are no dependencies - just write out the spec hash
-                self.lockdata = hash_line
+                # There are no dependencies - write empty data
+                self.lockdata = ""
 
         return self.lockdata
 
