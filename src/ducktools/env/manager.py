@@ -112,17 +112,23 @@ class Manager(Prefab):
             return [sys.executable, pip_path, "--disable-pip-version-check"]
 
     def build_env_folder(self, clear_old_builds=True) -> None:
+        # build_env_folder will use PIP as uv will fail
+        # if there is no environment
+        # build-env-folder installs into a target directory
+        # instead of using a venv
+        base_command = [sys.executable, self.retrieve_pip(), "--disable-pip-version-check"]
         _laz.build_env_folder(
             paths=self.paths,
-            install_base_command=self.install_base_command,
+            install_base_command=base_command,
             clear_old_builds=clear_old_builds,
         )
 
     def build_zipapp(self, clear_old_builds=True) -> None:
         """Build the ducktools.pyz zipapp"""
+        base_command = [sys.executable, self.retrieve_pip(), "--disable-pip-version-check"]
         _laz.build_zipapp(
             paths=self.paths,
-            install_base_command=self.install_base_command,
+            install_base_command=base_command,
             clear_old_builds=clear_old_builds,
         )
 
