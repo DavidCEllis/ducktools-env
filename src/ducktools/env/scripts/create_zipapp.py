@@ -36,7 +36,7 @@ import zipapp
 from pathlib import Path
 
 import importlib_resources
-from importlib.metadata import requires
+import importlib.metadata as metadata
 from packaging.requirements import Requirement
 
 import ducktools.env
@@ -52,16 +52,16 @@ def build_env_folder(
 ) -> None:
     # Get the full requirements for ducktools-env
     deps = []
-    reqs = requires("ducktools-env")  # Use hyphen name to be recognised by older python
+    reqs = metadata.requires("ducktools-env")  # Use hyphen name to be recognised by older python
     for req in reqs:
         req = Requirement(req)
         if not (req.marker and not req.marker.evaluate({"python_version": MINIMUM_PYTHON_STR})):
             deps.append(f"{req.name}{req.specifier}")
 
     with paths.build_folder() as build_folder:
+        build_folder_path = Path(build_folder)
 
         if clear_old_builds:
-            build_folder_path = Path(build_folder)
             for p in build_folder_path.parent.glob("*"):
                 if p != build_folder_path:
                     shutil.rmtree(p)
@@ -91,11 +91,11 @@ def build_env_folder(
         ]
 
         # don't include executable scripts
-        shutil.rmtree(os.path.join(build_folder, "bin"), ignore_errors=True)
+        shutil.rmtree(build_folder_path / "bin", ignore_errors=True)
 
         freeze = subprocess.run(freeze_command, capture_output=True, text=True)
 
-        (Path(build_folder) / "requirements.txt").write_text(freeze.stdout)
+        (build_folder_path / "requirements.txt").write_text(freeze.stdout)
 
         # Get the paths for modules that need to be copied
         resources = importlib_resources.files("ducktools.env")
@@ -105,13 +105,27 @@ def build_env_folder(
             ignore_compiled = shutil.ignore_patterns("__pycache__")
             shutil.copytree(
                 env_folder,
-                os.path.join(build_folder, "ducktools", "env"),
+                build_folder_path / "ducktools" / "env",
                 ignore=ignore_compiled,
             )
 
             main_app_path = env_folder / "__main__.py"
             print("Copying __main__.py into lib")
-            shutil.copy(main_app_path, build_folder)
+            shutil.copy(main_app_path, build_folder_path)
+
+        ver = metadata.version("ducktools-env")
+        dist_info_foldername = f"ducktools_env-{ver}.dist-info"
+        dist_info_dest = build_folder_path / dist_info_foldername
+        dist_info_dest.mkdir()
+
+        print(f"Copying {dist_info_foldername} into build folder")
+
+        for f in metadata.files("ducktools-env"):
+            # Skip direct_url file as it will point to local path
+            if f.name == "direct_url.json":
+                continue
+            if str(f.parent) == dist_info_foldername:
+                shutil.copy(f.locate(), dist_info_dest)
 
         print("Creating ducktools-env lib folder")
         shutil.rmtree(paths.env_folder, ignore_errors=True)
@@ -135,8 +149,9 @@ def build_zipapp(
 
     with paths.build_folder() as build_folder:
 
+        build_folder_path = Path(build_folder)
+
         if clear_old_builds:
-            build_folder_path = Path(build_folder)
             for p in build_folder_path.parent.glob("*"):
                 if p != build_folder_path:
                     shutil.rmtree(p)
