@@ -93,6 +93,12 @@ Bundle a script and generate a lockfile (that will be bundled)
 Bundle a script with a pre-generated lockfile
 `python ducktools.pyz bundle --with-lock my_script.py.lock my_script.py`
 
+
+## Including data files with script bundles ##
+
+
+
+
 ## Goals ##
 
 Future goals for this tool:

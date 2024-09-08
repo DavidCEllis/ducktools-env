@@ -30,6 +30,7 @@ from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport, Multi
 from ducktools.classbuilder.prefab import Prefab, attribute
 
 from . import (
+    FOLDER_ENVVAR,
     PROJECT_NAME,
     LAUNCH_ENVIRONMENT_ENVVAR,
     LAUNCH_PATH_ENVVAR,
@@ -210,6 +211,7 @@ class Manager(Prefab):
         :param env_vars: Environment variables to set
         """
         env = self.get_script_env(spec)
+        env_vars[FOLDER_ENVVAR] = self.paths.project_folder
         env_vars[LAUNCH_ENVIRONMENT_ENVVAR] = env.path
         log(f"Using environment at: {env.path}")
 
