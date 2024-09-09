@@ -58,16 +58,6 @@ class BundledDataError(Exception):
     pass
 
 
-def _get_bundle_data(base_data_path):
-    ...
-
-
-def _get_script_data(base_data_path):
-    data_path = os.environ.get(DATA_BUNDLE_ENVVAR)
-    if not data_path:
-        raise BundledDataError("No data folder set")
-
-
 class ScriptData(Prefab):
     launch_type: str
     launch_path: str
