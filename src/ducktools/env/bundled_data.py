@@ -29,12 +29,28 @@ import os
 import os.path
 
 from . import FOLDER_ENVVAR, DATA_BUNDLE_ENVVAR, LAUNCH_PATH_ENVVAR, LAUNCH_TYPE_ENVVAR
-from ducktools.lazyimporter import LazyImporter, FromImport
-from ducktools.classbuilder.prefab import Prefab
+from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport
+from ducktools.classbuilder.prefab import Prefab, attribute
 
 _laz = LazyImporter(
-    [FromImport("tempfile", "TemporaryDirectory")]
+    [
+        FromImport("tempfile", "TemporaryDirectory"),
+        ModuleImport("shutil"),
+        ModuleImport("zipfile"),
+    ],
 )
+
+# noinspection PyUnreachableCode
+if False:
+    from tempfile import TemporaryDirectory
+    import shutil
+    import zipfile
+
+    _laz.TemporaryDirectory = TemporaryDirectory
+    _laz.shutil = shutil
+    _laz.zipfile = zipfile
+
+    del TemporaryDirectory, shutil, zipfile
 
 
 class BundledDataError(Exception):
@@ -57,11 +73,39 @@ class ScriptData(Prefab):
     data_dest_base: str
     data_bundle: str
 
+    _temporary_directory: _laz.TemporaryDirectory | None = attribute(default=None, private=True)
+
+    def _makedir_script(self, tempdir: _laz.TemporaryDirectory) -> None:
+        # data-bundle is just a path
+        _laz.shutil.copytree(self.data_bundle, tempdir.name)
+
+    def _makedir_bundle(self, tempdir: _laz.TemporaryDirectory) -> None:
+        # data_bundle is a path within a zipfile
+        with zipfile.ZipFile(self.launch_path) as zf:
+            extract_names = sorted(
+                n for n in zf.namelist() if n.startswith(self.data_bundle)
+            )
+            zf.extractall(tempdir.name, members=extract_names)
+
     def __enter__(self):
-        ...
+        tempdir = _laz.TemporaryDirectory(dir=self.data_dest_base)
+        try:
+            if self.launch_type == "SCRIPT":
+                self._makedir_script(tempdir)
+            else:
+                self._makedir_bundle(tempdir)
+        except Exception:
+            # Make sure the temporary directory is cleaned up if there is an error
+            # This should happen by nature of falling out of scope, but be explicit
+            tempdir.cleanup()
+            raise
+
+        self._temporary_directory = tempdir
+        return self._temporary_directory.name
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        ...
+        if self._temporary_directory:
+            self._temporary_directory.cleanup()
 
 
 def get_data_folder():
