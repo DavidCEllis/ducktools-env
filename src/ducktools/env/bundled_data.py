@@ -40,6 +40,7 @@ _laz = LazyImporter(
     ],
 )
 
+# Autocomplete helpers - type checkers may complain
 # noinspection PyUnreachableCode
 if False:
     from tempfile import TemporaryDirectory
