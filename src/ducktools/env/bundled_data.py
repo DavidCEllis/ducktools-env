@@ -106,6 +106,9 @@ def get_data_folder():
     launch_type = os.environ.get(LAUNCH_TYPE_ENVVAR)
     data_bundle = os.environ.get(DATA_BUNDLE_ENVVAR)
 
+    if data_bundle is None:
+        raise BundledDataError(f"No bundled data included with script {launch_path!r}")
+
     env_pairs = [
         (FOLDER_ENVVAR, ducktools_base_folder),
         (LAUNCH_PATH_ENVVAR, launch_path),
@@ -118,9 +121,6 @@ def get_data_folder():
                 f"Environment variable {envkey!r} not found, "
                 f"get_data_folder will only work with a bundled executable or script run"
             )
-
-    if data_bundle is None:
-        raise BundledDataError(f"No bundled data included with script {launch_path!r}")
 
     data_dest_base = os.path.join(ducktools_base_folder, "tempdata")
 
