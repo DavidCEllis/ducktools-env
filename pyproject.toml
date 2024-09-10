@@ -12,21 +12,17 @@ authors = [
   { name="David C Ellis" },
 ]
 readme="README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "ducktools-classbuilder>=0.7.1",
     "ducktools-lazyimporter>=0.5.1",
     "ducktools-scriptmetadata",
-    "ducktools-pythonfinder>=0.5.0",
+    "ducktools-pythonfinder>=0.5.3",
     "tomli; python_version < '3.11'",
     "packaging>=23.2",
-    "importlib-resources>=6.0",  # Older python lacks nice version of this.
-    "zipp>=3.16",  # Bug in 3.8/3.9 zipfile.
 ]
 classifiers = [
     "Development Status :: 1 - Planning",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
