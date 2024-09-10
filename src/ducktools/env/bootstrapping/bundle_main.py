@@ -32,7 +32,7 @@ if message:
     print(message)
     if sys.platform in {"win32", "darwin"}:
         print("You can get the latest Python from: https://www.python.org/downloads/")
-    input("Press any key to close")
+    input("Press return to close")
     sys.exit()
 del message
 
