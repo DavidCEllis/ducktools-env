@@ -25,6 +25,7 @@ from __future__ import annotations
 """
 Handle extracting bundled data from archives or moving it for use as scripts
 """
+import sys
 import os
 import os.path
 
@@ -67,8 +68,15 @@ class ScriptData(Prefab):
     _temporary_directory: _laz.TemporaryDirectory | None = attribute(default=None, private=True)
 
     def _makedir_script(self, tempdir: _laz.TemporaryDirectory) -> None:
-        # data-bundle is just a path
-        _laz.shutil.copytree(self.data_bundle, tempdir.name)
+        split_char = ";" if sys.platform == "win32" else ":"
+        for p in self.data_bundle.split(split_char):
+            if os.path.isfile(p):
+                _laz.shutil.copy(p, tempdir.name)
+            elif os.path.isdir(p):
+                dest = os.path.join(tempdir.name, os.path.basename(p))
+                _laz.shutil.copytree(p, dest)
+            else:
+                raise FileNotFoundError(f"Could not find data file {p!r}")
 
     def _makedir_bundle(self, tempdir: _laz.TemporaryDirectory) -> None:
         # data_bundle is a path within a zipfile
