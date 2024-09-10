@@ -29,7 +29,13 @@ import sys
 import os
 import os.path
 
-from . import FOLDER_ENVVAR, DATA_BUNDLE_ENVVAR, LAUNCH_PATH_ENVVAR, LAUNCH_TYPE_ENVVAR
+from . import (
+    FOLDER_ENVVAR,
+    DATA_BUNDLE_ENVVAR,
+    DATA_BUNDLE_FOLDER,
+    LAUNCH_PATH_ENVVAR,
+    LAUNCH_TYPE_ENVVAR
+)
 from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport
 from ducktools.classbuilder.prefab import Prefab, attribute
 
@@ -73,26 +79,30 @@ class ScriptData(Prefab):
             if os.path.isfile(p):
                 _laz.shutil.copy(p, tempdir.name)
             elif os.path.isdir(p):
-                dest = os.path.join(tempdir.name, os.path.basename(p))
+                dest = os.path.join(tempdir.name, os.path.basename(os.path.normpath(p)))
                 _laz.shutil.copytree(p, dest)
             else:
                 raise FileNotFoundError(f"Could not find data file {p!r}")
 
     def _makedir_bundle(self, tempdir: _laz.TemporaryDirectory) -> None:
         # data_bundle is a path within a zipfile
-        with zipfile.ZipFile(self.launch_path) as zf:
+        with _laz.zipfile.ZipFile(self.launch_path) as zf:
             extract_names = sorted(
-                n for n in zf.namelist() if n.startswith(self.data_bundle)
+                n for n in zf.namelist()
+                if n.startswith(self.data_bundle)
             )
             zf.extractall(tempdir.name, members=extract_names)
 
     def __enter__(self):
+        os.makedirs(self.data_dest_base, exist_ok=True)
         tempdir = _laz.TemporaryDirectory(dir=self.data_dest_base)
         try:
             if self.launch_type == "SCRIPT":
                 self._makedir_script(tempdir)
+                temp_path = tempdir.name
             else:
                 self._makedir_bundle(tempdir)
+                temp_path = os.path.join(tempdir.name, DATA_BUNDLE_FOLDER)
         except Exception:
             # Make sure the temporary directory is cleaned up if there is an error
             # This should happen by nature of falling out of scope, but be explicit
@@ -100,7 +110,7 @@ class ScriptData(Prefab):
             raise
 
         self._temporary_directory = tempdir
-        return self._temporary_directory.name
+        return temp_path
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._temporary_directory:

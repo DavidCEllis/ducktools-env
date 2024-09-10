@@ -32,6 +32,8 @@ from ducktools.classbuilder.prefab import Prefab, attribute
 from . import (
     FOLDER_ENVVAR,
     PROJECT_NAME,
+    DATA_BUNDLE_ENVVAR,
+    DATA_BUNDLE_FOLDER,
     LAUNCH_ENVIRONMENT_ENVVAR,
     LAUNCH_PATH_ENVVAR,
     LAUNCH_TYPE_ENVVAR,
@@ -175,6 +177,12 @@ class Manager(Prefab):
             LAUNCH_TYPE_ENVVAR: "BUNDLE",
             LAUNCH_PATH_ENVVAR: zipapp_path,
         }
+
+        # If the spec indicates there should be data
+        # include the bundle data folder in the archive
+        if spec.details.data_sources:
+            env_vars[DATA_BUNDLE_ENVVAR] = f"{DATA_BUNDLE_FOLDER}/"
+
         self.run_script(
             spec=spec,
             args=args,
@@ -191,6 +199,12 @@ class Manager(Prefab):
             LAUNCH_TYPE_ENVVAR: "SCRIPT",
             LAUNCH_PATH_ENVVAR: spec.script_path,
         }
+
+        # Add sources to env variable
+        if sources := spec.details.data_sources:
+            split_char = ";" if sys.platform == "win32" else ":"
+            env_vars[DATA_BUNDLE_ENVVAR] = split_char.join(sources)
+
         self.run_script(
             spec=spec,
             args=args,

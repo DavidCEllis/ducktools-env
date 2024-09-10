@@ -28,11 +28,15 @@ import sys
 
 from _check_outdated_python import python_version_outdated  # type: ignore
 
-if message := python_version_outdated():
+message = python_version_outdated()
+if message:
     print("The Python version used to unpack this bundle is outdated.")
     print(message)
+    if sys.platform in {"win32", "darwin"}:
+        print("You can get the latest Python from: https://www.python.org/downloads/")
     input("Press any key to close")
     sys.exit()
+del message
 
 from _bootstrap import update_libraries, launch_ducktools  # noqa
 

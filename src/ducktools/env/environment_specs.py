@@ -63,7 +63,7 @@ _laz = LazyImporter(
 class EnvironmentDetails(Prefab, kw_only=True):
     requires_python: str | None
     dependencies: list[str]
-    tool_table: dict[str, str]
+    tool_table: dict
 
     @property
     def requires_python_spec(self):
@@ -72,6 +72,14 @@ class EnvironmentDetails(Prefab, kw_only=True):
     @property
     def dependencies_spec(self):
         return [_laz.Requirement(dep) for dep in self.dependencies]
+
+    @property
+    def bundle_table(self) -> dict:
+        return self.tool_table.get("bundle", {})
+
+    @property
+    def data_sources(self) -> list[str] | None:
+        return self.bundle_table.get("data")
 
     def errors(self) -> list[str]:
         error_details = []

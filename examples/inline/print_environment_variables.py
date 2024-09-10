@@ -23,14 +23,38 @@
 
 # /// script
 # requires-python = ">=3.11"
+#
+# [tool.ducktools.env]
+# bundle.data = ["examples/inline/"]
 # ///
-
+import sys
 import os
+import os.path
 
+from pathlib import Path
+
+DUCKTOOLS_FOLDER = os.environ.get("DUCKTOOLS_ENV_FOLDER")
 LAUNCH_TYPE = os.environ.get("DUCKTOOLS_ENV_LAUNCH_TYPE")
 LAUNCH_PATH = os.environ.get("DUCKTOOLS_ENV_LAUNCH_PATH")
 LAUNCH_ENVIRONMENT = os.environ.get("DUCKTOOLS_ENV_LAUNCH_ENVIRONMENT")
+DATA_FILES = os.environ.get("DUCKTOOLS_ENV_BUNDLED_DATA")
 
+
+# Hack to get ducktools in PATH so it is importable in the venv
+extra_path = os.path.join(DUCKTOOLS_FOLDER, "lib", "ducktools-env")
+sys.path.insert(0, extra_path)
+
+print(f"{DUCKTOOLS_FOLDER=}")
 print(f"{LAUNCH_TYPE=}")
 print(f"{LAUNCH_PATH=}")
 print(f"{LAUNCH_ENVIRONMENT=}")
+print(f"{DATA_FILES=}")
+
+from ducktools.env.bundled_data import get_data_folder
+
+with get_data_folder() as fld:
+    print(fld)
+    pth = Path(fld)
+    for f in pth.rglob("*"):
+        print(f)
+
