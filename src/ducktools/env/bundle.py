@@ -148,7 +148,7 @@ def create_bundle(
             data_folder.mkdir()
 
             for p in sources:
-                pth = Path(p)
+                pth = Path(script_file).parent / p
                 if pth.is_file():
                     shutil.copy(pth, data_folder)
                 elif pth.is_dir():

@@ -96,8 +96,45 @@ Bundle a script with a pre-generated lockfile
 
 ## Including data files with script bundles ##
 
+If you wish to include data files with your script you can do so using a tool
+table in the toml block.
 
+```python
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["cowsay"]
+# 
+# [tool.ducktools.env]
+# bundle.data = ["path/to/folder", "path/to/file.txt"]
+# ///
+```
 
+If this is made into a bundle these files and folders will be collected into a bundle_data folder
+included in the zipapp.
+
+This data can be retrieved on demand using `get_data_folder` from `ducktools.env.bundled_data` which
+will create a temporary folder containing a copy of the data files and return the path to the folder.
+
+Note: Paths are relative to the script folder. If you include a folder, the folder itself will be 
+included, not just its contents. This means that if you include `./` you will get the name of the 
+folder the script is in (along with all of its contents).
+
+```python
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["ducktools-env>=0.1.0"]
+# 
+# [tool.ducktools.env]
+# bundle.data = ["./"]
+# ///
+from pathlib import Path
+
+from ducktools.env.bundled_data import get_data_folder 
+
+with get_data_folder() as fld_name:
+    for f in Path(fld_name).rglob("*"):
+        print(f)
+```
 
 ## Goals ##
 

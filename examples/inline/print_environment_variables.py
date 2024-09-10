@@ -25,7 +25,7 @@
 # requires-python = ">=3.11"
 #
 # [tool.ducktools.env]
-# bundle.data = ["examples/inline/"]
+# bundle.data = ["./"]
 # ///
 import sys
 import os
@@ -53,8 +53,5 @@ print(f"{DATA_FILES=}")
 from ducktools.env.bundled_data import get_data_folder
 
 with get_data_folder() as fld:
-    print(fld)
-    pth = Path(fld)
-    for f in pth.rglob("*"):
+    for f in Path(fld).rglob("*"):
         print(f)
-

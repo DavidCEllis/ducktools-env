@@ -76,11 +76,17 @@ class ScriptData(Prefab):
     def _makedir_script(self, tempdir: _laz.TemporaryDirectory) -> None:
         split_char = ";" if sys.platform == "win32" else ":"
         for p in self.data_bundle.split(split_char):
-            if os.path.isfile(p):
-                _laz.shutil.copy(p, tempdir.name)
-            elif os.path.isdir(p):
-                dest = os.path.join(tempdir.name, os.path.basename(os.path.normpath(p)))
-                _laz.shutil.copytree(p, dest)
+            base_path = os.path.dirname(self.launch_path)
+            resolved_path = os.path.join(base_path, p)
+
+            if os.path.isfile(resolved_path):
+                _laz.shutil.copy(resolved_path, tempdir.name)
+            elif os.path.isdir(resolved_path):
+                dest = os.path.join(
+                    tempdir.name,
+                    os.path.basename(os.path.normpath(resolved_path))
+                )
+                _laz.shutil.copytree(resolved_path, dest)
             else:
                 raise FileNotFoundError(f"Could not find data file {p!r}")
 
