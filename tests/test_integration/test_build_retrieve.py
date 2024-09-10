@@ -32,7 +32,7 @@ class TestBuildRetrieve:
         # Test the env does not exist yet
         assert testing_catalogue.find_env(spec=spec) is None
 
-        real_env = testing_catalogue.find_or_create_env(
+        real_env = testing_catalogue.create_env(
             spec=spec,
             config=test_config,
             uv_path=manager.retrieve_uv(),

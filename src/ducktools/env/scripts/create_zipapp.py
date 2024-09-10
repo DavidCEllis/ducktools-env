@@ -35,7 +35,7 @@ import zipapp
 
 from pathlib import Path
 
-import importlib_resources
+import importlib.resources
 import importlib.metadata as metadata
 from packaging.requirements import Requirement
 
@@ -98,9 +98,9 @@ def build_env_folder(
         (build_folder_path / "requirements.txt").write_text(freeze.stdout)
 
         # Get the paths for modules that need to be copied
-        resources = importlib_resources.files("ducktools.env")
+        resources = importlib.resources.files("ducktools.env")
 
-        with importlib_resources.as_file(resources) as env_folder:
+        with importlib.resources.as_file(resources) as env_folder:
             print("Copying application into archive")
             ignore_compiled = shutil.ignore_patterns("__pycache__")
             shutil.copytree(
@@ -164,18 +164,22 @@ def build_zipapp(
         shutil.copytree(paths.manager_folder, build_folder, ignore=uv_pattern, dirs_exist_ok=True)
 
         # Get the paths for modules that need to be copied
-        resources = importlib_resources.files("ducktools.env")
+        resources = importlib.resources.files("ducktools.env")
 
-        with importlib_resources.as_file(resources) as env_folder:
+        with importlib.resources.as_file(resources) as env_folder:
             platform_paths_path = env_folder / "platform_paths.py"
             bootstrap_path = env_folder / "bootstrapping" / "bootstrap.py"
             main_zipapp_path = env_folder / "bootstrapping" / "zipapp_main.py"
+            check_outdated_path = env_folder / "check_outdated_python.py"
 
             print("Copying platform paths")
             shutil.copy(platform_paths_path, os.path.join(build_folder, "_platform_paths.py"))
 
             print("Copying bootstrap script")
             shutil.copy(bootstrap_path, os.path.join(build_folder, "_bootstrap.py"))
+
+            print("copying outdated python check script")
+            shutil.copy(check_outdated_path, os.path.join(build_folder, "_check_outdated_python.py"))
 
             print("Copying __main__ script")
             shutil.copy(main_zipapp_path, os.path.join(build_folder, "__main__.py"))

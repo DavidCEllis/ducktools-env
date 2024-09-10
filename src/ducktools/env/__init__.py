@@ -21,24 +21,26 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sys
-
 from ._version import __version__, __version_tuple__
+from .check_outdated_python import python_version_outdated, MINIMUM_PYTHON_STR, MINIMUM_PYTHON
+
+# Check the python version is up to date
+if err_message := python_version_outdated():
+    raise ImportError(err_message) from None
+
 
 PROJECT_NAME = "ducktools"
-MINIMUM_PYTHON = (3, 8)
-MINIMUM_PYTHON_STR = ".".join(str(v) for v in MINIMUM_PYTHON)
+
+FOLDER_ENVVAR = "DUCKTOOLS_ENV_FOLDER"
+LAUNCH_TYPE_ENVVAR = "DUCKTOOLS_ENV_LAUNCH_TYPE"
+LAUNCH_PATH_ENVVAR = "DUCKTOOLS_ENV_LAUNCH_PATH"
+LAUNCH_ENVIRONMENT_ENVVAR = "DUCKTOOLS_ENV_LAUNCH_ENVIRONMENT"
+DATA_BUNDLE_ENVVAR = "DUCKTOOLS_ENV_BUNDLED_DATA"
+
+DATA_BUNDLE_FOLDER = "bundledata"
+
 
 bootstrap_requires = [
     "ducktools-lazyimporter>=0.5.1",
     "packaging>=23.2",
-    "zipp>=3.16",
 ]
-
-if sys.version_info < MINIMUM_PYTHON:
-    v = sys.version_info
-    major, minor = MINIMUM_PYTHON
-    raise ImportError(
-        f"Python {v.major}.{v.minor} is not supported by ducktools-env. "
-        f"Python {major}.{minor} is the minimum required version."
-    )

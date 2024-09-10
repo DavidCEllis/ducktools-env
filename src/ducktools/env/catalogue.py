@@ -534,23 +534,3 @@ class TempCatalogue(BaseCatalogue):
         self.save()
 
         return new_env
-
-    def find_or_create_env(
-        self,
-        *,
-        spec: EnvironmentSpec,
-        config: Config,
-        uv_path: str | None,
-        installer_command: list[str],
-    ) -> TemporaryEnv:
-        env = self.find_env(spec=spec)
-
-        if not env:
-            log("Existing environment not found, creating new environment.")
-            env = self.create_env(
-                spec=spec,
-                config=config,
-                uv_path=uv_path,
-                installer_command=installer_command,
-            )
-        return env

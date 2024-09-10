@@ -21,12 +21,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import sys
+import os
 
 import argparse
 from ducktools.lazyimporter import LazyImporter, FromImport
 
 from ducktools.env import __version__, PROJECT_NAME
-from ducktools.env.exceptions import UVUnavailableError
 
 _laz = LazyImporter(
     [
@@ -36,8 +36,33 @@ _laz = LazyImporter(
 )
 
 
+class FixedArgumentParser(argparse.ArgumentParser):
+    """
+    The builtin argument parser uses shutil to figure out the terminal width
+    to display help info. This one replaces the function that calls help info
+    and plugs in a value for width.
+
+    This prevents the unnecessary import.
+    """
+    def _get_formatter(self):
+        # Calculate width
+        try:
+            columns = int(os.environ['COLUMNS'])
+        except (KeyError, ValueError):
+            try:
+                size = os.get_terminal_size()
+            except (AttributeError, ValueError, OSError):
+                # get_terminal_size unsupported
+                columns = 80
+            else:
+                columns = size.columns
+
+        # noinspection PyArgumentList
+        return self.formatter_class(prog=self.prog, width=columns-2)
+
+
 def main():
-    parser = argparse.ArgumentParser(
+    parser = FixedArgumentParser(
         prog="ducktools-env",
         description="Script runner and bundler for scripts with inline dependencies",
     )

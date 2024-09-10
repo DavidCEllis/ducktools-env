@@ -23,14 +23,25 @@
 
 # This becomes the bundler bootstrap python script
 import sys
+
+from _check_outdated_python import python_version_outdated  # type: ignore
+
+message = python_version_outdated()
+if message:
+    print("The Python version used to unpack this bundle is outdated.")
+    print(message)
+    if sys.platform in {"win32", "darwin"}:
+        print("You can get the latest Python from: https://www.python.org/downloads/")
+    input("Press return to close")
+    sys.exit()
+del message
+
+
 import zipfile
-
 from pathlib import Path
-
 
 # Included in bundle
 from _bootstrap import update_libraries, launch_script  # type: ignore
-from _vendor import zipp  # type: ignore
 
 
 def main(script_name):
@@ -62,13 +73,14 @@ def main(script_name):
             # Get lockfile if it exists
             lock_name = f"{script_name}.lock"
             try:
-                lockdata = zipp.Path(zf, lock_name).read_text()
+                lockdata = zipfile.Path(zf, lock_name).read_text()
             except FileNotFoundError:
                 # No lockfile
                 lockdata = None
             
             # Extract the script file to the existing folder
             zf.extract(script_info, path=working_dir)
+
         launch_script(
             script_file=str(script_dest),
             zipapp_path=zip_path,

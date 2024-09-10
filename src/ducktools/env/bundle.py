@@ -29,16 +29,18 @@ import zipapp
 
 from pathlib import Path
 
-import importlib_resources
+import importlib.resources
 
-from . import MINIMUM_PYTHON_STR, bootstrap_requires
+from . import DATA_BUNDLE_FOLDER, MINIMUM_PYTHON_STR, bootstrap_requires
 from .platform_paths import ManagedPaths
 from .exceptions import ScriptNameClash
+from .environment_specs import EnvironmentSpec
 
 invalid_script_names = {
     "__main__.py",
     "_bootstrap.py",
     "_platform_paths.py",
+    "_check_outdated_python.py",
     "_vendor.py",
 }
 
@@ -93,15 +95,17 @@ def create_bundle(
             dirs_exist_ok=True,
         )
 
-        resources = importlib_resources.files("ducktools.env")
+        resources = importlib.resources.files("ducktools.env")
 
-        with importlib_resources.as_file(resources) as env_folder:
+        with importlib.resources.as_file(resources) as env_folder:
             platform_paths_path = env_folder / "platform_paths.py"
             bootstrap_path = env_folder / "bootstrapping" / "bootstrap.py"
             main_zipapp_path = env_folder / "bootstrapping" / "bundle_main.py"
+            check_outdated_path = env_folder / "check_outdated_python.py"
 
             shutil.copy(platform_paths_path, build_path / "_platform_paths.py")
             shutil.copy(bootstrap_path, build_path / "_bootstrap.py")
+            shutil.copy(check_outdated_path, build_path / "_check_outdated_python.py")
 
             # Write __main__.py with script name included
             with open(build_path / "__main__.py", 'w') as main_file:
@@ -136,6 +140,19 @@ def create_bundle(
 
         print("Copying script to build folder and bundling")
         shutil.copy(script_path, build_path)
+
+        spec = EnvironmentSpec.from_script(script_path)
+        if sources := spec.details.data_sources:
+            print("Bundling additional data")
+            data_folder = build_path / DATA_BUNDLE_FOLDER
+            data_folder.mkdir()
+
+            for p in sources:
+                pth = Path(script_file).parent / p
+                if pth.is_file():
+                    shutil.copy(pth, data_folder)
+                elif pth.is_dir():
+                    shutil.copytree(pth, data_folder / pth.name)
 
         if output_file is None:
             archive_path = Path(script_file).with_suffix(".pyz")

@@ -20,26 +20,20 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from __future__ import annotations
 
-"""
-This is the bootstrapping script for the ducktools.pyz bundle itself
-"""
 import sys
 
-from _check_outdated_python import python_version_outdated  # type: ignore
+MINIMUM_PYTHON = (3, 10)
+MINIMUM_PYTHON_STR = ".".join(str(v) for v in MINIMUM_PYTHON)
 
-message = python_version_outdated()
-if message:
-    print("The Python version used to unpack this bundle is outdated.")
-    print(message)
-    if sys.platform in {"win32", "darwin"}:
-        print("You can get the latest Python from: https://www.python.org/downloads/")
-    input("Press any key to close")
-    sys.exit()
-del message
 
-from _bootstrap import update_libraries, launch_ducktools  # noqa
-
-if __name__ == "__main__":
-    update_libraries()
-    launch_ducktools()
+def python_version_outdated() -> str | None:
+    v = sys.version_info
+    if v < MINIMUM_PYTHON:
+        major, minor = MINIMUM_PYTHON
+        message = (
+            f"Python {v.major}.{v.minor} is not supported. "
+            f"Python {major}.{minor} is the minimum required version."
+        )
+        return message

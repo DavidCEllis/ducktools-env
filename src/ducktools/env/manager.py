@@ -29,7 +29,15 @@ import os.path
 from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport, MultiFromImport
 from ducktools.classbuilder.prefab import Prefab, attribute
 
-from . import PROJECT_NAME
+from . import (
+    FOLDER_ENVVAR,
+    PROJECT_NAME,
+    DATA_BUNDLE_ENVVAR,
+    DATA_BUNDLE_FOLDER,
+    LAUNCH_ENVIRONMENT_ENVVAR,
+    LAUNCH_PATH_ENVVAR,
+    LAUNCH_TYPE_ENVVAR,
+)
 from .config import Config, log
 from .platform_paths import ManagedPaths
 from .catalogue import TempCatalogue
@@ -89,6 +97,9 @@ class Manager(Prefab):
         return _laz.retrieve_pip(paths=self.paths)
 
     def retrieve_uv(self, required=False) -> str | None:
+        import inspect
+        for f in inspect.stack():
+            print(f.code_context)
         if self.config.use_uv or required:
             uv_path = _laz.retrieve_uv(paths=self.paths)
         else:
@@ -150,12 +161,16 @@ class Manager(Prefab):
 
     # Script running and bundling commands
     def get_script_env(self, spec: EnvironmentSpec):
-        env = self.temp_catalogue.find_or_create_env(
-            spec=spec,
-            config=self.config,
-            uv_path=self.retrieve_uv(),
-            installer_command=self.install_base_command,
-        )
+        env = self.temp_catalogue.find_env(spec=spec)
+
+        if not env:
+            log("Existing environment not found, creating new environment.")
+            env = self.temp_catalogue.create_env(
+                spec=spec,
+                config=self.config,
+                uv_path=self.retrieve_uv(),
+                installer_command=self.install_base_command,
+            )
         return env
 
     def run_bundled_script(
@@ -166,9 +181,15 @@ class Manager(Prefab):
         args: list[str],
     ):
         env_vars = {
-            "DUCKTOOLS_ENV_LAUNCH_TYPE": "BUNDLE",
-            "DUCKTOOLS_ENV_LAUNCH_PATH": zipapp_path,
+            LAUNCH_TYPE_ENVVAR: "BUNDLE",
+            LAUNCH_PATH_ENVVAR: zipapp_path,
         }
+
+        # If the spec indicates there should be data
+        # include the bundle data folder in the archive
+        if spec.details.data_sources:
+            env_vars[DATA_BUNDLE_ENVVAR] = f"{DATA_BUNDLE_FOLDER}/"
+
         self.run_script(
             spec=spec,
             args=args,
@@ -182,9 +203,15 @@ class Manager(Prefab):
         args: list[str],
     ):
         env_vars = {
-            "DUCKTOOLS_ENV_LAUNCH_TYPE": "SCRIPT",
-            "DUCKTOOLS_ENV_LAUNCH_PATH": spec.script_path,
+            LAUNCH_TYPE_ENVVAR: "SCRIPT",
+            LAUNCH_PATH_ENVVAR: spec.script_path,
         }
+
+        # Add sources to env variable
+        if sources := spec.details.data_sources:
+            split_char = ";" if sys.platform == "win32" else ":"
+            env_vars[DATA_BUNDLE_ENVVAR] = split_char.join(sources)
+
         self.run_script(
             spec=spec,
             args=args,
@@ -205,7 +232,8 @@ class Manager(Prefab):
         :param env_vars: Environment variables to set
         """
         env = self.get_script_env(spec)
-        env_vars["DUCKTOOLS_ENV_LAUNCH_ENVIRONMENT"] = env.path
+        env_vars[FOLDER_ENVVAR] = self.paths.project_folder
+        env_vars[LAUNCH_ENVIRONMENT_ENVVAR] = env.path
         log(f"Using environment at: {env.path}")
 
         # Update environment variables for access from subprocess
