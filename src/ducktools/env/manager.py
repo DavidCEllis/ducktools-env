@@ -97,6 +97,9 @@ class Manager(Prefab):
         return _laz.retrieve_pip(paths=self.paths)
 
     def retrieve_uv(self, required=False) -> str | None:
+        import inspect
+        for f in inspect.stack():
+            print(f.code_context)
         if self.config.use_uv or required:
             uv_path = _laz.retrieve_uv(paths=self.paths)
         else:
@@ -158,12 +161,16 @@ class Manager(Prefab):
 
     # Script running and bundling commands
     def get_script_env(self, spec: EnvironmentSpec):
-        env = self.temp_catalogue.find_or_create_env(
-            spec=spec,
-            config=self.config,
-            uv_path=self.retrieve_uv(),
-            installer_command=self.install_base_command,
-        )
+        env = self.temp_catalogue.find_env(spec=spec)
+
+        if not env:
+            log("Existing environment not found, creating new environment.")
+            env = self.temp_catalogue.create_env(
+                spec=spec,
+                config=self.config,
+                uv_path=self.retrieve_uv(),
+                installer_command=self.install_base_command,
+            )
         return env
 
     def run_bundled_script(
