@@ -34,7 +34,6 @@ import zipfile
 from _platform_paths import ManagedPaths  # type: ignore
 
 from _vendor.ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport  # type: ignore
-from _vendor import zipp  # type: ignore
 
 # This bootstrap script exists without ducktools.env and so needs a copy of project_name
 PROJECT_NAME = "ducktools"
@@ -79,8 +78,8 @@ def update_libraries():
 
     # Compare library versions to those in cache
     with zipfile.ZipFile(archive_path, "r") as zf:
-        bundled_ducktools_ver = zipp.Path(zf, "ducktools-env.version").read_text()
-        bundled_pip_ver = zipp.Path(zf, "pip.pyz.version").read_text()
+        bundled_ducktools_ver = zipfile.Path(zf, "ducktools-env.version").read_text()
+        bundled_pip_ver = zipfile.Path(zf, "pip.pyz.version").read_text()
 
         # Copy ducktools if outdated
         if is_outdated(default_paths.get_env_version(), bundled_ducktools_ver):

@@ -24,6 +24,15 @@
 """
 This is the bootstrapping script for the ducktools.pyz bundle itself
 """
+import sys
+
+from _check_outdated_python import python_version_outdated  # type: ignore
+
+if message := python_version_outdated():
+    print("The Python version used to unpack this bundle is outdated.")
+    print(message)
+    input("Press any key to close")
+    sys.exit()
 
 from _bootstrap import update_libraries, launch_ducktools  # noqa
 

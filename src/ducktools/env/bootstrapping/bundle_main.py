@@ -23,14 +23,22 @@
 
 # This becomes the bundler bootstrap python script
 import sys
+
+from _check_outdated_python import python_version_outdated  # type: ignore
+
+if message := python_version_outdated():
+    print("The Python version used to unpack this bundle is outdated.")
+    print(message)
+    input("Press any key to close")
+    sys.exit()
+
+
 import zipfile
 
 from pathlib import Path
 
-
 # Included in bundle
 from _bootstrap import update_libraries, launch_script  # type: ignore
-from _vendor import zipp  # type: ignore
 
 
 def main(script_name):
@@ -62,7 +70,7 @@ def main(script_name):
             # Get lockfile if it exists
             lock_name = f"{script_name}.lock"
             try:
-                lockdata = zipp.Path(zf, lock_name).read_text()
+                lockdata = zipfile.Path(zf, lock_name).read_text()
             except FileNotFoundError:
                 # No lockfile
                 lockdata = None
