@@ -23,12 +23,19 @@
 from __future__ import annotations
 
 import os.path
-import shutil
-import subprocess
 import sys
 
+from ducktools.lazyimporter import LazyImporter, ModuleImport
 from ducktools.env.platform_paths import ManagedPaths
 from ducktools.env.scripts.get_pip import retrieve_pip
+
+_laz = LazyImporter(
+    [
+        ModuleImport("shutil"),
+        ModuleImport("subprocess"),
+    ]
+)
+
 
 uv_versionspec = "~=0.4.0"
 
@@ -60,19 +67,19 @@ def retrieve_uv(paths: ManagedPaths) -> str | None:
 
             # Download UV with pip - handles getting the correct platform version
             try:
-                subprocess.run(
+                _laz.subprocess.run(
                     pip_command,
                     check=True,
                 )
-            except subprocess.CalledProcessError:
+            except _laz.subprocess.CalledProcessError:
                 uv_path = None
             else:
                 # Copy the executable out of the pip install
-                shutil.copy(uv_dl, paths.uv_executable)
+                _laz.shutil.copy(uv_dl, paths.uv_executable)
                 uv_path = paths.uv_executable
 
                 version_command = [uv_path, "-V"]
-                version_output = subprocess.run(version_command, capture_output=True, text=True)
+                version_output = _laz.subprocess.run(version_command, capture_output=True, text=True)
                 uv_version = version_output.stdout.split()[1]
                 with open(f"{uv_path}.version", 'w') as ver_file:
                     ver_file.write(uv_version)
