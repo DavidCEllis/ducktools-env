@@ -20,20 +20,22 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from __future__ import annotations
-
 import sys
 
 MINIMUM_PYTHON = (3, 10)
 MINIMUM_PYTHON_STR = ".".join(str(v) for v in MINIMUM_PYTHON)
 
 
-def python_version_outdated() -> str | None:
+def version_check():
     v = sys.version_info
     if v < MINIMUM_PYTHON:
         major, minor = MINIMUM_PYTHON
-        message = (
+        print("The Python version used to unpack this zipapp is outdated.")
+        print(
             f"Python {v.major}.{v.minor} is not supported. "
             f"Python {major}.{minor} is the minimum required version."
         )
-        return message
+        if sys.platform in {"win32", "darwin"}:
+            print("You can get the latest Python from: https://www.python.org/downloads/")
+        input("Press any key to close")
+        sys.exit()

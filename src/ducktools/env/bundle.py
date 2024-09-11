@@ -101,11 +101,11 @@ def create_bundle(
             platform_paths_path = env_folder / "platform_paths.py"
             bootstrap_path = env_folder / "bootstrapping" / "bootstrap.py"
             main_zipapp_path = env_folder / "bootstrapping" / "bundle_main.py"
-            check_outdated_path = env_folder / "check_outdated_python.py"
+            check_outdated_path = env_folder / "bootstrapping" / "version_check.py"
 
             shutil.copy(platform_paths_path, build_path / "_platform_paths.py")
             shutil.copy(bootstrap_path, build_path / "_bootstrap.py")
-            shutil.copy(check_outdated_path, build_path / "_check_outdated_python.py")
+            shutil.copy(check_outdated_path, build_path / "_version_check.py")
 
             # Write __main__.py with script name included
             with open(build_path / "__main__.py", 'w') as main_file:
