@@ -32,6 +32,7 @@ from ducktools.lazyimporter import (
 from ducktools.classbuilder.prefab import Prefab, as_dict
 import ducktools.scriptmetadata as scriptmetadata
 
+from .exceptions import InvalidEnvironmentSpec
 
 # Lazy importers for modules that may not be used
 _laz = LazyImporter(
@@ -87,11 +88,11 @@ class EnvironmentDetails(Prefab, kw_only=True):
 
     @property
     def owner(self) -> str | None:
-        return self.app_table.get("owner")
+        return self.app_table.get("owner").replace("/", "_").replace("\\", "_")
 
     @property
     def appname(self) -> str | None:
-        return self.app_table.get("appname")
+        return self.app_table.get("appname").replace("/", "_").replace("\\", "_")
 
     @property
     def version(self) -> str | None:
