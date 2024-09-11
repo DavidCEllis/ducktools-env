@@ -36,13 +36,14 @@ PACKAGE_SUBFOLDER = "env"
 
 # Folders used internally
 CACHEDENV_FOLDERNAME = "caches"
-APPLICATION_FOLDERNAME = "application"
+APPLICATION_FOLDERNAME = "applications"
 
 MANAGER_FOLDERNAME = "lib"
 
 # Filenames for configuration and catalogue
 CONFIG_FILENAME = "config.json"
 CATALOGUE_FILENAME = "catalogue.json"
+APPCATALOGUE_FILENAME = "app_catalogue.json"
 
 
 # Store in LOCALAPPDATA for windows, User folder for other operating systems
@@ -89,9 +90,10 @@ class ManagedPaths:
     uv_executable: str
     env_folder: str
 
-    application_folder: str  # Not yet used
-    cache_folder: str
+    application_folder: str
+    application_db: str
 
+    cache_folder: str
     cache_db: str
 
     build_base: str
@@ -113,6 +115,8 @@ class ManagedPaths:
         self.env_folder = os.path.join(self.manager_folder, "ducktools-env")
 
         self.application_folder = os.path.join(self.project_folder, APPLICATION_FOLDERNAME)
+        self.application_db = os.path.join(self.application_folder, APPCATALOGUE_FILENAME)
+
         self.cache_folder = os.path.join(self.project_folder, CACHEDENV_FOLDERNAME)
         self.cache_db = os.path.join(self.cache_folder, CATALOGUE_FILENAME)
 

@@ -73,12 +73,29 @@ class EnvironmentDetails(Prefab, kw_only=True):
         return [_laz.Requirement(dep) for dep in self.dependencies]
 
     @property
-    def bundle_table(self) -> dict:
-        return self.tool_table.get("bundle", {})
+    def app_table(self) -> dict:
+        return self.tool_table.get("app", {})
 
     @property
     def data_sources(self) -> list[str] | None:
-        return self.bundle_table.get("data")
+        return self.app_table.get("data")
+
+    @property
+    def extra_wheels(self) -> list[str] | None:
+        # Not supported yet
+        return self.app_table.get("extra_wheels")
+
+    @property
+    def owner(self) -> str | None:
+        return self.app_table.get("owner")
+
+    @property
+    def appname(self) -> str | None:
+        return self.app_table.get("appname")
+
+    @property
+    def version(self) -> str | None:
+        return self.app_table.get("version")
 
     def errors(self) -> list[str]:
         error_details = []

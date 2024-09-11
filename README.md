@@ -104,8 +104,8 @@ table in the toml block.
 # requires-python = ">=3.10"
 # dependencies = ["cowsay"]
 # 
-# [tool.ducktools.env]
-# bundle.data = ["path/to/folder", "path/to/file.txt"]
+# [tool.ducktools.env.app]
+# data = ["path/to/folder", "path/to/file.txt"]
 # ///
 ```
 
@@ -124,8 +124,8 @@ folder the script is in (along with all of its contents).
 # requires-python = ">=3.12"
 # dependencies = ["ducktools-env>=0.1.0"]
 # 
-# [tool.ducktools.env]
-# bundle.data = ["./"]
+# [tool.ducktools.env.app]
+# data = ["./"]
 # ///
 from pathlib import Path
 
