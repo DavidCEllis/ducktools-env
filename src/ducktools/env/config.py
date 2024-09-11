@@ -78,4 +78,4 @@ class Config(Prefab, kw_only=True):
     def save(self, file_path: str):
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, "w") as f:
-            _laz.json.dump(self, f, default=as_dict)
+            _laz.json.dump(as_dict(self), f, indent=2)
