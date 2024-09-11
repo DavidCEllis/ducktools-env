@@ -81,6 +81,10 @@ class BaseEnv(Prefab, kw_only=True):
     created_on: str = attribute(default_factory=_datetime_now_iso)
     last_used: str = attribute(default_factory=_datetime_now_iso)
 
+    spec_hashes: list[str]
+    lock_hash: str | None = None
+    installed_modules: list[str] = attribute(default_factory=list)
+
     @property
     def python_path(self) -> str:
         if sys.platform == "win32":
@@ -118,13 +122,22 @@ class TemporaryEnv(BaseEnv, kw_only=True):
     """
     This is for temporary environments that expire after a certain period
     """
-    spec_hashes: list[str]
-    lock_hash: str | None = None
-    installed_modules: list[str] = attribute(default_factory=list)
 
 
 class ApplicationEnv(BaseEnv, kw_only=True):
-    ...
+    owner: str
+    appname: str
+    version: str
+
+    def version_spec(self):
+        return _laz.Version(self.version)
+
+    def is_outdated(self, spec_version: str):
+        # If strings are equal, skip packaging overhead
+        if self.version == spec_version:
+            return False
+        else:
+            return _laz.version(spec_version) > self.version_spec
 
 
 @prefab(kw_only=True)
@@ -132,7 +145,7 @@ class BaseCatalogue:
     ENV_TYPE = BaseEnv
 
     path: str
-    environments: dict[str, BaseEnv] = attribute(default_factory=dict)
+    environments: dict[str, ENV_TYPE] = attribute(default_factory=dict)
 
     @property
     def catalogue_folder(self):
@@ -194,6 +207,32 @@ class BaseCatalogue:
         # Clear environment list
         self.environments = {}
 
+    def find_env_hash(self, *, spec: EnvironmentSpec) -> ENV_TYPE | None:
+        """
+        Attempt to find a cached python environment that matches the hash
+        of the specification.
+
+        This means that either the exact text was used to generate the environment
+        or that it has previously matched in sufficient mode.
+
+        :param spec: EnvironmentSpec of requirements
+        :return: CacheFolder details of python env that satisfies it or None
+        """
+        for cache in self.environments.values():
+            if spec.spec_hash in cache.spec_hashes:
+                log(f"Hash {spec.spec_hash!r} matched environment {cache.name}")
+
+                if not cache.is_valid:
+                    log(f"Cache {cache.name!r} does not point to a valid python, removing.")
+                    self.delete_env(cache.name)
+                    continue
+
+                cache.last_used = _datetime_now_iso()
+                self.save()
+                return cache
+        else:
+            return None
+
 
 @prefab(kw_only=True)
 class TempCatalogue(BaseCatalogue):
@@ -202,7 +241,7 @@ class TempCatalogue(BaseCatalogue):
     """
     ENV_TYPE = TemporaryEnv
 
-    environments: dict[str, TemporaryEnv] = attribute(default_factory=dict)
+    environments: dict[str, ENV_TYPE] = attribute(default_factory=dict)
     env_counter: int = 0
 
     @property
@@ -239,33 +278,29 @@ class TempCatalogue(BaseCatalogue):
 
         self.save()
 
-    def find_env_hash(self, *, spec: EnvironmentSpec) -> TemporaryEnv | None:
+    def find_locked_env(
+        self,
+        *,
+        spec: EnvironmentSpec,
+    ) -> ENV_TYPE | None:
         """
-        Attempt to find a cached python environment that matches the hash
-        of the specification.
+        Find a cached TemporaryEnv that matches the hash of the lockfile
 
-        This means that either the exact text was used to generate the environment
-        or that it has previously matched in sufficient mode.
-
-        :param spec: EnvironmentSpec of requirements
-        :return: CacheFolder details of python env that satisfies it or None
+        :param spec: Environment specification (needed for lock)
+        :return: TemporaryEnv environment or None
         """
+        # Get lock data hash
         for cache in self.environments.values():
-            if spec.spec_hash in cache.spec_hashes:
-                log(f"Hash {spec.spec_hash!r} matched environment {cache.name}")
-
-                if not cache.is_valid:
-                    log(f"Cache {cache.name!r} does not point to a valid python, removing.")
-                    self.delete_env(cache.name)
-                    continue
-
-                cache.last_used = _datetime_now_iso()
-                self.save()
+            if (
+                cache.lock_hash == spec.lock_hash
+                and cache.python_version in spec.details.requires_python_spec
+            ):
+                log(f"Lockfile hash {spec.lock_hash!r} matched environment {cache.name}")
                 return cache
         else:
             return None
 
-    def find_sufficient_env(self, *, spec: EnvironmentSpec) -> TemporaryEnv | None:
+    def find_sufficient_env(self, *, spec: EnvironmentSpec) -> ENV_TYPE | None:
         """
         Check for a cache that matches the minimums of all specified modules
 
@@ -320,29 +355,7 @@ class TempCatalogue(BaseCatalogue):
         else:
             return None
 
-    def find_locked_env(
-        self, 
-        *, 
-        spec: EnvironmentSpec,
-    ) -> TemporaryEnv | None:
-        """
-        Find a cached TemporaryEnv that matches the hash of the lockfile
-
-        :param spec: Environment specification (needed for lock)
-        :return: TemporaryEnv environment or None
-        """
-        # Get lock data hash
-        for cache in self.environments.values():
-            if (
-                cache.lock_hash == spec.lock_hash 
-                and cache.python_version in spec.details.requires_python_spec
-            ):
-                log(f"Lockfile hash {spec.lock_hash!r} matched environment {cache.name}")
-                return cache
-        else:
-            return None
-
-    def find_env(self, *, spec: EnvironmentSpec) -> TemporaryEnv | None:
+    def find_env(self, *, spec: EnvironmentSpec) -> ENV_TYPE | None:
         """
         Try to find an existing cached environment that satisfies the spec
 
@@ -367,7 +380,7 @@ class TempCatalogue(BaseCatalogue):
         config: Config,
         uv_path: str | None,
         installer_command: list[str],
-    ) -> TemporaryEnv:
+    ) -> ENV_TYPE:
         # Check the spec is valid
         if spec_errors := spec.details.errors():
             raise InvalidEnvironmentSpec("; ".join(spec_errors))
@@ -423,7 +436,7 @@ class TempCatalogue(BaseCatalogue):
             raise VenvBuildError(f"Failed to build venv: {e}")
 
         # Construct the TemporaryEnv to get the path to python.exe
-        new_env = TemporaryEnv(
+        new_env = self.ENV_TYPE(
             name=new_cachename,
             path=cache_path,
             python_version=python_version,
@@ -532,3 +545,10 @@ class TempCatalogue(BaseCatalogue):
         self.save()
 
         return new_env
+
+
+@prefab(kw_only=True)
+class ApplicationCatalogue(BaseCatalogue):
+    ENV_TYPE = ApplicationEnv
+
+    environments: dict[str, ENV_TYPE] = attribute(default_factory=dict)
