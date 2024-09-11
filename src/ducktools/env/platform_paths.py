@@ -23,9 +23,6 @@
 
 # This is used as a bootstrapping script as well as internally
 # For this reason it can't use any non-stdlib modules.
-
-from __future__ import annotations
-
 import sys
 import os
 import os.path

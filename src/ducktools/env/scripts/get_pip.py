@@ -28,9 +28,6 @@ or not installed.
 The pip zipapp will be included in ducktools.pyz builds so this should only be needed
 when building ducktools.pyz or if ducktools-env has been installed via pip.
 """
-
-from __future__ import annotations
-
 import os
 import os.path
 
