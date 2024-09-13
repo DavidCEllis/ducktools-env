@@ -21,42 +21,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ducktools.lazyimporter import (
-    LazyImporter,
-    FromImport,
-    ModuleImport,
-    MultiFromImport,
-    TryExceptImport,
-)
 
 from ducktools.classbuilder.prefab import Prefab, as_dict
 import ducktools.scriptmetadata as scriptmetadata
 
-
-# Lazy importers for modules that may not be used
-_laz = LazyImporter(
-    [
-        TryExceptImport(
-            "tomllib",
-            "tomli",
-            "tomllib",
-        ),
-        ModuleImport("warnings"),
-        ModuleImport("subprocess"),
-        ModuleImport("hashlib"),
-        MultiFromImport(
-            "packaging.requirements",
-            ["Requirement", "InvalidRequirement"],
-        ),
-        MultiFromImport(
-            "packaging.specifiers",
-            ["SpecifierSet", "InvalidSpecifier"],
-        ),
-        FromImport(
-            "importlib", "metadata"
-        ),
-    ],
-)
+from ._lazy_imports import laz as _laz
 
 
 class EnvironmentDetails(Prefab, kw_only=True):

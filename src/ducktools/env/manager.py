@@ -24,7 +24,6 @@ import sys
 import os
 import os.path
 
-from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport, MultiFromImport
 from ducktools.classbuilder.prefab import Prefab, attribute
 
 from . import (
@@ -41,29 +40,7 @@ from .platform_paths import ManagedPaths
 from .catalogue import TempCatalogue
 from .environment_specs import EnvironmentSpec
 from .exceptions import UVUnavailableError
-
-
-_laz = LazyImporter(
-    [
-        # stdlib
-        ModuleImport("shutil"),
-        ModuleImport("subprocess"),
-        # third party
-        MultiFromImport(
-            "packaging.version",
-            ["Version", "InvalidVersion"]
-        ),
-        # internal
-        FromImport(".bundle", "create_bundle"),
-        MultiFromImport(
-            ".scripts.create_zipapp",
-            ["build_env_folder", "build_zipapp"]
-        ),
-        FromImport(".scripts.get_pip", "retrieve_pip"),
-        FromImport(".scripts.get_uv", "retrieve_uv"),
-    ],
-    globs=globals(),
-)
+from ._lazy_imports import laz as _laz
 
 
 class Manager(Prefab):

@@ -24,13 +24,6 @@ import sys
 import os.path
 from datetime import datetime as _datetime, timedelta as _timedelta
 
-from ducktools.lazyimporter import (
-    LazyImporter,
-    FromImport,
-    ModuleImport,
-    MultiFromImport,
-)
-
 from ducktools.classbuilder.prefab import Prefab, prefab, attribute, as_dict, get_attributes
 
 from .exceptions import PythonVersionNotFound, InvalidEnvironmentSpec, VenvBuildError
@@ -38,31 +31,7 @@ from .environment_specs import EnvironmentSpec
 from .config import Config, log
 
 
-_laz = LazyImporter(
-    [
-        ModuleImport("shutil"),
-        ModuleImport("json"),
-        ModuleImport("subprocess"),
-        ModuleImport("hashlib"),
-        ModuleImport("tempfile"),
-        FromImport("ducktools.pythonfinder", "list_python_installs"),
-    ],
-    globs=globals(),
-)
-
-_packaging = LazyImporter(
-    [
-        MultiFromImport(
-            "packaging.requirements",
-            ["Requirement", "InvalidRequirement"],
-        ),
-        MultiFromImport(
-            "packaging.specifiers",
-            ["SpecifierSet", "InvalidSpecifier"],
-        ),
-        MultiFromImport("packaging.version", ["Version", "InvalidVersion"]),
-    ]
-)
+from ._lazy_imports import laz as _laz
 
 
 def _datetime_now_iso() -> str:
@@ -314,7 +283,7 @@ class TempCatalogue(BaseCatalogue):
             # If no python version listed ignore it
             # If python version is listed, make sure it matches
             if spec.details.requires_python:
-                cache_pyver = _packaging.Version(cache.python_version)
+                cache_pyver = _laz.Version(cache.python_version)
                 if not spec.details.requires_python_spec.contains(cache_pyver, prereleases=True):
                     continue
 
@@ -324,7 +293,7 @@ class TempCatalogue(BaseCatalogue):
             for mod in cache.installed_modules:
                 name, version = mod.split("==")
                 # There should only be one specifier, specifying one version
-                module_ver = _packaging.Version(version)
+                module_ver = _laz.Version(version)
                 cache_spec[name] = module_ver
 
             for req in spec.details.dependencies_spec:

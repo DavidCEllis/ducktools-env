@@ -32,23 +32,13 @@ import os
 import os.path
 
 from ducktools.classbuilder.prefab import prefab
-from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport
 
-from ducktools.env.platform_paths import ManagedPaths
-from ducktools.env.config import log
-from ducktools.env.exceptions import InvalidPipDownload
-
+from ..platform_paths import ManagedPaths
+from ..config import log
+from ..exceptions import InvalidPipDownload
+from .._lazy_imports import laz as _laz
 
 BASE_URL = "https://bootstrap.pypa.io/pip"
-
-
-_laz = LazyImporter(
-    [
-        ModuleImport("hashlib"),
-        FromImport("urllib.request", "urlopen"),
-        FromImport("packaging.version", "Version"),
-    ]
-)
 
 
 @prefab(frozen=True)

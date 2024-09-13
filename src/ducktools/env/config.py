@@ -28,14 +28,8 @@ import os
 
 from datetime import timedelta as _timedelta
 
-from ducktools.lazyimporter import LazyImporter, ModuleImport
 from ducktools.classbuilder.prefab import Prefab, get_attributes, as_dict
-
-_laz = LazyImporter(
-    [
-        ModuleImport("json"),
-    ]
-)
+from ._lazy_imports import laz as _laz
 
 
 def log(message):

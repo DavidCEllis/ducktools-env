@@ -24,15 +24,10 @@ import os.path
 import sys
 
 from ducktools.lazyimporter import LazyImporter, ModuleImport
-from ducktools.env.platform_paths import ManagedPaths
-from ducktools.env.scripts.get_pip import retrieve_pip
 
-_laz = LazyImporter(
-    [
-        ModuleImport("shutil"),
-        ModuleImport("subprocess"),
-    ]
-)
+from .get_pip import retrieve_pip
+from .._lazy_imports import laz as _laz
+from ..platform_paths import ManagedPaths
 
 
 uv_versionspec = "~=0.4.0"
