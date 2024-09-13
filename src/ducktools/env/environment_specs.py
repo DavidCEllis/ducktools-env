@@ -32,7 +32,6 @@ from ducktools.lazyimporter import (
 from ducktools.classbuilder.prefab import Prefab, as_dict
 import ducktools.scriptmetadata as scriptmetadata
 
-from .exceptions import InvalidEnvironmentSpec
 
 # Lazy importers for modules that may not be used
 _laz = LazyImporter(

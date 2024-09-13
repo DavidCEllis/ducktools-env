@@ -38,10 +38,6 @@ class VenvBuildError(EnvError):
     pass
 
 
-class SpecificationError(EnvError):
-    pass
-
-
 class InvalidPipDownload(EnvError):
     """
     Error if the hash value of the downloaded `pip` does not match
