@@ -104,8 +104,8 @@ table in the toml block.
 # requires-python = ">=3.10"
 # dependencies = ["cowsay"]
 # 
-# [tool.ducktools.env.app]
-# data = ["path/to/folder", "path/to/file.txt"]
+# [tool.ducktools.env]
+# include.data = ["path/to/folder", "path/to/file.txt"]
 # ///
 ```
 
@@ -124,8 +124,8 @@ folder the script is in (along with all of its contents).
 # requires-python = ">=3.12"
 # dependencies = ["ducktools-env>=0.1.0"]
 # 
-# [tool.ducktools.env.app]
-# data = ["./"]
+# [tool.ducktools.env]
+# include.data = ["./"]
 # ///
 from pathlib import Path
 
@@ -143,8 +143,7 @@ Future goals for this tool:
 * Optionally bundle requirements inside the zipapp for use without a connection.
 * Allow bundling of local wheel files unavailable on PyPI
 * Create 'permanent' named environments for stand-alone applications and update them
-  * Currently there is a maximum of 2 temporary environments that expire in a day
-    (this is due to the pre-release nature of the project, the future defaults will be higher/longer)
+  * Currently there is a maximum of 10 temporary environments that expire in two weeks
 * Automatically install required Python if UV is available
 
 ## Dependencies ##

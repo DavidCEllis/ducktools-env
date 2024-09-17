@@ -26,7 +26,7 @@ from datetime import datetime as _datetime, timedelta as _timedelta
 
 from ducktools.classbuilder.prefab import Prefab, prefab, attribute, as_dict, get_attributes
 
-from .exceptions import PythonVersionNotFound, InvalidEnvironmentSpec, VenvBuildError
+from .exceptions import PythonVersionNotFound, InvalidEnvironmentSpec, VenvBuildError, ApplicationError
 from .environment_specs import EnvironmentSpec
 from .config import Config, log
 
@@ -98,6 +98,7 @@ class ApplicationEnv(BaseEnv, kw_only=True):
     appname: str
     version: str
 
+    @property
     def version_spec(self):
         return _laz.Version(self.version)
 
@@ -333,12 +334,8 @@ class TempCatalogue(BaseCatalogue):
         """
         if spec.lock_hash:
             env = self.find_locked_env(spec=spec)
-        
         else:
-            env = self.find_env_hash(spec=spec)
-
-            if not env:
-                env = self.find_sufficient_env(spec=spec)
+            env = self.find_sufficient_env(spec=spec)
 
         return env
 
@@ -405,6 +402,7 @@ class TempCatalogue(BaseCatalogue):
             raise VenvBuildError(f"Failed to build venv: {e}")
 
         # Construct the TemporaryEnv to get the path to python.exe
+        # noinspection PyArgumentList
         new_env = self.ENV_TYPE(
             name=new_cachename,
             path=cache_path,
@@ -521,3 +519,213 @@ class ApplicationCatalogue(BaseCatalogue):
     ENV_TYPE = ApplicationEnv
 
     environments: dict[str, ENV_TYPE] = attribute(default_factory=dict)
+
+    def find_env_hash(self, *, spec: EnvironmentSpec) -> ENV_TYPE | None:
+        env: ApplicationEnv | None = super().find_env_hash(spec=spec)
+
+        if env:
+            # Need to check the lockfile hasn't changed if a match is found
+            # The version should be the same if the hash matched
+            # as the version is included in the hash
+            if spec.lock_hash != env.lock_hash:
+                log("Spec matching but lockfile outdated, purging old environment")
+                self.delete_env(env.path)
+                env = None
+
+        return env
+
+    def find_env(self, spec: EnvironmentSpec) -> ENV_TYPE | None:
+        details = spec.details
+
+        env = None
+
+        if cache := self.environments.get(details.app.appkey):
+            # Logic is a bit long here because if the versions match we want to
+            # avoid generating the packaging.version. Otherwise we would check
+            # for the outdated version first.
+            if spec.lock_hash == cache.lock_hash:
+                if details.app.version == cache.version:
+                    env = cache
+                elif details.app.version_spec > cache.version_spec:
+                    # Update cache version number
+                    env = cache
+                    env.version = details.app.version
+                else:
+                    raise ApplicationError(
+                        f"Attempted to launch older version of application"
+                        f"when newer version has been installed. \n"
+                        f"app version: {details.app.version} \n"
+                        f"installed version: {cache.version}"
+                    )
+            else:
+                # Lock file does not match
+                if details.app.version == cache.version:
+                    if cache.version_spec.is_prerelease:
+                        log(
+                            "Lockfile does not match, but version is prerelease.\n"
+                            "Clearing outdated environment."
+                        )
+                        self.delete_env(cache.path)
+                    else:
+                        raise ApplicationError(
+                            "Application version is the same as the environment "
+                            "but the lockfile does not match."
+                        )
+                elif details.app.version_spec > cache.version_spec:
+                    log("Updating application environment")
+                    self.delete_env(cache.path)
+                else:
+                    raise ApplicationError(
+                        f"Attempted to launch older version of application"
+                        f"when newer version has been installed. \n"
+                        f"app version: {details.app.version} \n"
+                        f"installed version: {cache.version}"
+                    )
+        return env
+
+    def create_env(
+        self,
+        spec: EnvironmentSpec,
+        config: Config,
+        uv_path: str,
+        installer_command: list[str],
+    ):
+        if not spec.lockdata:
+            raise ApplicationError("Application environments require a lockfile.")
+
+        # Check the spec is valid
+        if spec_errors := spec.details.errors():
+            raise InvalidEnvironmentSpec("; ".join(spec_errors))
+
+        details = spec.details
+
+        env_path = os.path.join(
+            self.catalogue_folder,
+            details.app.owner,
+            details.app.appname,
+            "env",
+        )
+
+        # Find a valid python executable
+        for install in _laz.list_python_installs():
+            if install.implementation.lower() != "cpython":
+                # Ignore all non cpython installs for now
+                continue
+            if (
+                not spec.details.requires_python
+                or spec.details.requires_python_spec.contains(install.version_str, prereleases=True)
+            ):
+                python_exe = install.executable
+                python_version = install.version_str
+                break
+        else:
+            raise PythonVersionNotFound(
+                f"Could not find a Python install satisfying {spec.details.requires_python!r}."
+            )
+
+        # Make the venv
+        if os.path.exists(env_path):
+            raise FileExistsError(
+                f"Install path {env_path!r} already exists. "
+                f"Uninstall application to resolve."
+            )
+
+        try:
+            log(f"Creating venv in: {env_path}")
+            if uv_path:
+                _laz.subprocess.run(
+                    [uv_path, "venv", "-q", "--python", python_exe, env_path], check=True
+                )
+            else:
+                _laz.subprocess.run(
+                    [python_exe, "-m", "venv", "--without-pip", env_path], check=True
+                )
+        except _laz.subprocess.CalledProcessError as e:
+            # Try to delete the folder if it exists
+            _laz.shutil.rmtree(env_path, ignore_errors=True)
+            raise VenvBuildError(f"Failed to build venv: {e}")
+
+        # noinspection PyArgumentList
+        new_env = self.ENV_TYPE(
+            owner=details.app.owner,
+            appname=details.app.appname,
+            version=details.app.version,
+            path=env_path,
+            python_version=python_version,
+            parent_python=python_exe,
+            spec_hashes=[spec.spec_hash],
+            lock_hash=spec.lock_hash,
+        )
+
+        if deps := spec.details.dependencies:
+            dep_list = ", ".join(deps)
+            log(f"Installing dependencies from PyPI: {dep_list}")
+            log(f"Using lockfile")
+
+            # Need a temporary directory for the lockfile
+            with _laz.tempfile.TemporaryDirectory() as tempfld:
+                requirements_path = os.path.join(tempfld, "requirements.txt")
+                with open(requirements_path, 'w') as f:
+                    f.write(spec.lockdata)
+                try:
+                    if uv_path:
+                        dependency_command = [
+                            *installer_command,
+                            "install",
+                            "-q",  # Quiet
+                            "--python",
+                            new_env.python_path,
+                            "-r",
+                            requirements_path,
+                        ]
+                    else:
+                        dependency_command = [
+                            *installer_command,
+                            "--python",
+                            new_env.python_path,
+                            "install",
+                            "-q",  # Quiet
+                            "-r",
+                            requirements_path,
+                        ]
+                    _laz.subprocess.run(
+                        dependency_command,
+                        check=True,
+                    )
+                except _laz.subprocess.CalledProcessError as e:
+                    raise VenvBuildError(f"Failed to install dependencies: {e}")
+
+            # Get pip-freeze list to use for installed modules
+            if uv_path:
+                freeze_command = [
+                    *installer_command,
+                    "freeze",
+                    "--python",
+                    new_env.python_path,
+                ]
+            else:
+                freeze_command = [
+                    *installer_command,
+                    "--python",
+                    new_env.python_path,
+                    "freeze",
+                ]
+
+            freeze = _laz.subprocess.run(
+                freeze_command,
+                capture_output=True,
+                text=True,
+            )
+
+            installed_modules = [
+                item.strip()
+                for item in freeze.stdout.splitlines()
+                if item
+            ]
+
+            new_env.installed_modules.extend(installed_modules)
+
+        self.environments[details.app.appkey] = new_env
+        self.save()
+
+        return new_env

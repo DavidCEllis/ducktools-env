@@ -34,6 +34,12 @@ class InvalidEnvironmentSpec(EnvError):
     pass
 
 
+class ApplicationError(EnvError):
+    """
+    Error if an outdated application attempted to run
+    """
+
+
 class VenvBuildError(EnvError):
     pass
 

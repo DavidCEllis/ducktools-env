@@ -22,16 +22,59 @@
 # SOFTWARE.
 
 
-from ducktools.classbuilder.prefab import Prefab, as_dict
+from ducktools.classbuilder.prefab import Prefab, as_dict, attribute
 import ducktools.scriptmetadata as scriptmetadata
 
 from ._lazy_imports import laz as _laz
+
+
+class AppDetails(Prefab, kw_only=True):
+    owner: str
+    appname: str
+    version: str
+
+    @property
+    def version_spec(self):
+        return _laz.Version(self.version)
+
+    @property
+    def appkey(self):
+        return f"{self.owner}/{self.appname}"
 
 
 class EnvironmentDetails(Prefab, kw_only=True):
     requires_python: str | None
     dependencies: list[str]
     tool_table: dict
+    _app_details: AppDetails | None = attribute(default=None, private=True)
+
+    @property
+    def app_table(self) -> dict:
+        return self.tool_table.get("app", {})
+
+    @property
+    def include_table(self):
+        return self.tool_table.get("include", {})
+
+    @property
+    def app(self) -> AppDetails | None:
+        """
+        Return the application details if they exist or None otherwise.
+        """
+        if not self._app_details:
+            try:
+                owner = self.app_table["owner"].replace("/", "_").replace("\\", "_")
+                appname = self.app_table["appname"].replace("/", "_").replace("\\", "_")
+                version = self.app_table["version"]
+            except KeyError:
+                return None
+            else:
+                self._app_details = AppDetails(
+                    owner=owner,
+                    appname=appname,
+                    version=version,
+                )
+        return self._app_details
 
     @property
     def requires_python_spec(self):
@@ -42,29 +85,13 @@ class EnvironmentDetails(Prefab, kw_only=True):
         return [_laz.Requirement(dep) for dep in self.dependencies]
 
     @property
-    def app_table(self) -> dict:
-        return self.tool_table.get("app", {})
-
-    @property
     def data_sources(self) -> list[str] | None:
-        return self.app_table.get("data")
+        return self.include_table.get("data")
 
     @property
     def extra_wheels(self) -> list[str] | None:
         # Not supported yet
-        return self.app_table.get("extra_wheels")
-
-    @property
-    def owner(self) -> str | None:
-        return self.app_table.get("owner").replace("/", "_").replace("\\", "_")
-
-    @property
-    def appname(self) -> str | None:
-        return self.app_table.get("appname").replace("/", "_").replace("\\", "_")
-
-    @property
-    def version(self) -> str | None:
-        return self.app_table.get("version")
+        return self.include_table.get("wheels")
 
     def errors(self) -> list[str]:
         error_details = []
@@ -131,7 +158,7 @@ class EnvironmentSpec:
     
     @property
     def lock_hash(self) -> str:
-        if self.lockdata and self._lock_hash is None:
+        if self._lock_hash is None and self.lockdata:
             lock_bytes = self.lockdata.encode("utf8")
             self._lock_hash = _laz.hashlib.sha3_256(lock_bytes).hexdigest()
         return self._lock_hash
@@ -150,6 +177,7 @@ class EnvironmentSpec:
 
         # noinspection PyArgumentList
         return EnvironmentDetails(
+            script_path=self.script_path,
             requires_python=requires_python,
             dependencies=dependencies,
             tool_table=tool_table,
