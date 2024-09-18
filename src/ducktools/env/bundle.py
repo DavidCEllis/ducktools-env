@@ -31,7 +31,7 @@ import importlib.resources
 
 from . import DATA_BUNDLE_FOLDER, MINIMUM_PYTHON_STR, bootstrap_requires
 from .platform_paths import ManagedPaths
-from .exceptions import ScriptNameClash
+from .exceptions import InvalidEnvironmentSpec, InvalidBundleScript
 from .environment_specs import EnvironmentSpec
 
 invalid_script_names = {
@@ -65,14 +65,18 @@ def create_bundle(
                              name required for bootstrapping.
     """
     script_path = Path(script_file)
+    spec = EnvironmentSpec.from_script(script_path)
+
+    if spec.details.app and not spec.lock_hash:
+        raise InvalidEnvironmentSpec("Application scripts require a lockfile")
 
     if script_path.suffix in {".pyz", ".pyzw"}:
-        sys.stderr.write(
+        raise InvalidBundleScript(
             "Bundles must be created from .py scripts not .pyz[w] archives\n"
         )
 
     if script_path.name in invalid_script_names:
-        raise ScriptNameClash(
+        raise InvalidBundleScript(
             f"Script {script_file!r} can't be bundled as the name clashes with "
             f"a script or library required for unbundling"
         )
@@ -139,7 +143,6 @@ def create_bundle(
         print("Copying script to build folder and bundling")
         shutil.copy(script_path, build_path)
 
-        spec = EnvironmentSpec.from_script(script_path)
         if sources := spec.details.data_sources:
             print("Bundling additional data")
             data_folder = build_path / DATA_BUNDLE_FOLDER
