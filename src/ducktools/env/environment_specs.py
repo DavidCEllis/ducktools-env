@@ -26,6 +26,7 @@ from ducktools.classbuilder.prefab import Prefab, as_dict, attribute
 import ducktools.scriptmetadata as scriptmetadata
 
 from .exceptions import ApplicationError
+from .config import log
 
 from ._lazy_imports import laz as _laz
 
@@ -145,7 +146,11 @@ class EnvironmentSpec:
 
     @classmethod
     def from_script(cls, script_path, lockdata: str | None = None):
-        raw_spec = scriptmetadata.parse_file(script_path).blocks.get("script", "")
+        metadata = scriptmetadata.parse_file(script_path)
+        for warning in metadata.warnings:
+            log(warning)
+
+        raw_spec = metadata.blocks.get("script", "")
         return cls(
             script_path=script_path,
             raw_spec=raw_spec,
