@@ -23,8 +23,6 @@
 import os.path
 import sys
 
-from ducktools.lazyimporter import LazyImporter, ModuleImport
-
 from .get_pip import retrieve_pip
 from .._lazy_imports import laz as _laz
 from ..platform_paths import ManagedPaths
