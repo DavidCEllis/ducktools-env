@@ -41,9 +41,9 @@ laz = LazyImporter(
         ModuleImport("warnings"),
         ModuleImport("zipfile"),
 
-        FromImport(
+        MultiFromImport(
             "ducktools.pythonfinder",
-            "list_python_installs"
+            ["list_python_installs", "PythonInstall"],
         ),
         FromImport(
             "importlib",

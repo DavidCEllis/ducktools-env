@@ -25,6 +25,8 @@
 from ducktools.classbuilder.prefab import Prefab, as_dict, attribute
 import ducktools.scriptmetadata as scriptmetadata
 
+from .exceptions import ApplicationError
+
 from ._lazy_imports import laz as _laz
 
 
@@ -61,13 +63,20 @@ class EnvironmentDetails(Prefab, kw_only=True):
         """
         Return the application details if they exist or None otherwise.
         """
-        if not self._app_details:
+        if self._app_details is None:
             try:
                 owner = self.app_table["owner"].replace("/", "_").replace("\\", "_")
-                appname = self.app_table["appname"].replace("/", "_").replace("\\", "_")
+                appname = self.app_table["name"].replace("/", "_").replace("\\", "_")
                 version = self.app_table["version"]
             except KeyError:
-                return None
+                if self.app_table:
+                    # Trying to make an application env, but missing keys
+                    raise ApplicationError(
+                        "Application environments require 'owner', 'name' and 'version' "
+                        "be defined in the [tool.ducktools.env.app] TOML block."
+                    )
+                else:
+                    return None
             else:
                 self._app_details = AppDetails(
                     owner=owner,
@@ -115,7 +124,6 @@ class EnvironmentDetails(Prefab, kw_only=True):
 class EnvironmentSpec:
     script_path: str
     raw_spec: str
-    lockdata: str | None
 
     def __init__(
         self,
@@ -128,11 +136,12 @@ class EnvironmentSpec:
     ) -> None:
         self.script_path = script_path
         self.raw_spec = raw_spec
-        self.lockdata = lockdata
 
+        self._lockdata: str | None = lockdata
         self._spec_hash: str | None = spec_hash
-        self._lock_hash: str | None = None
         self._details: EnvironmentDetails | None = details
+
+        self._lock_hash: str | None = None
 
     @classmethod
     def from_script(cls, script_path, lockdata: str | None = None):
@@ -155,7 +164,23 @@ class EnvironmentSpec:
             spec_bytes = self.raw_spec.encode("utf8")
             self._spec_hash = _laz.hashlib.sha3_256(spec_bytes).hexdigest()
         return self._spec_hash
-    
+
+    @property
+    def lockdata(self) -> str:
+        # If lockdata is None, see if there is a .lock file available
+        if self._lockdata is None:
+            lock_path = f"{self.script_path}.lock"
+            try:
+                with open(lock_path, 'r') as lockfile:
+                    self._lockdata = lockfile.read()
+            except FileNotFoundError:
+                pass
+        return self._lockdata
+
+    @lockdata.setter
+    def lockdata(self, value):
+        self._lockdata = value
+
     @property
     def lock_hash(self) -> str:
         if self._lock_hash is None and self.lockdata:
@@ -177,7 +202,6 @@ class EnvironmentSpec:
 
         # noinspection PyArgumentList
         return EnvironmentDetails(
-            script_path=self.script_path,
             requires_python=requires_python,
             dependencies=dependencies,
             tool_table=tool_table,

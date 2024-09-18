@@ -39,7 +39,7 @@ from .config import Config, log
 from .platform_paths import ManagedPaths
 from .catalogue import TempCatalogue, ApplicationCatalogue
 from .environment_specs import EnvironmentSpec
-from .exceptions import UVUnavailableError, InvalidEnvironmentSpec
+from .exceptions import UVUnavailableError, InvalidEnvironmentSpec, ApplicationError
 from ._lazy_imports import laz as _laz
 
 
@@ -143,6 +143,13 @@ class Manager(Prefab):
         # A lot of extra logic is in here to avoid doing work early
         # First try to find environments by matching hashes
         env = self.app_catalogue.find_env_hash(spec=spec)
+        if env:
+            if spec.lock_hash != env.lock_hash:
+                raise ApplicationError(
+                    "Application version is the same as the environment "
+                    "but the lockfile does not match."
+                )
+
         if env is None:
             env = self.temp_catalogue.find_env_hash(spec=spec)
 
@@ -157,7 +164,7 @@ class Manager(Prefab):
                 env = self.app_catalogue.find_env(spec=spec)
 
                 if not env:
-                    self.app_catalogue.create_env(
+                    env = self.app_catalogue.create_env(
                         spec=spec,
                         config=self.config,
                         uv_path=self.retrieve_uv(),
