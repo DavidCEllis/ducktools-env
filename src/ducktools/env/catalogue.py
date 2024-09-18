@@ -423,6 +423,7 @@ class TempCatalogue(BaseCatalogue):
                 and cache.python_version in spec.details.requires_python_spec
             ):
                 log(f"Lockfile hash {spec.lock_hash!r} matched environment {cache.name}")
+                cache.last_used = _datetime_now_iso()
                 return cache
         else:
             return None
@@ -571,11 +572,14 @@ class ApplicationCatalogue(BaseCatalogue):
             # Logic is a bit long here because if the versions match we want to
             # avoid generating the packaging.version. Otherwise we would check
             # for the outdated version first.
+
             if spec.lock_hash == cache.lock_hash:
                 if details.app.version == cache.version:
+                    cache.last_used = _datetime_now_iso()
                     env = cache
                 elif details.app.version_spec > cache.version_spec:
                     # Update cache version number
+                    cache.last_used = _datetime_now_iso()
                     env = cache
                     env.version = details.app.version
                 else:
@@ -609,6 +613,7 @@ class ApplicationCatalogue(BaseCatalogue):
                         f"app version: {details.app.version} \n"
                         f"installed version: {cache.version}"
                     )
+
         return env
 
     def create_env(
