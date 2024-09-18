@@ -79,9 +79,6 @@ class Manager(Prefab):
         return _laz.retrieve_pip(paths=self.paths)
 
     def retrieve_uv(self, required=False) -> str | None:
-        import inspect
-        for f in inspect.stack():
-            print(f.code_context)
         if self.config.use_uv or required:
             uv_path = _laz.retrieve_uv(paths=self.paths)
         else:
