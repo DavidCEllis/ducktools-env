@@ -61,10 +61,11 @@ class FixedArgumentParser(argparse.ArgumentParser):
         return self.formatter_class(prog=self.prog, width=columns-2)
 
 
-def main():
+def get_parser(exit_on_error=True) -> FixedArgumentParser:
     parser = FixedArgumentParser(
         prog="ducktools-env",
         description="Script runner and bundler for scripts with inline dependencies",
+        exit_on_error=exit_on_error,
     )
 
     parser.add_argument("-V", "--version", action="version", version=__version__)
@@ -78,6 +79,7 @@ def main():
     )
 
     run_parser.add_argument("script_filename", help="Path to the script to run")
+    run_parser.add_argument("script_args", nargs="*", help="Arguments to pass on to the script")
 
     run_lock_group = run_parser.add_mutually_exclusive_group()
     run_lock_group.add_argument(
@@ -156,9 +158,29 @@ def main():
         help="Also create the portable ducktools.pyz zipapp",
     )
 
-    args, extras = parser.parse_known_args()
+    return parser
 
-    # Finally create a manager
+
+def main():
+
+    parser = get_parser()
+    args, unknown = parser.parse_known_args()
+
+    if unknown:
+        # "run" needs to be able to handle ambiguous arguments
+        # ie: things that look like positional args should be passed on.
+        # This should only be done for arguments placed *after* the script name
+        if args.command == "run":
+            raw_args = sys.argv[1:]
+            _script_args = raw_args.index(args.script_filename) + 1
+            new_args = [*raw_args[:_script_args], "--", *raw_args[_script_args:]]
+            # re-parse
+            args = parser.parse_args(new_args)
+        else:
+            unknown_s = " ".join(unknown)
+            parser.error(f"unrecognised arguments: {unknown_s}")
+
+    # Create a manager
     manager = _laz.Manager(PROJECT_NAME)
 
     if args.command == "run":
@@ -178,14 +200,9 @@ def main():
 
         manager.run_direct_script(
             spec=spec,
-            args=extras,
+            args=args.script_args,
         )
     elif args.command == "bundle":
-        if extras:
-            arg_text = ' '.join(extras)
-            sys.stderr.write(f"Unrecognised arguments: {arg_text}")
-            return
-
         spec = _laz.EnvironmentSpec.from_script(
             script_path=args.script_filename
         )
@@ -214,21 +231,11 @@ def main():
             f.write(lockdata)
 
     elif args.command == "clear_cache":
-        if extras:
-            arg_text = ' '.join(extras)
-            sys.stderr.write(f"Unrecognised arguments: {arg_text}")
-            return
-
         if args.full:
             manager.clear_project_folder()
         else:
             manager.clear_temporary_cache()
     elif args.command == "rebuild_env":
-        if extras:
-            arg_text = ' '.join(extras)
-            sys.stderr.write(f"Unrecognised arguments: {arg_text}")
-            return
-
         manager.build_env_folder()
         if args.zipapp:
             manager.build_zipapp()
