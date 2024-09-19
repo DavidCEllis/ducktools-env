@@ -37,14 +37,6 @@ Environment data and the application itself will be stored in the following loca
 * Windows: `%LOCALAPPDATA%\ducktools\env`
 * Linux/Mac/Other: `~/.ducktools/env`
 
-## Discovering Python Installs ##
-
-When you run a script with ducktools-env it will look at the inline dependencies.
-
-It will use [ducktools-pythonfinder](https://github.com/DavidCEllis/ducktools-pythonfinder) to attempt
-to find the newest valid python install (not a venv) that satisfies any python requirement. See its own 
-page for which python installs it can find.
-
 ## Usage ##
 
 Either install the tool from PyPI or simply download the zipapp from github.
@@ -93,6 +85,7 @@ Bundle a script and generate a lockfile (that will be bundled)
 Bundle a script with a pre-generated lockfile
 `python ducktools.pyz bundle --with-lock my_script.py.lock my_script.py`
 
+If a `my_script.py.lock` file exists it will automatically be used.
 
 ## Including data files with script bundles ##
 
@@ -136,14 +129,55 @@ with get_data_folder() as fld_name:
         print(f)
 ```
 
+## Application Environments ##
+
+If you wish your script to persist as an "application" you can define 'owner', 'name' and 'version'
+fields.
+
+```python
+# /// script
+# requires-python = ">=3.8.0"
+# dependencies = ["cowsay"]
+# [tool.ducktools.env]
+# app.owner = "ducktools_testing"
+# app.name = "cowsay_example"
+# app.version = "0.1.0"
+# ///
+
+from cowsay.__main__ import cli
+
+if __name__ == "__main__":
+    cli()
+```
+
+## Listing and deleting environments ##
+
+Existing environments can be listed with the command
+
+`python ducktools.pyz list`
+
+and deleted with 
+
+`python ducktools.pyz delete_env <envname>`
+
+where `<envname>` is the `name` of a temporary environment or the combination 
+`owner/name` of an application environment as shown in the list.
+
+## Discovering Python Installs ##
+
+When you run a script with ducktools-env it will look at the inline dependencies for the
+version of Python needed to run the script.
+
+It will use [ducktools-pythonfinder](https://github.com/DavidCEllis/ducktools-pythonfinder) to attempt
+to find the newest valid CPython install (not a venv) that satisfies any python requirement. See its own 
+page for which python installs it can find.
+
 ## Goals ##
 
 Future goals for this tool:
 
 * Optionally bundle requirements inside the zipapp for use without a connection.
 * Allow bundling of local wheel files unavailable on PyPI
-* Create 'permanent' named environments for stand-alone applications and update them
-  * Currently there is a maximum of 10 temporary environments that expire in two weeks
 * Automatically install required Python if UV is available
 
 ## Dependencies ##
@@ -162,7 +196,7 @@ PyPI:
 * `ducktools-scriptmetadata` (The parser for inline script metadata blocks)
 * `ducktools-pythonfinder` (A tool to discover python installs available for environment creation)
 * `packaging` (for comparing dependency lists to cached environments)
-* `tomli` (for Python 3.10 and earlier to support the TOML format)
+* `tomli` (for Python 3.10 to support the TOML format)
 
 ## Other tools in this space ##
 
