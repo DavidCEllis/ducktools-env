@@ -25,7 +25,7 @@ import os
 
 import argparse
 
-from collections.abc import Iterable
+from collections.abc import Callable, Generator, Iterable
 
 from ducktools.lazyimporter import LazyImporter, FromImport
 
@@ -198,7 +198,22 @@ def get_parser(exit_on_error=True) -> FixedArgumentParser:
     return parser
 
 
-def get_columns(*, data: Iterable, headings: list[str], attributes: list[str]) -> Iterable[str]:
+def get_columns(
+    *,
+    data: Iterable,
+    headings: list[str],
+    attributes: list[str],
+    getter: Callable[[object, str], str] = getattr,
+) -> Generator[str]:
+    """
+    A helper function to generate a table to print with correct column widths
+
+    :param data: input data
+    :param headings: headings for the top of the table
+    :param attributes: attribute names to use for each column
+    :param getter: attribute getter function (ex: getattr, dict.get)
+    :return: Generator of column lines
+    """
     if len(headings) != len(attributes):
         raise TypeError("Must be the same number of headings as attributes")
 
@@ -210,7 +225,7 @@ def get_columns(*, data: Iterable, headings: list[str], attributes: list[str]) -
     for d in data:
         row = []
         for attrib in attributes:
-            d_text = getattr(d, attrib)
+            d_text = f"{getter(d, attrib)}"
             d_len = len(d_text)
             widths[f"{attrib}"] = max(widths[attrib], d_len)
             row.append(d_text)
