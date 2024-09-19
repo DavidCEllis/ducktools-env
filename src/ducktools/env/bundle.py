@@ -50,6 +50,7 @@ def create_bundle(
     paths: ManagedPaths,
     installer_command: list[str],
     lockdata: str | None = None,
+    compressed: bool = False,
 ) -> None:
     """
     Create a zipapp bundle for the inline script
@@ -61,6 +62,7 @@ def create_bundle(
                         scriptfile path will be used with `.pyz` added as
                         file extension
     :param lockdata: Content of lockfile or None
+    :param compressed: Compress the archive bundle
     :raises ScriptNameClash: error raised if the script name clashes with a 
                              name required for bootstrapping.
     """
@@ -169,6 +171,7 @@ def create_bundle(
             source=build_folder,
             target=archive_path,
             interpreter="/usr/bin/env python",
+            compressed=compressed,
         )
 
     print(f"Bundled '{script_file}' as '{archive_path}'")

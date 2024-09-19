@@ -111,6 +111,11 @@ def get_parser(exit_on_error=True) -> FixedArgumentParser:
         help="Path to the script to bundle into a zipapp",
     )
     bundle_parser.add_argument(
+        "--compress",
+        help="Compress the resulting zipapp archive",
+        action="store_true",
+    )
+    bundle_parser.add_argument(
         "-o", "--output",
         help="Output to given filename",
         action="store",
@@ -309,6 +314,7 @@ def main():
         manager.create_bundle(
             spec=spec,
             output_file=args.output,
+            compressed=args.compress,
         )
     elif args.command == "generate_lock":
         uv_path = manager.retrieve_uv(required=True)
