@@ -72,6 +72,11 @@ class BaseEnv(Prefab, kw_only=True):
         return _datetime.fromisoformat(self.last_used)
 
     @property
+    def last_used_simple(self) -> str:
+        """last used date without the sub-second part"""
+        return self.last_used_date.strftime("%Y-%m-%d %H:%M:%S")
+
+    @property
     def exists(self) -> bool:
         return os.path.exists(self.python_path)
 

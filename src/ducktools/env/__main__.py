@@ -24,6 +24,9 @@ import sys
 import os
 
 import argparse
+
+from collections.abc import Iterable
+
 from ducktools.lazyimporter import LazyImporter, FromImport
 
 from ducktools.env import __version__, PROJECT_NAME
@@ -79,7 +82,11 @@ def get_parser(exit_on_error=True) -> FixedArgumentParser:
     )
 
     run_parser.add_argument("script_filename", help="Path to the script to run")
-    run_parser.add_argument("script_args", nargs="*", help="Arguments to pass on to the script")
+    run_parser.add_argument(
+        "script_args",
+        nargs="*",
+        help="Arguments to pass on to the script"
+    )
 
     run_lock_group = run_parser.add_mutually_exclusive_group()
     run_lock_group.add_argument(
@@ -99,7 +106,10 @@ def get_parser(exit_on_error=True) -> FixedArgumentParser:
         help="Bundle the provided python script with inline dependencies into a python zipapp",
     )
 
-    bundle_parser.add_argument("script_filename", help="Path to the script to bundle into a zipapp")
+    bundle_parser.add_argument(
+        "script_filename",
+        help="Path to the script to bundle into a zipapp"
+    )
     bundle_parser.add_argument(
         "-o", "--output",
         help="Output to given filename",
@@ -158,11 +168,67 @@ def get_parser(exit_on_error=True) -> FixedArgumentParser:
         help="Also create the portable ducktools.pyz zipapp",
     )
 
+    list_parser = subparsers.add_parser(
+        "list",
+        help="List the Python virtual environments managed by ducktools-env",
+    )
+
+    list_type_group = list_parser.add_mutually_exclusive_group()
+    list_type_group.add_argument(
+        "--temp",
+        action="store_true",
+        help="Only list temporary environments"
+    )
+    list_type_group.add_argument(
+        "--app",
+        action="store_true",
+        help="Only list application environments"
+    )
+
     return parser
 
 
-def main():
+def get_columns(*, data: Iterable, headings: list[str], attributes: list[str]) -> Iterable[str]:
+    if len(headings) != len(attributes):
+        raise TypeError("Must be the same number of headings as attributes")
 
+    widths = {
+        f"{attrib}": len(head) for attrib, head in zip(attributes, headings)
+    }
+
+    data_rows = []
+    for d in data:
+        row = []
+        for attrib in attributes:
+            d_text = getattr(d, attrib)
+            d_len = len(d_text)
+            widths[f"{attrib}"] = max(widths[attrib], d_len)
+            row.append(d_text)
+        data_rows.append(row)
+
+    yield (
+        "| "
+        + " | ".join(f"{head:<{widths[attrib]}}"
+                     for head, attrib in zip(headings, attributes))
+        + " |"
+    )
+    yield (
+        "| "
+        + " | ".join("-" * widths[attrib]
+                     for attrib in attributes)
+        + " |"
+    )
+
+    for row in data_rows:
+        yield (
+            "| "
+            + " | ".join(f"{item:<{widths[attrib]}}"
+                         for item, attrib in zip(row, attributes))
+            + " |"
+        )
+
+
+def main():
     parser = get_parser()
     args, unknown = parser.parse_known_args()
 
@@ -239,6 +305,36 @@ def main():
         manager.build_env_folder()
         if args.zipapp:
             manager.build_zipapp()
+    elif args.command == "list":
+        has_envs = False
+        if manager.temp_catalogue.environments and not args.app:
+            has_envs = True
+            print("Temporary Environments")
+            print("======================")
+            formatted = get_columns(
+                data=manager.temp_catalogue.environments.values(),
+                headings=["Name", "Last Used"],
+                attributes=["name", "last_used_simple"]
+            )
+            for line in formatted:
+                print(line)
+            if not args.temp:
+                print()
+
+        if manager.app_catalogue.environments and not args.temp:
+            has_envs = True
+            print("Application environments")
+            print("========================")
+            formatted = get_columns(
+                data=manager.app_catalogue.environments.values(),
+                headings=["Owner / Name", "Last Used"],
+                attributes=["name", "last_used_simple"]
+            )
+            for line in formatted:
+                print(line)
+
+        if has_envs is False:
+            print("No environments managed by ducktools-env")
     else:
         # Should be unreachable
         raise ValueError("Invalid command")
