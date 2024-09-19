@@ -171,4 +171,4 @@ def create_bundle(
             interpreter="/usr/bin/env python",
         )
 
-    print(f"Bundled {script_file!r} as '{archive_path}'")
+    print(f"Bundled '{script_file}' as '{archive_path}'")
