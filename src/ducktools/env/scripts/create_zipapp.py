@@ -168,7 +168,7 @@ def build_zipapp(
             platform_paths_path = env_folder / "platform_paths.py"
             bootstrap_path = env_folder / "bootstrapping" / "bootstrap.py"
             main_zipapp_path = env_folder / "bootstrapping" / "zipapp_main.py"
-            check_outdated_path = env_folder / "check_outdated_python.py"
+            version_check_path = env_folder / "bootstrapping" / "version_check.py"
 
             print("Copying platform paths")
             shutil.copy(platform_paths_path, os.path.join(build_folder, "_platform_paths.py"))
@@ -176,8 +176,8 @@ def build_zipapp(
             print("Copying bootstrap script")
             shutil.copy(bootstrap_path, os.path.join(build_folder, "_bootstrap.py"))
 
-            print("copying outdated python check script")
-            shutil.copy(check_outdated_path, os.path.join(build_folder, "_check_outdated_python.py"))
+            print("Copying version check script")
+            shutil.copy(version_check_path, os.path.join(build_folder, "_version_check.py"))
 
             print("Copying __main__ script")
             shutil.copy(main_zipapp_path, os.path.join(build_folder, "__main__.py"))
