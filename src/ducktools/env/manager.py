@@ -129,7 +129,7 @@ class Manager(Prefab):
 
     def clear_temporary_cache(self):
         # Clear the temporary environment cache
-        log(f"Deleting temporary caches at {self.paths.cache_folder!r}")
+        log(f"Deleting temporary caches at \"{self.paths.cache_folder}\"")
         self.temp_catalogue.purge_folder()
 
     def clear_project_folder(self):
