@@ -86,14 +86,19 @@ def create_bundle(
         print(f"Building bundle in {build_folder!r}")
         print("Copying libraries into build folder")
         # Don't copy UV - it's platform dependent
+        # Don't copy __pycache__ folders either
         uv_base_exe = "uv.exe" if sys.platform == "win32" else "uv"
-        uv_pattern = shutil.ignore_patterns(uv_base_exe, f"{uv_base_exe}.version")
+        ignore_patterns = shutil.ignore_patterns(
+            "__pycache__",
+            uv_base_exe,
+            f"{uv_base_exe}.version"
+        )
 
         # Copy pip and ducktools zipapps into folder
         shutil.copytree(
             paths.manager_folder,
             build_path,
-            ignore=uv_pattern,
+            ignore=ignore_patterns,
             dirs_exist_ok=True,
         )
 
