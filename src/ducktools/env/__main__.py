@@ -85,7 +85,7 @@ def get_parser(exit_on_error=True) -> FixedArgumentParser:
     run_parser.add_argument(
         "script_args",
         nargs="*",
-        help="Arguments to pass on to the script"
+        help="Arguments to pass on to the script",
     )
 
     run_lock_group = run_parser.add_mutually_exclusive_group()
@@ -108,7 +108,7 @@ def get_parser(exit_on_error=True) -> FixedArgumentParser:
 
     bundle_parser.add_argument(
         "script_filename",
-        help="Path to the script to bundle into a zipapp"
+        help="Path to the script to bundle into a zipapp",
     )
     bundle_parser.add_argument(
         "-o", "--output",
@@ -131,12 +131,12 @@ def get_parser(exit_on_error=True) -> FixedArgumentParser:
     # 'generate_lock' command and args
     generate_lock_parser = subparsers.add_parser(
         "generate_lock",
-        help="Generate a lockfile based on inline dependencies in a script"
+        help="Generate a lockfile based on inline dependencies in a script",
     )
 
     generate_lock_parser.add_argument(
         "script_filename",
-        help="Path to the script to use to generate a lockfile"
+        help="Path to the script to use to generate a lockfile",
     )
 
     generate_lock_parser.add_argument(
@@ -159,7 +159,7 @@ def get_parser(exit_on_error=True) -> FixedArgumentParser:
     # 'rebuild_env' command and args
     create_zipapp_parser = subparsers.add_parser(
         "rebuild_env",
-        help="Recreate the ducktools-env library cache from the installed package"
+        help="Recreate the ducktools-env library cache from the installed package",
     )
 
     create_zipapp_parser.add_argument(
@@ -177,12 +177,22 @@ def get_parser(exit_on_error=True) -> FixedArgumentParser:
     list_type_group.add_argument(
         "--temp",
         action="store_true",
-        help="Only list temporary environments"
+        help="Only list temporary environments",
     )
     list_type_group.add_argument(
         "--app",
         action="store_true",
-        help="Only list application environments"
+        help="Only list application environments",
+    )
+
+    delete_parser = subparsers.add_parser(
+        "delete_env",
+        help="Delete a specific environment by name",
+    )
+
+    delete_parser.add_argument(
+        "environment_name",
+        help="Name of the environment to delete",
     )
 
     return parser
@@ -295,7 +305,6 @@ def main():
         out_path = args.output if args.output else f"{args.script_filename}.lock"
         with open(out_path, "w") as f:
             f.write(lockdata)
-
     elif args.command == "clear_cache":
         if args.full:
             manager.clear_project_folder()
@@ -335,6 +344,16 @@ def main():
 
         if has_envs is False:
             print("No environments managed by ducktools-env")
+    elif args.command == "delete_env":
+        envname = args.environment_name
+        if envname in manager.temp_catalogue.environments:
+            manager.temp_catalogue.delete_env(envname)
+            print(f"Temporary environment {envname!r} deleted")
+        elif envname in manager.app_catalogue.environments:
+            manager.app_catalogue.delete_env(envname)
+            print(f"Application environment {envname!r} deleted")
+        else:
+            print(f"Environment {envname!r} not found")
     else:
         # Should be unreachable
         raise ValueError("Invalid command")
