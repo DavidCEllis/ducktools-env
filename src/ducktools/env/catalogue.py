@@ -195,6 +195,10 @@ class BaseCatalogue:
         """
         for cache in self.environments.values():
             if spec.spec_hash in cache.spec_hashes:
+                if spec.lock_hash and (spec.lock_hash != cache.lock_hash):
+                    log(f"Input spec matched {cache.name}, but lockfile did not match.")
+                    continue
+
                 log(f"Hash {spec.spec_hash!r} matched environment {cache.name}")
 
                 if not cache.is_valid:
