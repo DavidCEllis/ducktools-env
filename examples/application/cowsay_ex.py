@@ -14,7 +14,16 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+# /// script
+# requires-python = ">=3.8.0"
+# dependencies = ["cowsay"]
+# [tool.ducktools.env]
+# app.owner = "ducktools_testing"
+# app.name = "cowsay_example"
+# app.version = "v0.1.0"
+# ///
 
-def test_python_install_fixture(this_python):
-    from ducktools.env._lazy_imports import laz
-    assert laz.list_python_installs() == [this_python]
+from cowsay.__main__ import cli
+
+if __name__ == "__main__":
+    cli()

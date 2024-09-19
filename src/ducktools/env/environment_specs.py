@@ -20,50 +20,71 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from __future__ import annotations
 
-from ducktools.lazyimporter import (
-    LazyImporter,
-    FromImport,
-    ModuleImport,
-    MultiFromImport,
-    TryExceptImport,
-)
 
-from ducktools.classbuilder.prefab import Prefab, as_dict
+from ducktools.classbuilder.prefab import Prefab, as_dict, attribute
 import ducktools.scriptmetadata as scriptmetadata
 
+from .exceptions import ApplicationError
+from .config import log
 
-# Lazy importers for modules that may not be used
-_laz = LazyImporter(
-    [
-        TryExceptImport(
-            "tomllib",
-            "tomli",
-            "tomllib",
-        ),
-        ModuleImport("warnings"),
-        ModuleImport("subprocess"),
-        ModuleImport("hashlib"),
-        MultiFromImport(
-            "packaging.requirements",
-            ["Requirement", "InvalidRequirement"],
-        ),
-        MultiFromImport(
-            "packaging.specifiers",
-            ["SpecifierSet", "InvalidSpecifier"],
-        ),
-        FromImport(
-            "importlib", "metadata"
-        ),
-    ],
-)
+from ._lazy_imports import laz as _laz
+
+
+class AppDetails(Prefab, kw_only=True):
+    owner: str
+    appname: str
+    version: str
+
+    @property
+    def version_spec(self):
+        return _laz.Version(self.version)
+
+    @property
+    def appkey(self):
+        return f"{self.owner}/{self.appname}"
 
 
 class EnvironmentDetails(Prefab, kw_only=True):
     requires_python: str | None
     dependencies: list[str]
     tool_table: dict
+    _app_details: AppDetails | None = attribute(default=None, private=True)
+
+    @property
+    def app_table(self) -> dict:
+        return self.tool_table.get("app", {})
+
+    @property
+    def include_table(self):
+        return self.tool_table.get("include", {})
+
+    @property
+    def app(self) -> AppDetails | None:
+        """
+        Return the application details if they exist or None otherwise.
+        """
+        if self._app_details is None:
+            try:
+                owner = self.app_table["owner"].replace("/", "_").replace("\\", "_")
+                appname = self.app_table["name"].replace("/", "_").replace("\\", "_")
+                version = self.app_table["version"]
+            except KeyError:
+                if self.app_table:
+                    # Trying to make an application env, but missing keys
+                    raise ApplicationError(
+                        "Application environments require 'owner', 'name' and 'version' "
+                        "be defined in the [tool.ducktools.env.app] TOML block."
+                    )
+                else:
+                    return None
+            else:
+                self._app_details = AppDetails(
+                    owner=owner,
+                    appname=appname,
+                    version=version,
+                )
+        return self._app_details
 
     @property
     def requires_python_spec(self):
@@ -74,12 +95,13 @@ class EnvironmentDetails(Prefab, kw_only=True):
         return [_laz.Requirement(dep) for dep in self.dependencies]
 
     @property
-    def bundle_table(self) -> dict:
-        return self.tool_table.get("bundle", {})
+    def data_sources(self) -> list[str] | None:
+        return self.include_table.get("data")
 
     @property
-    def data_sources(self) -> list[str] | None:
-        return self.bundle_table.get("data")
+    def extra_wheels(self) -> list[str] | None:
+        # Not supported yet
+        return self.include_table.get("wheels")
 
     def errors(self) -> list[str]:
         error_details = []
@@ -103,7 +125,6 @@ class EnvironmentDetails(Prefab, kw_only=True):
 class EnvironmentSpec:
     script_path: str
     raw_spec: str
-    lockdata: str | None
 
     def __init__(
         self,
@@ -116,15 +137,20 @@ class EnvironmentSpec:
     ) -> None:
         self.script_path = script_path
         self.raw_spec = raw_spec
-        self.lockdata = lockdata
 
+        self._lockdata: str | None = lockdata
         self._spec_hash: str | None = spec_hash
-        self._lock_hash: str | None = None
         self._details: EnvironmentDetails | None = details
+
+        self._lock_hash: str | None = None
 
     @classmethod
     def from_script(cls, script_path, lockdata: str | None = None):
-        raw_spec = scriptmetadata.parse_file(script_path).blocks.get("script", "")
+        metadata = scriptmetadata.parse_file(script_path)
+        for warning in metadata.warnings:
+            log(warning)
+
+        raw_spec = metadata.blocks.get("script", "")
         return cls(
             script_path=script_path,
             raw_spec=raw_spec,
@@ -143,10 +169,26 @@ class EnvironmentSpec:
             spec_bytes = self.raw_spec.encode("utf8")
             self._spec_hash = _laz.hashlib.sha3_256(spec_bytes).hexdigest()
         return self._spec_hash
-    
+
+    @property
+    def lockdata(self) -> str:
+        # If lockdata is None, see if there is a .lock file available
+        if self._lockdata is None:
+            lock_path = f"{self.script_path}.lock"
+            try:
+                with open(lock_path, 'r') as lockfile:
+                    self._lockdata = lockfile.read()
+            except FileNotFoundError:
+                pass
+        return self._lockdata
+
+    @lockdata.setter
+    def lockdata(self, value):
+        self._lockdata = value
+
     @property
     def lock_hash(self) -> str:
-        if self.lockdata and self._lock_hash is None:
+        if self._lock_hash is None and self.lockdata:
             lock_bytes = self.lockdata.encode("utf8")
             self._lock_hash = _laz.hashlib.sha3_256(lock_bytes).hexdigest()
         return self._lock_hash

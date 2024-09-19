@@ -20,21 +20,13 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from __future__ import annotations
-
 import os.path
 import sys
 
-from ducktools.lazyimporter import LazyImporter, ModuleImport
-from ducktools.env.platform_paths import ManagedPaths
-from ducktools.env.scripts.get_pip import retrieve_pip
-
-_laz = LazyImporter(
-    [
-        ModuleImport("shutil"),
-        ModuleImport("subprocess"),
-    ]
-)
+from .get_pip import retrieve_pip
+from ..config import log
+from .._lazy_imports import laz as _laz
+from ..platform_paths import ManagedPaths
 
 
 uv_versionspec = "~=0.4.0"
@@ -42,11 +34,21 @@ uv_versionspec = "~=0.4.0"
 uv_download = "bin/uv.exe" if sys.platform == "win32" else "bin/uv"
 
 
-def retrieve_uv(paths: ManagedPaths) -> str | None:
+def retrieve_uv(paths: ManagedPaths, reinstall: bool = False) -> str | None:
+    uv_path = None
+
     if os.path.exists(paths.uv_executable):
         uv_path = paths.uv_executable
-    else:
+        if reinstall:
+            uv_versionfile = f"{uv_path}.version"
+            os.remove(uv_path)
+            os.remove(uv_versionfile)
+            uv_path = None
+
+    if uv_path is None:
         pip_install = retrieve_pip(paths=paths)
+
+        log("Downloading UV from PyPi")
         with paths.build_folder() as build_folder:
 
             install_folder = os.path.join(build_folder, "uv")
@@ -71,7 +73,8 @@ def retrieve_uv(paths: ManagedPaths) -> str | None:
                     pip_command,
                     check=True,
                 )
-            except _laz.subprocess.CalledProcessError:
+            except _laz.subprocess.CalledProcessError as e:
+                log("UV download failed: {e}")
                 uv_path = None
             else:
                 # Copy the executable out of the pip install

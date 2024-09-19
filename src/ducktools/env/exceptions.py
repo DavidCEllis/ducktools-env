@@ -34,11 +34,17 @@ class InvalidEnvironmentSpec(EnvError):
     pass
 
 
-class VenvBuildError(EnvError):
+class InvalidBundleScript(EnvError):
     pass
 
 
-class SpecificationError(EnvError):
+class ApplicationError(EnvError):
+    """
+    Error if an outdated application attempted to run
+    """
+
+
+class VenvBuildError(EnvError):
     pass
 
 
@@ -48,13 +54,8 @@ class InvalidPipDownload(EnvError):
     the value this application has for that version.
     """
 
+
 class UVUnavailableError(EnvError):
     """
     Error if UV is not available and can't be installed.
-    """
-
-class ScriptNameClash(EnvError):
-    """
-    Error if the name of the python script to be bundled clashes with
-    an included library.
     """

@@ -24,6 +24,9 @@ import sys
 import os
 
 import argparse
+
+from collections.abc import Callable, Generator, Iterable
+
 from ducktools.lazyimporter import LazyImporter, FromImport
 
 from ducktools.env import __version__, PROJECT_NAME
@@ -61,10 +64,11 @@ class FixedArgumentParser(argparse.ArgumentParser):
         return self.formatter_class(prog=self.prog, width=columns-2)
 
 
-def main():
+def get_parser(exit_on_error=True) -> FixedArgumentParser:
     parser = FixedArgumentParser(
         prog="ducktools-env",
         description="Script runner and bundler for scripts with inline dependencies",
+        exit_on_error=exit_on_error,
     )
 
     parser.add_argument("-V", "--version", action="version", version=__version__)
@@ -78,6 +82,11 @@ def main():
     )
 
     run_parser.add_argument("script_filename", help="Path to the script to run")
+    run_parser.add_argument(
+        "script_args",
+        nargs="*",
+        help="Arguments to pass on to the script",
+    )
 
     run_lock_group = run_parser.add_mutually_exclusive_group()
     run_lock_group.add_argument(
@@ -97,7 +106,10 @@ def main():
         help="Bundle the provided python script with inline dependencies into a python zipapp",
     )
 
-    bundle_parser.add_argument("script_filename", help="Path to the script to bundle into a zipapp")
+    bundle_parser.add_argument(
+        "script_filename",
+        help="Path to the script to bundle into a zipapp",
+    )
     bundle_parser.add_argument(
         "-o", "--output",
         help="Output to given filename",
@@ -119,12 +131,12 @@ def main():
     # 'generate_lock' command and args
     generate_lock_parser = subparsers.add_parser(
         "generate_lock",
-        help="Generate a lockfile based on inline dependencies in a script"
+        help="Generate a lockfile based on inline dependencies in a script",
     )
 
     generate_lock_parser.add_argument(
         "script_filename",
-        help="Path to the script to use to generate a lockfile"
+        help="Path to the script to use to generate a lockfile",
     )
 
     generate_lock_parser.add_argument(
@@ -147,7 +159,7 @@ def main():
     # 'rebuild_env' command and args
     create_zipapp_parser = subparsers.add_parser(
         "rebuild_env",
-        help="Recreate the ducktools-env library cache from the installed package"
+        help="Recreate the ducktools-env library cache from the installed package",
     )
 
     create_zipapp_parser.add_argument(
@@ -156,9 +168,110 @@ def main():
         help="Also create the portable ducktools.pyz zipapp",
     )
 
-    args, extras = parser.parse_known_args()
+    list_parser = subparsers.add_parser(
+        "list",
+        help="List the Python virtual environments managed by ducktools-env",
+    )
 
-    # Finally create a manager
+    list_type_group = list_parser.add_mutually_exclusive_group()
+    list_type_group.add_argument(
+        "--temp",
+        action="store_true",
+        help="Only list temporary environments",
+    )
+    list_type_group.add_argument(
+        "--app",
+        action="store_true",
+        help="Only list application environments",
+    )
+
+    delete_parser = subparsers.add_parser(
+        "delete_env",
+        help="Delete a specific environment by name",
+    )
+
+    delete_parser.add_argument(
+        "environment_name",
+        help="Name of the environment to delete",
+    )
+
+    return parser
+
+
+def get_columns(
+    *,
+    data: Iterable,
+    headings: list[str],
+    attributes: list[str],
+    getter: Callable[[object, str], str] = getattr,
+) -> Generator[str]:
+    """
+    A helper function to generate a table to print with correct column widths
+
+    :param data: input data
+    :param headings: headings for the top of the table
+    :param attributes: attribute names to use for each column
+    :param getter: attribute getter function (ex: getattr, dict.get)
+    :return: Generator of column lines
+    """
+    if len(headings) != len(attributes):
+        raise TypeError("Must be the same number of headings as attributes")
+
+    widths = {
+        f"{attrib}": len(head) for attrib, head in zip(attributes, headings)
+    }
+
+    data_rows = []
+    for d in data:
+        row = []
+        for attrib in attributes:
+            d_text = f"{getter(d, attrib)}"
+            d_len = len(d_text)
+            widths[f"{attrib}"] = max(widths[attrib], d_len)
+            row.append(d_text)
+        data_rows.append(row)
+
+    yield (
+        "| "
+        + " | ".join(f"{head:<{widths[attrib]}}"
+                     for head, attrib in zip(headings, attributes))
+        + " |"
+    )
+    yield (
+        "| "
+        + " | ".join("-" * widths[attrib]
+                     for attrib in attributes)
+        + " |"
+    )
+
+    for row in data_rows:
+        yield (
+            "| "
+            + " | ".join(f"{item:<{widths[attrib]}}"
+                         for item, attrib in zip(row, attributes))
+            + " |"
+        )
+
+
+def main():
+    parser = get_parser()
+    args, unknown = parser.parse_known_args()
+
+    if unknown:
+        # "run" needs to be able to handle ambiguous arguments
+        # ie: things that look like positional args should be passed on.
+        # This should only be done for arguments placed *after* the script name
+        if args.command == "run":
+            raw_args = sys.argv[1:]
+            _script_args = raw_args.index(args.script_filename) + 1
+            new_args = [*raw_args[:_script_args], "--", *raw_args[_script_args:]]
+            # re-parse
+            args = parser.parse_args(new_args)
+        else:
+            unknown_s = " ".join(unknown)
+            parser.error(f"unrecognised arguments: {unknown_s}")
+
+    # Create a manager
     manager = _laz.Manager(PROJECT_NAME)
 
     if args.command == "run":
@@ -178,14 +291,9 @@ def main():
 
         manager.run_direct_script(
             spec=spec,
-            args=extras,
+            args=args.script_args,
         )
     elif args.command == "bundle":
-        if extras:
-            arg_text = ' '.join(extras)
-            sys.stderr.write(f"Unrecognised arguments: {arg_text}")
-            return
-
         spec = _laz.EnvironmentSpec.from_script(
             script_path=args.script_filename
         )
@@ -212,26 +320,55 @@ def main():
         out_path = args.output if args.output else f"{args.script_filename}.lock"
         with open(out_path, "w") as f:
             f.write(lockdata)
-
     elif args.command == "clear_cache":
-        if extras:
-            arg_text = ' '.join(extras)
-            sys.stderr.write(f"Unrecognised arguments: {arg_text}")
-            return
-
         if args.full:
             manager.clear_project_folder()
         else:
             manager.clear_temporary_cache()
     elif args.command == "rebuild_env":
-        if extras:
-            arg_text = ' '.join(extras)
-            sys.stderr.write(f"Unrecognised arguments: {arg_text}")
-            return
-
         manager.build_env_folder()
         if args.zipapp:
             manager.build_zipapp()
+    elif args.command == "list":
+        has_envs = False
+        if manager.temp_catalogue.environments and not args.app:
+            has_envs = True
+            print("Temporary Environments")
+            print("======================")
+            formatted = get_columns(
+                data=manager.temp_catalogue.environments.values(),
+                headings=["Name", "Last Used"],
+                attributes=["name", "last_used_simple"]
+            )
+            for line in formatted:
+                print(line)
+            if not args.temp:
+                print()
+
+        if manager.app_catalogue.environments and not args.temp:
+            has_envs = True
+            print("Application environments")
+            print("========================")
+            formatted = get_columns(
+                data=manager.app_catalogue.environments.values(),
+                headings=["Owner / Name", "Last Used"],
+                attributes=["name", "last_used_simple"]
+            )
+            for line in formatted:
+                print(line)
+
+        if has_envs is False:
+            print("No environments managed by ducktools-env")
+    elif args.command == "delete_env":
+        envname = args.environment_name
+        if envname in manager.temp_catalogue.environments:
+            manager.temp_catalogue.delete_env(envname)
+            print(f"Temporary environment {envname!r} deleted")
+        elif envname in manager.app_catalogue.environments:
+            manager.app_catalogue.delete_env(envname)
+            print(f"Application environment {envname!r} deleted")
+        else:
+            print(f"Environment {envname!r} not found")
     else:
         # Should be unreachable
         raise ValueError("Invalid command")

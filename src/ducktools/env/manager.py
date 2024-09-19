@@ -20,13 +20,10 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from __future__ import annotations
-
 import sys
 import os
 import os.path
 
-from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport, MultiFromImport
 from ducktools.classbuilder.prefab import Prefab, attribute
 
 from . import (
@@ -40,32 +37,10 @@ from . import (
 )
 from .config import Config, log
 from .platform_paths import ManagedPaths
-from .catalogue import TempCatalogue
+from .catalogue import TempCatalogue, ApplicationCatalogue
 from .environment_specs import EnvironmentSpec
-from .exceptions import UVUnavailableError
-
-
-_laz = LazyImporter(
-    [
-        # stdlib
-        ModuleImport("shutil"),
-        ModuleImport("subprocess"),
-        # third party
-        MultiFromImport(
-            "packaging.version",
-            ["Version", "InvalidVersion"]
-        ),
-        # internal
-        FromImport(".bundle", "create_bundle"),
-        MultiFromImport(
-            ".scripts.create_zipapp",
-            ["build_env_folder", "build_zipapp"]
-        ),
-        FromImport(".scripts.get_pip", "retrieve_pip"),
-        FromImport(".scripts.get_uv", "retrieve_uv"),
-    ],
-    globs=globals(),
-)
+from .exceptions import UVUnavailableError, InvalidEnvironmentSpec, ApplicationError
+from ._lazy_imports import laz as _laz
 
 
 class Manager(Prefab):
@@ -74,19 +49,26 @@ class Manager(Prefab):
 
     paths: ManagedPaths = attribute(init=False, repr=False)
     _temp_catalogue: TempCatalogue | None = attribute(default=None, private=True)
+    _app_catalogue: ApplicationCatalogue | None = attribute(default=None, private=True)
 
     def __prefab_post_init__(self, config):
         self.paths = ManagedPaths(PROJECT_NAME)
         self.config = Config.load(self.paths.config_path) if config is None else config
 
     @property
-    def temp_catalogue(self):
+    def temp_catalogue(self) -> TempCatalogue:
         if self._temp_catalogue is None:
             self._temp_catalogue = TempCatalogue.load(self.paths.cache_db)
 
             # Clear expired caches on load
             self._temp_catalogue.expire_caches(self.config.cache_lifetime_delta)
         return self._temp_catalogue
+
+    @property
+    def app_catalogue(self) -> ApplicationCatalogue:
+        if self._app_catalogue is None:
+            self._app_catalogue = ApplicationCatalogue.load(self.paths.application_db)
+        return self._app_catalogue
 
     @property
     def is_installed(self):
@@ -97,9 +79,6 @@ class Manager(Prefab):
         return _laz.retrieve_pip(paths=self.paths)
 
     def retrieve_uv(self, required=False) -> str | None:
-        import inspect
-        for f in inspect.stack():
-            print(f.code_context)
         if self.config.use_uv or required:
             uv_path = _laz.retrieve_uv(paths=self.paths)
         else:
@@ -150,7 +129,7 @@ class Manager(Prefab):
 
     def clear_temporary_cache(self):
         # Clear the temporary environment cache
-        log(f"Deleting temporary caches at {self.paths.cache_folder!r}")
+        log(f"Deleting temporary caches at \"{self.paths.cache_folder}\"")
         self.temp_catalogue.purge_folder()
 
     def clear_project_folder(self):
@@ -161,16 +140,47 @@ class Manager(Prefab):
 
     # Script running and bundling commands
     def get_script_env(self, spec: EnvironmentSpec):
-        env = self.temp_catalogue.find_env(spec=spec)
+        # A lot of extra logic is in here to avoid doing work early
+        # First try to find environments by matching hashes
+        env = self.app_catalogue.find_env_hash(spec=spec)
+        if env:
+            if spec.lock_hash != env.lock_hash:
+                raise ApplicationError(
+                    "Application version is the same as the environment "
+                    "but the lockfile does not match."
+                )
 
-        if not env:
-            log("Existing environment not found, creating new environment.")
-            env = self.temp_catalogue.create_env(
-                spec=spec,
-                config=self.config,
-                uv_path=self.retrieve_uv(),
-                installer_command=self.install_base_command,
-            )
+        if env is None:
+            env = self.temp_catalogue.find_env_hash(spec=spec)
+
+        if env is None:
+            # No hash matches, need to parse the environment
+            if spec.details.app:
+                if not spec.lockdata:
+                    raise InvalidEnvironmentSpec(
+                        "Application scripts require a lockfile"
+                    )
+                # Request an application environment
+                env = self.app_catalogue.find_env(spec=spec)
+
+                if not env:
+                    env = self.app_catalogue.create_env(
+                        spec=spec,
+                        config=self.config,
+                        uv_path=self.retrieve_uv(),
+                        installer_command=self.install_base_command,
+                    )
+
+            else:
+                env = self.temp_catalogue.find_env(spec=spec)
+                if not env:
+                    log("Existing environment not found, creating new environment.")
+                    env = self.temp_catalogue.create_env(
+                        spec=spec,
+                        config=self.config,
+                        uv_path=self.retrieve_uv(),
+                        installer_command=self.install_base_command,
+                    )
         return env
 
     def run_bundled_script(

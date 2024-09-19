@@ -25,7 +25,7 @@
 # requires-python = ">=3.11"
 #
 # [tool.ducktools.env]
-# bundle.data = ["./"]
+# include.data = ["./"]
 # ///
 import sys
 import os

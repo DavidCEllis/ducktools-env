@@ -22,11 +22,10 @@
 # SOFTWARE.
 
 from ._version import __version__, __version_tuple__
-from .check_outdated_python import python_version_outdated, MINIMUM_PYTHON_STR, MINIMUM_PYTHON
 
-# Check the python version is up to date
-if err_message := python_version_outdated():
-    raise ImportError(err_message) from None
+
+MINIMUM_PYTHON = (3, 10)
+MINIMUM_PYTHON_STR = ".".join(str(v) for v in MINIMUM_PYTHON)
 
 
 PROJECT_NAME = "ducktools"

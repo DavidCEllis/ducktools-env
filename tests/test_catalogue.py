@@ -29,7 +29,6 @@ from pathlib import Path
 import pytest
 
 from ducktools.env.catalogue import BaseCatalogue, TempCatalogue, TemporaryEnv
-from ducktools.env.catalogue import _laz  # noqa
 
 
 @pytest.fixture
@@ -37,13 +36,6 @@ def mock_save():
     # Mock the .save() function from BaseCatalogue
     with mock.patch.object(BaseCatalogue, "save") as save_func:
         yield save_func
-
-
-@pytest.fixture
-def mock_subprocess():
-    # Subprocess module lives in the _laz object
-    with mock.patch.object(_laz, "subprocess") as subprocess_obj:
-        yield subprocess_obj
 
 
 @pytest.fixture(scope="function")
@@ -101,10 +93,7 @@ def fake_temp_catalogue(catalogue_path, fake_temp_envs):
 @pytest.mark.usefixtures("mock_save")
 class TestTempCatalogue:
     def test_delete_env(self, fake_temp_catalogue, fake_temp_envs, mock_save):
-        with mock.patch.object(_laz, "shutil") as shutil_patch:
-            rmtree = mock.MagicMock()
-            shutil_patch.rmtree = rmtree
-
+        with mock.patch("shutil.rmtree") as rmtree:
             pth = fake_temp_envs["env_0"].path
 
             fake_temp_catalogue.delete_env("env_0")
@@ -116,14 +105,12 @@ class TestTempCatalogue:
             assert "env_0" not in fake_temp_catalogue.environments
 
     def test_delete_nonexistent_env(self, fake_temp_catalogue):
-        with mock.patch.object(_laz, "shutil"):
+        with mock.patch("shutil.rmtree"):
             with pytest.raises(FileNotFoundError):
                 fake_temp_catalogue.delete_env("env_42")
 
     def test_purge_folder(self, fake_temp_catalogue, fake_temp_envs):
-        with mock.patch.object(_laz, "shutil") as shutil_patch:
-            rmtree = mock.MagicMock()
-            shutil_patch.rmtree = rmtree
+        with mock.patch("shutil.rmtree") as rmtree:
 
             fake_temp_catalogue.purge_folder()
             rmtree.assert_called_once_with(fake_temp_catalogue.catalogue_folder)

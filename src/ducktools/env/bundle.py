@@ -20,8 +20,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from __future__ import annotations
-
 import shutil
 import subprocess
 import sys
@@ -33,7 +31,7 @@ import importlib.resources
 
 from . import DATA_BUNDLE_FOLDER, MINIMUM_PYTHON_STR, bootstrap_requires
 from .platform_paths import ManagedPaths
-from .exceptions import ScriptNameClash
+from .exceptions import InvalidEnvironmentSpec, InvalidBundleScript
 from .environment_specs import EnvironmentSpec
 
 invalid_script_names = {
@@ -67,14 +65,18 @@ def create_bundle(
                              name required for bootstrapping.
     """
     script_path = Path(script_file)
+    spec = EnvironmentSpec.from_script(script_path)
+
+    if spec.details.app and not spec.lock_hash:
+        raise InvalidEnvironmentSpec("Application scripts require a lockfile")
 
     if script_path.suffix in {".pyz", ".pyzw"}:
-        sys.stderr.write(
+        raise InvalidBundleScript(
             "Bundles must be created from .py scripts not .pyz[w] archives\n"
         )
 
     if script_path.name in invalid_script_names:
-        raise ScriptNameClash(
+        raise InvalidBundleScript(
             f"Script {script_file!r} can't be bundled as the name clashes with "
             f"a script or library required for unbundling"
         )
@@ -101,11 +103,11 @@ def create_bundle(
             platform_paths_path = env_folder / "platform_paths.py"
             bootstrap_path = env_folder / "bootstrapping" / "bootstrap.py"
             main_zipapp_path = env_folder / "bootstrapping" / "bundle_main.py"
-            check_outdated_path = env_folder / "check_outdated_python.py"
+            check_outdated_path = env_folder / "bootstrapping" / "version_check.py"
 
             shutil.copy(platform_paths_path, build_path / "_platform_paths.py")
             shutil.copy(bootstrap_path, build_path / "_bootstrap.py")
-            shutil.copy(check_outdated_path, build_path / "_check_outdated_python.py")
+            shutil.copy(check_outdated_path, build_path / "_version_check.py")
 
             # Write __main__.py with script name included
             with open(build_path / "__main__.py", 'w') as main_file:
@@ -141,7 +143,6 @@ def create_bundle(
         print("Copying script to build folder and bundling")
         shutil.copy(script_path, build_path)
 
-        spec = EnvironmentSpec.from_script(script_path)
         if sources := spec.details.data_sources:
             print("Bundling additional data")
             data_folder = build_path / DATA_BUNDLE_FOLDER

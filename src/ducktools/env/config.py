@@ -28,14 +28,8 @@ import os
 
 from datetime import timedelta as _timedelta
 
-from ducktools.lazyimporter import LazyImporter, ModuleImport
 from ducktools.classbuilder.prefab import Prefab, get_attributes, as_dict
-
-_laz = LazyImporter(
-    [
-        ModuleImport("json"),
-    ]
-)
+from ._lazy_imports import laz as _laz
 
 
 def log(message):
@@ -45,11 +39,8 @@ def log(message):
 
 class Config(Prefab, kw_only=True):
     # Global settings for caches
-    cache_maxcount: int = 2
-    cache_lifetime: float = 1.0
-
-    applications_expire: bool = False
-    applications_lifetime: float = 28.0
+    cache_maxcount: int = 10
+    cache_lifetime: float = 14.0
 
     # Use uv and allow uv to auto install Python
     use_uv: bool = True
@@ -59,17 +50,15 @@ class Config(Prefab, kw_only=True):
     def cache_lifetime_delta(self) -> _timedelta:
         return _timedelta(days=self.cache_lifetime)
 
-    @property
-    def application_lifetime_delta(self) -> _timedelta:
-        return _timedelta(days=self.applications_lifetime)
-
     @classmethod
     def load(cls, file_path: str):
         try:
             with open(file_path, 'r') as f:
                 json_data = _laz.json.load(f)
         except (FileNotFoundError, _laz.json.JSONDecodeError):
-            return cls()
+            new_config = cls()
+            # new_config.save(file_path)
+            return new_config
         else:
             attribute_keys = {k for k, v in get_attributes(cls).items() if v.init}
 
@@ -83,4 +72,4 @@ class Config(Prefab, kw_only=True):
     def save(self, file_path: str):
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, "w") as f:
-            _laz.json.dump(self, f, default=as_dict)
+            _laz.json.dump(as_dict(self), f, indent=2)

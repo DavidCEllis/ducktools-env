@@ -36,16 +36,11 @@ from . import (
     LAUNCH_PATH_ENVVAR,
     LAUNCH_TYPE_ENVVAR
 )
-from ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport
+
 from ducktools.classbuilder.prefab import Prefab, attribute
 
-_laz = LazyImporter(
-    [
-        FromImport("tempfile", "TemporaryDirectory"),
-        ModuleImport("shutil"),
-        ModuleImport("zipfile"),
-    ],
-)
+from ._lazy_imports import laz as _laz
+
 
 # Autocomplete helpers - type checkers may complain
 # noinspection PyUnreachableCode

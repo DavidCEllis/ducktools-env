@@ -18,7 +18,6 @@ from __future__ import annotations
 import unittest.mock as mock
 
 from ducktools.env.environment_specs import EnvironmentSpec
-from ducktools.env.environment_specs import _laz  # noqa
 
 from ducktools.classbuilder.prefab import prefab, attribute
 import pytest
@@ -32,13 +31,11 @@ MOCK_RUN_STDOUT = "<MOCK DATA>"
 
 @pytest.fixture
 def subprocess_run_mock():
-    with mock.patch.object(_laz, "subprocess") as sp:
-        run_mock = mock.MagicMock()
+    with mock.patch("subprocess.run") as run_mock:
         run_return_mock = mock.MagicMock()
         run_return_mock.stdout = MOCK_RUN_STDOUT
         run_mock.return_value = run_return_mock
 
-        sp.run = run_mock
         yield run_mock
 
 

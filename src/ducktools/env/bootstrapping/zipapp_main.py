@@ -24,22 +24,11 @@
 """
 This is the bootstrapping script for the ducktools.pyz bundle itself
 """
-import sys
+from _version_check import version_check  # type: ignore
+version_check()
 
-from _check_outdated_python import python_version_outdated  # type: ignore
-
-message = python_version_outdated()
-if message:
-    print("The Python version used to unpack this bundle is outdated.")
-    print(message)
-    if sys.platform in {"win32", "darwin"}:
-        print("You can get the latest Python from: https://www.python.org/downloads/")
-    input("Press any key to close")
-    sys.exit()
-del message
-
-from _bootstrap import update_libraries, launch_ducktools  # noqa
 
 if __name__ == "__main__":
+    from _bootstrap import update_libraries, launch_ducktools  # type: ignore
     update_libraries()
     launch_ducktools()
