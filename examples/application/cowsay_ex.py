@@ -23,7 +23,6 @@
 # app.version = "v0.1.0"
 # ///
 
-import sys
 from cowsay.__main__ import cli
 
 if __name__ == "__main__":
