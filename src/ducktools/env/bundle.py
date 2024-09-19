@@ -83,7 +83,7 @@ def create_bundle(
 
     with paths.build_folder() as build_folder:
         build_path = Path(build_folder)
-        print(f"Building bundle in {build_folder!r}")
+        print(f"Building bundle in '{build_folder}'")
         print("Copying libraries into build folder")
         # Don't copy UV - it's platform dependent
         # Don't copy __pycache__ folders either
