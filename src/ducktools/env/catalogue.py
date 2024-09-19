@@ -577,8 +577,8 @@ class ApplicationCatalogue(BaseCatalogue):
                 if details.app.version == cache.version:
                     cache.last_used = _datetime_now_iso()
                     env = cache
-                elif details.app.version_spec > cache.version_spec:
-                    # Update cache version number
+                elif details.app.version_spec >= cache.version_spec:
+                    # Allow for the version spec to be equal
                     cache.last_used = _datetime_now_iso()
                     env = cache
                     env.version = details.app.version
@@ -591,7 +591,11 @@ class ApplicationCatalogue(BaseCatalogue):
                     )
             else:
                 # Lock file does not match
-                if details.app.version == cache.version:
+                if (
+                    details.app.version == cache.version
+                    or details.app.version_spec == cache.version_spec
+                ):
+                    # Equal spec is also a failure if lockfile does not match
                     if cache.version_spec.is_prerelease:
                         log(
                             "Lockfile does not match, but version is prerelease.\n"
@@ -632,6 +636,14 @@ class ApplicationCatalogue(BaseCatalogue):
             raise InvalidEnvironmentSpec("; ".join(spec_errors))
 
         details = spec.details
+
+        try:
+            _ = details.app.version_spec
+        except _laz.InvalidVersion:
+            raise ApplicationError(
+                f"Application version: {details.app.version!r} "
+                f"is not a valid version specifier."
+            )
 
         env_path = os.path.join(
             self.catalogue_folder,
