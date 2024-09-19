@@ -77,7 +77,7 @@ def create_bundle(
 
     if script_path.name in invalid_script_names:
         raise InvalidBundleScript(
-            f"Script {script_file!r} can't be bundled as the name clashes with "
+            f"Script '{script_file}' can't be bundled as the name clashes with "
             f"a script or library required for unbundling"
         )
 
