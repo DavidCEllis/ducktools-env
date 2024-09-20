@@ -273,10 +273,9 @@ class BaseCatalogue:
 
         if deps := spec.details.dependencies:
             dep_list = ", ".join(deps)
-            log(f"Installing dependencies from PyPI: {dep_list}")
 
             if spec.lockdata:
-                log("Using lockfile")
+                log("Downloading and installing locked dependencies...")
                 # Need a temporary file to use as the lockfile
                 with _laz.tempfile.TemporaryDirectory() as tempfld:
                     requirements_path = os.path.join(tempfld, "requirements.txt")
@@ -287,7 +286,6 @@ class BaseCatalogue:
                             dependency_command = [
                                 *installer_command,
                                 "install",
-                                "-q",  # Quiet
                                 "--python",
                                 env.python_path,
                                 "-r",
@@ -299,7 +297,6 @@ class BaseCatalogue:
                                 "--python",
                                 env.python_path,
                                 "install",
-                                "-q",  # Quiet
                                 "-r",
                                 requirements_path,
                             ]
@@ -312,12 +309,12 @@ class BaseCatalogue:
                         _laz.shutil.rmtree(env.path, ignore_errors=True)
                         raise VenvBuildError(f"Failed to install dependencies: {e}")
             else:
+                log(f"Installing dependencies from PyPI: {dep_list}")
                 try:
                     if uv_path:
                         dependency_command = [
                             *installer_command,
                             "install",
-                            "-q",  # Quiet
                             "--python",
                             env.python_path,
                             *deps,
@@ -328,7 +325,6 @@ class BaseCatalogue:
                             "--python",
                             env.python_path,
                             "install",
-                            "-q",  # Quiet
                             *deps,
                         ]
                     _laz.subprocess.run(
