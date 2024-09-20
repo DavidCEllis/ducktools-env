@@ -33,18 +33,8 @@ import zipfile
 # This file is moved and these imports created when bundling
 from _platform_paths import ManagedPaths  # type: ignore
 
-from _vendor.ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport  # type: ignore
-
 # This bootstrap script exists without ducktools.env and so needs a copy of project_name
 PROJECT_NAME = "ducktools"
-
-_laz = LazyImporter(
-    [
-        FromImport("_vendor.packaging.version", "Version"),
-        ModuleImport("runpy"),
-        ModuleImport("shutil"),
-    ]
-)
 
 default_paths = ManagedPaths(PROJECT_NAME)
 
@@ -73,8 +63,10 @@ def is_outdated(installed_version: str | None, bundled_version: str) -> bool:
         installed_info = tuple(int(segment) for segment in installed_version.split("."))
         bundled_info = tuple(int(segment) for segment in bundled_version.split("."))
     except (ValueError, TypeError):
-        installed_info = _laz.Version(installed_version)
-        bundled_info = _laz.Version(bundled_version)
+
+        from _vendor.packaging.version import Version  # type: ignore
+        installed_info = Version(installed_version)
+        bundled_info = Version(bundled_version)
 
     return installed_info < bundled_info
 
@@ -122,4 +114,5 @@ def launch_script(script_file, zipapp_path, args, lockdata=None):
 
 
 def launch_ducktools():
-    _laz.runpy.run_path(default_paths.env_folder, run_name="__main__")
+    import runpy
+    runpy.run_path(default_paths.env_folder, run_name="__main__")
