@@ -243,7 +243,10 @@ class BaseCatalogue:
                 for ver in uv_pythons:
                     if spec.details.requires_python_spec.contains(ver):
                         # Install matching python
-                        _laz.install_uv_python(ver)
+                        _laz.install_uv_python(
+                            uv_path=uv_path,
+                            version_str=ver,
+                        )
                         matched_python = ver
                         break
                 if matched_python:
@@ -632,7 +635,7 @@ class ApplicationCatalogue(BaseCatalogue):
                     env = cache
                 else:
                     raise ApplicationError(
-                        f"Attempted to launch older version of application"
+                        f"Attempted to launch older version of application "
                         f"when newer version has been installed. \n"
                         f"app version: {details.app.version} \n"
                         f"installed version: {cache.version}"
@@ -660,7 +663,7 @@ class ApplicationCatalogue(BaseCatalogue):
                     self.delete_env(cache.name)
                 else:
                     raise ApplicationError(
-                        f"Attempted to launch older version of application"
+                        f"Attempted to launch older version of application "
                         f"when newer version has been installed. \n"
                         f"app version: {details.app.version} \n"
                         f"installed version: {cache.version}"
