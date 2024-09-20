@@ -42,10 +42,16 @@ def version_check():
             print(header)
             print(message)
         else:
-            from tkinter import messagebox
-            messagebox.showerror(
-                title=header,
-                message=message,
-            )
+            from tkinter import messagebox, Tk
+            root = Tk()
+            root.withdraw()
+            try:
+                messagebox.showerror(
+                    parent=root,
+                    title=header,
+                    message=message,
+                )
+            finally:
+                root.destroy()
 
         sys.exit()
