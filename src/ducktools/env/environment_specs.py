@@ -240,7 +240,7 @@ class EnvironmentSpec:
                     "-",
                 ]
 
-                print("Locking dependency tree")
+                log("Locking dependency tree")
                 lock_output = _laz.subprocess.run(
                     lock_cmd,
                     input=deps,
