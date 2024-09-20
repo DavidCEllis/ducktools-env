@@ -119,6 +119,7 @@ folder the script is in (along with all of its contents).
 # 
 # [tool.ducktools.env]
 # include.data = ["./"]
+# include.license = ["license.md"]
 # ///
 from pathlib import Path
 
@@ -237,6 +238,5 @@ into a zipapp that will work on the other end with only Python as the requiremen
 ### pipx ###
 
 `pipx` is another tool that allows you to install packages from PyPI and run them as applications
-based on their `[project.scripts]` and `[project.gui-scripts]`. This is a goal of ducktools.env, 
-except it would build separate zipapps for each script and the apps would share the same cached 
-python environment.
+based on their `[project.scripts]` and `[project.gui-scripts]`. This is different from `ducktools-env`
+which specifically builds scripts into bundles based on inline dependencies.
