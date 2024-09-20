@@ -112,6 +112,9 @@ Note: Paths are relative to the script folder. If you include a folder, the fold
 included, not just its contents. This means that if you include `./` you will get the name of the 
 folder the script is in (along with all of its contents).
 
+This can be used to include additional code by inserting the relevant folder into `sys.path` before
+executing the body of a script.
+
 ```python
 # /// script
 # requires-python = ">=3.12"
@@ -134,6 +137,13 @@ with get_data_folder() as fld_name:
 
 If you wish your script to persist as an "application" you can define 'owner', 'name' and 'version'
 fields.
+
+These environments **require** generation of a lockfile.
+
+A new version of the application will update the environment to depend on that version. The environment
+will be rebuilt if the lockfile is updated on updating to a new version. If the lockfile has changed
+but the version has not, running the application will fail (unless the version is a pre-release). 
+Old versions will also fail to run if the environment has been created for a new version.
 
 ```python
 # /// script
@@ -178,7 +188,6 @@ page for which python installs it can find.
 Future goals for this tool:
 
 * Optionally bundle requirements inside the zipapp for use without a connection.
-* Allow bundling of local wheel files unavailable on PyPI
 * Automatically install required Python if UV is available
 
 ## Dependencies ##
@@ -186,9 +195,8 @@ Future goals for this tool:
 Currently `ducktools.env` relies on the following tools.
 
 Subprocesses:
-* `venv` (via subprocess on python installs)
-  * (Might eventually use `virtualenv` as there are python installs without `venv`)
-* `pip` (as a zipapp via subprocess)
+* `venv` via subprocess on python installs where UV is unavailable
+* `pip` as a zipapp via subprocess used to install UV and where UV is unavailable
 * `uv` where available as a faster installer and for locking dependencies for bundles
 
 PyPI: 
