@@ -32,6 +32,22 @@ This bundle will include `ducktools-env` and the `pip` zipapp in order to bootst
 process. `UV` will be downloaded and installed on unbundling if it is available (on PyPI) 
 for the platform.
 
+### What if the user does not have Python installed ###
+
+Running the bundle requires the user to have an install of Python 3.10 or later.
+This should be available via python.org with installers for Windows/Mac and either
+already included or available from any up to date Linux distribution. This is all
+that should be needed for your script to run.
+
+The version of Python that will actually be used to build the environment will be the latest
+version that can be found via [ducktools-pythonfinder](https://github.com/DavidCEllis/ducktools-pythonfinder)
+that satisfies the `requires-python` specification.
+
+If no version can be found `ducktools-env` will try to use `UV` to install an appropriate
+version automatically and use that to build the environment.
+
+## Where is data stored? ##
+
 Environment data and the application itself will be stored in the following locations:
 
 * Windows: `%LOCALAPPDATA%\ducktools\env`
@@ -174,21 +190,11 @@ and deleted with
 where `<envname>` is the `name` of a temporary environment or the combination 
 `owner/name` of an application environment as shown in the list.
 
-## Discovering Python Installs ##
-
-When you run a script with ducktools-env it will look at the inline dependencies for the
-version of Python needed to run the script.
-
-It will use [ducktools-pythonfinder](https://github.com/DavidCEllis/ducktools-pythonfinder) to attempt
-to find the newest valid CPython install (not a venv) that satisfies any python requirement. See its own 
-page for which python installs it can find.
-
 ## Goals ##
 
 Future goals for this tool:
 
 * Optionally bundle requirements inside the zipapp for use without a connection.
-* Automatically install required Python if UV is available
 
 ## Dependencies ##
 
