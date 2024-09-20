@@ -118,7 +118,7 @@ def get_available_pythons(uv_path: str) -> list[str]:
     return matches
 
 
-def install_uv_python(uv_path, version_str):
+def install_uv_python(*, uv_path: str, version_str: str) -> None:
     _laz.subprocess.run(
         [
             uv_path,
