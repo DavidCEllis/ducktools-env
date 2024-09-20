@@ -143,12 +143,6 @@ class Manager(Prefab):
         # A lot of extra logic is in here to avoid doing work early
         # First try to find environments by matching hashes
         env = self.app_catalogue.find_env_hash(spec=spec)
-        if env:
-            if spec.lock_hash != env.lock_hash:
-                raise ApplicationError(
-                    "Application version is the same as the environment "
-                    "but the lockfile does not match."
-                )
 
         if env is None:
             env = self.temp_catalogue.find_env_hash(spec=spec)
