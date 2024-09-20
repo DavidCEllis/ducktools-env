@@ -36,7 +36,7 @@ def version_check():
             f"Python {major}.{minor} is the minimum required version."
         )
         if sys.platform in {"win32", "darwin"}:
-            message += "You can get the latest Python from: https://www.python.org/downloads/"
+            message += " You can get the latest Python from: https://www.python.org/downloads/"
 
         if sys.stdout:
             print(header)
