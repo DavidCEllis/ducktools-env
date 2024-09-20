@@ -33,8 +33,9 @@ from ._lazy_imports import laz as _laz
 
 
 def log(message):
-    sys.stderr.write(message)
-    sys.stderr.write("\n")
+    if sys.stderr:
+        sys.stderr.write(message)
+        sys.stderr.write("\n")
 
 
 class Config(Prefab, kw_only=True):
