@@ -453,6 +453,7 @@ class TempCatalogue(BaseCatalogue):
             ):
                 log(f"Lockfile hash {spec.lock_hash!r} matched environment {cache.name}")
                 cache.last_used = _datetime_now_iso()
+                self.save()
                 return cache
         else:
             return None
@@ -586,9 +587,18 @@ class ApplicationCatalogue(BaseCatalogue):
             # The version should be the same if the hash matched
             # as the version is included in the hash
             if spec.lock_hash != env.lock_hash:
-                log("Spec matching but lockfile outdated, purging old environment")
-                self.delete_env(env.name)
-                env = None
+                if env.version_spec.is_prerelease:
+                    log(
+                        "Lockfile or Python version does not match, but version is prerelease.\n"
+                        "Clearing outdated environment."
+                    )
+                    self.delete_env(env.name)
+                    env = None
+                else:
+                    raise ApplicationError(
+                        "Application version is the same as the environment "
+                        "but the lockfile or Python version does not match."
+                    )
 
         return env
 
@@ -602,15 +612,24 @@ class ApplicationCatalogue(BaseCatalogue):
             # avoid generating the packaging.version. Otherwise we would check
             # for the outdated version first.
 
-            if spec.lock_hash == cache.lock_hash:
+            if (
+                spec.lock_hash == cache.lock_hash
+                and spec.details.requires_python_spec.contains(cache.python_version)
+            ):
                 if details.app.version == cache.version:
                     cache.last_used = _datetime_now_iso()
+                    cache.spec_hashes.append(spec.spec_hash)
                     env = cache
                 elif details.app.version_spec >= cache.version_spec:
                     # Allow for the version spec to be equal
                     cache.last_used = _datetime_now_iso()
+                    cache.version = details.app.version
+                    # Update hashed specs for cache
+                    if details.app.version_spec == cache.version_spec:
+                        cache.spec_hashes.append(spec.spec_hash)
+                    else:
+                        cache.spec_hashes = [spec.spec_hash]
                     env = cache
-                    env.version = details.app.version
                 else:
                     raise ApplicationError(
                         f"Attempted to launch older version of application"
@@ -627,14 +646,14 @@ class ApplicationCatalogue(BaseCatalogue):
                     # Equal spec is also a failure if lockfile does not match
                     if cache.version_spec.is_prerelease:
                         log(
-                            "Lockfile does not match, but version is prerelease.\n"
+                            "Lockfile or Python version does not match, but version is prerelease.\n"
                             "Clearing outdated environment."
                         )
                         self.delete_env(cache.name)
                     else:
                         raise ApplicationError(
                             "Application version is the same as the environment "
-                            "but the lockfile does not match."
+                            "but the lockfile or Python version does not match."
                         )
                 elif details.app.version_spec > cache.version_spec:
                     log("Updating application environment")
@@ -646,7 +665,7 @@ class ApplicationCatalogue(BaseCatalogue):
                         f"app version: {details.app.version} \n"
                         f"installed version: {cache.version}"
                     )
-
+        self.save()
         return env
 
     def create_env(
@@ -687,7 +706,7 @@ class ApplicationCatalogue(BaseCatalogue):
         new_env = self.ENV_TYPE(
             name=details.app.appkey,
             path=env_path,
-            python_version=install.version,
+            python_version=install.version_str,
             parent_python=install.executable,
             spec_hashes=[spec.spec_hash],
             lock_hash=spec.lock_hash,

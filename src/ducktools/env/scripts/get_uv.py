@@ -90,7 +90,7 @@ def retrieve_uv(paths: ManagedPaths, reinstall: bool = False) -> str | None:
     return uv_path
 
 
-def get_uv_pythons(uv_path: str) -> list[str]:
+def get_available_pythons(uv_path: str) -> list[str]:
     """
     Get all python install version numbers available from UV
 
