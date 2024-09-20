@@ -59,7 +59,10 @@ class BaseEnv(Prefab, kw_only=True):
     @property
     def python_path(self) -> str:
         if sys.platform == "win32":
-            return os.path.join(self.path, "Scripts", "python.exe")
+            if sys.stdout:
+                return os.path.join(self.path, "Scripts", "python.exe")
+            else:
+                return os.path.join(self.path, "Scripts", "pythonw.exe")
         else:
             return os.path.join(self.path, "bin", "python")
 
