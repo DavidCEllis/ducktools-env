@@ -221,18 +221,39 @@ class BaseCatalogue:
             return None
 
     @staticmethod
-    def _get_python_install(spec: EnvironmentSpec):
+    def _get_python_install(spec: EnvironmentSpec, uv_path: str | None):
+        install = None
+
         # Find a valid python executable
-        for install in _laz.list_python_installs():
-            if install.implementation.lower() != "cpython":
+        for inst in _laz.list_python_installs():
+            if inst.implementation.lower() != "cpython":
                 # Ignore all non cpython installs for now
                 continue
             if (
                 not spec.details.requires_python
-                or spec.details.requires_python_spec.contains(install.version_str, prereleases=True)
+                or spec.details.requires_python_spec.contains(inst.version_str)
             ):
+                install = inst
                 break
         else:
+            # If no Python was matched try to install a matching python from UV
+            if uv_path:
+                uv_pythons = _laz.get_available_pythons(uv_path)
+                matched_python = False
+                for ver in uv_pythons:
+                    if spec.details.requires_python_spec.contains(ver):
+                        # Install matching python
+                        _laz.install_uv_python(ver)
+                        matched_python = ver
+                        break
+                if matched_python:
+                    # Recover the actual install
+                    for inst in _laz.get_installed_uv_pythons():
+                        if inst.version_str == matched_python:
+                            install = inst
+                            break
+
+        if install is None:
             raise PythonVersionNotFound(
                 f"Could not find a Python install satisfying {spec.details.requires_python!r}."
             )
@@ -528,7 +549,7 @@ class TempCatalogue(BaseCatalogue):
 
         cache_path = os.path.join(self.catalogue_folder, new_cachename)
 
-        install = self._get_python_install(spec)
+        install = self._get_python_install(spec, uv_path)
 
         # Construct the Env
         # noinspection PyArgumentList
@@ -660,7 +681,7 @@ class ApplicationCatalogue(BaseCatalogue):
             "env",
         )
 
-        install = self._get_python_install(spec)
+        install = self._get_python_install(spec, uv_path)
 
         # noinspection PyArgumentList
         new_env = self.ENV_TYPE(

@@ -35,6 +35,7 @@ laz = LazyImporter(
         # Stdlib and dependency imports
         ModuleImport("hashlib"),
         ModuleImport("json"),
+        ModuleImport("re"),
         ModuleImport("shutil"),
         ModuleImport("subprocess"),
         ModuleImport("tempfile"),
@@ -44,6 +45,11 @@ laz = LazyImporter(
         MultiFromImport(
             "ducktools.pythonfinder",
             ["list_python_installs", "PythonInstall"],
+        ),
+        FromImport(
+            "ducktools.pythonfinder.shared",
+            "get_uv_pythons",
+            "get_installed_uv_pythons"
         ),
         FromImport(
             "importlib",
@@ -86,9 +92,9 @@ laz = LazyImporter(
             ".scripts.get_pip",
             "retrieve_pip"
         ),
-        FromImport(
+        MultiFromImport(
             ".scripts.get_uv",
-            "retrieve_uv"
+            ["retrieve_uv", "get_available_pythons", "install_uv_python"]
         ),
         MultiFromImport(
             ".scripts.create_zipapp",

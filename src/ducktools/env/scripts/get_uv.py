@@ -88,3 +88,43 @@ def retrieve_uv(paths: ManagedPaths, reinstall: bool = False) -> str | None:
                     ver_file.write(uv_version)
 
     return uv_path
+
+
+def get_uv_pythons(uv_path: str) -> list[str]:
+    """
+    Get all python install version numbers available from UV
+
+    :param uv_path: Path to the UV executable
+    :return: list of version strings
+    """
+    # CPython installs listed by UV - only want downloadable installs
+    version_re = _laz.re.compile(
+        r"(?m)^cpython-(?P<version>\d+.\d+.\d+(?:a|b|rc)?\d*).*<download available>$"
+    )
+    data = _laz.subprocess.run(
+        [
+            uv_path,
+            "python",
+            "list",
+            "--all-versions",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    matches = version_re.findall(data.stdout)
+
+    return matches
+
+
+def install_uv_python(uv_path, version_str):
+    _laz.subprocess.run(
+        [
+            uv_path,
+            "python",
+            "install",
+            version_str,
+        ],
+        check=True,
+    )
