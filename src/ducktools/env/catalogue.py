@@ -122,6 +122,11 @@ class ApplicationEnv(BaseEnv, kw_only=True):
         else:
             return _laz.Version(spec_version) > self.version_spec
 
+    def delete(self) -> None:
+        # Remove the parent folder of the venv
+        app_folder = os.path.normpath(os.path.join(self.path, os.path.pardir))
+        _laz.shutil.rmtree(app_folder)
+
 
 @prefab(kw_only=True)
 class BaseCatalogue:
