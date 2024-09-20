@@ -48,6 +48,12 @@ _laz = LazyImporter(
 
 default_paths = ManagedPaths(PROJECT_NAME)
 
+if sys.stderr:
+    logger = sys.stderr
+else:
+    from io import StringIO
+    logger = StringIO()
+
 
 def is_outdated(installed_version: str | None, bundled_version: str) -> bool:
     # Shortcut for no version installed
@@ -83,14 +89,14 @@ def update_libraries():
 
         # Copy ducktools if outdated
         if is_outdated(default_paths.get_env_version(), bundled_ducktools_ver):
-            sys.stderr.write("Installed ducktools is older than bundled, replacing.\n")
+            logger.write("Installed ducktools is older than bundled, replacing.\n")
             extract_names = sorted(n for n in zf.namelist() if n.startswith("ducktools-env/"))
             zf.extractall(default_paths.manager_folder, members=extract_names)
             zf.extract("ducktools-env.version", default_paths.manager_folder)
 
         # Copy pip if outdated
         if is_outdated(default_paths.get_pip_version(), bundled_pip_ver):
-            sys.stderr.write("Installed pip is older than bundled, replacing.\n")
+            logger.write("Installed pip is older than bundled, replacing.\n")
             zf.extract("pip.pyz", default_paths.manager_folder)
             zf.extract("pip.pyz.version", default_paths.manager_folder)
 
