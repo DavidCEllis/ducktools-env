@@ -162,6 +162,13 @@ def create_bundle(
                 elif pth.is_dir():
                     shutil.copytree(pth, data_folder / pth.name)
 
+        if license_files := spec.details.license:
+            print("Including license files")
+            for f in license_files:
+                pth = Path(script_file).parent / f
+                if pth.is_file():
+                    shutil.copy(pth, build_path)
+
         if output_file is None:
             archive_path = Path(script_file).with_suffix(".pyz")
         else:
