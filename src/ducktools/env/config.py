@@ -32,9 +32,16 @@ from ducktools.classbuilder.prefab import Prefab, get_attributes, as_dict
 from ._lazy_imports import laz as _laz
 
 
+if sys.stderr:
+    LOGGER = sys.stderr
+else:
+    from io import StringIO
+    LOGGER = StringIO()
+
+
 def log(message):
-    sys.stderr.write(message)
-    sys.stderr.write("\n")
+    LOGGER.write(message)
+    LOGGER.write("\n")
 
 
 class Config(Prefab, kw_only=True):

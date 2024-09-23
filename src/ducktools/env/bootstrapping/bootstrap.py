@@ -33,20 +33,16 @@ import zipfile
 # This file is moved and these imports created when bundling
 from _platform_paths import ManagedPaths  # type: ignore
 
-from _vendor.ducktools.lazyimporter import LazyImporter, FromImport, ModuleImport  # type: ignore
-
 # This bootstrap script exists without ducktools.env and so needs a copy of project_name
 PROJECT_NAME = "ducktools"
 
-_laz = LazyImporter(
-    [
-        FromImport("_vendor.packaging.version", "Version"),
-        ModuleImport("runpy"),
-        ModuleImport("shutil"),
-    ]
-)
-
 default_paths = ManagedPaths(PROJECT_NAME)
+
+if sys.stderr:
+    logger = sys.stderr
+else:
+    from io import StringIO
+    logger = StringIO()
 
 
 def is_outdated(installed_version: str | None, bundled_version: str) -> bool:
@@ -67,8 +63,10 @@ def is_outdated(installed_version: str | None, bundled_version: str) -> bool:
         installed_info = tuple(int(segment) for segment in installed_version.split("."))
         bundled_info = tuple(int(segment) for segment in bundled_version.split("."))
     except (ValueError, TypeError):
-        installed_info = _laz.Version(installed_version)
-        bundled_info = _laz.Version(bundled_version)
+
+        from _vendor.packaging.version import Version  # type: ignore
+        installed_info = Version(installed_version)
+        bundled_info = Version(bundled_version)
 
     return installed_info < bundled_info
 
@@ -83,14 +81,14 @@ def update_libraries():
 
         # Copy ducktools if outdated
         if is_outdated(default_paths.get_env_version(), bundled_ducktools_ver):
-            sys.stderr.write("Installed ducktools is older than bundled, replacing.\n")
+            logger.write("Installed ducktools is older than bundled, replacing.\n")
             extract_names = sorted(n for n in zf.namelist() if n.startswith("ducktools-env/"))
             zf.extractall(default_paths.manager_folder, members=extract_names)
             zf.extract("ducktools-env.version", default_paths.manager_folder)
 
         # Copy pip if outdated
         if is_outdated(default_paths.get_pip_version(), bundled_pip_ver):
-            sys.stderr.write("Installed pip is older than bundled, replacing.\n")
+            logger.write("Installed pip is older than bundled, replacing.\n")
             zf.extract("pip.pyz", default_paths.manager_folder)
             zf.extract("pip.pyz.version", default_paths.manager_folder)
 
@@ -116,4 +114,5 @@ def launch_script(script_file, zipapp_path, args, lockdata=None):
 
 
 def launch_ducktools():
-    _laz.runpy.run_path(default_paths.env_folder, run_name="__main__")
+    import runpy
+    runpy.run_path(default_paths.env_folder, run_name="__main__")

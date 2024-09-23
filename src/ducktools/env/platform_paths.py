@@ -68,7 +68,10 @@ else:
 
 def get_platform_python(venv_folder):
     if sys.platform == "win32":
-        return os.path.join(venv_folder, "Scripts", "python.exe")
+        if sys.stdout:
+            return os.path.join(venv_folder, "Scripts", "python.exe")
+        else:
+            return os.path.join(venv_folder, "Scripts", "pythonw.exe")
     else:
         return os.path.join(venv_folder, "bin", "python")
 

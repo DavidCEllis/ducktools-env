@@ -143,12 +143,6 @@ class Manager(Prefab):
         # A lot of extra logic is in here to avoid doing work early
         # First try to find environments by matching hashes
         env = self.app_catalogue.find_env_hash(spec=spec)
-        if env:
-            if spec.lock_hash != env.lock_hash:
-                raise ApplicationError(
-                    "Application version is the same as the environment "
-                    "but the lockfile does not match."
-                )
 
         if env is None:
             env = self.temp_catalogue.find_env_hash(spec=spec)
@@ -255,11 +249,13 @@ class Manager(Prefab):
         *,
         spec: EnvironmentSpec,
         output_file: str | None = None,
+        compressed: bool = False,
     ) -> None:
         """Create a zipapp bundle for the provided script file
 
         :param spec: EnvironmentSpec
         :param output_file: output path to zipapp bundle (script_file.pyz default)
+        :param compressed: Compress the resulting zipapp
         """
         if not self.is_installed:
             self.install()
@@ -270,4 +266,5 @@ class Manager(Prefab):
             paths=self.paths,
             installer_command=self.install_base_command,
             lockdata=spec.lockdata,
+            compressed=compressed,
         )

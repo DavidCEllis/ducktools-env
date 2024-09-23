@@ -40,6 +40,5 @@ DATA_BUNDLE_FOLDER = "bundledata"
 
 
 bootstrap_requires = [
-    "ducktools-lazyimporter>=0.5.1",
     "packaging>=23.2",
 ]

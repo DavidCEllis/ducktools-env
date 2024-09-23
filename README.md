@@ -32,6 +32,22 @@ This bundle will include `ducktools-env` and the `pip` zipapp in order to bootst
 process. `UV` will be downloaded and installed on unbundling if it is available (on PyPI) 
 for the platform.
 
+### What if the user does not have Python installed ###
+
+Running the bundle requires the user to have an install of Python 3.10 or later.
+This should be available via python.org with installers for Windows/Mac and either
+already included or available from any up to date Linux distribution. This is all
+that should be needed for your script to run.
+
+The version of Python that will actually be used to build the environment will be the latest
+version that can be found via [ducktools-pythonfinder](https://github.com/DavidCEllis/ducktools-pythonfinder)
+that satisfies the `requires-python` specification.
+
+If no version can be found `ducktools-env` will try to use `UV` to install an appropriate
+version automatically and use that to build the environment.
+
+## Where is data stored? ##
+
 Environment data and the application itself will be stored in the following locations:
 
 * Windows: `%LOCALAPPDATA%\ducktools\env`
@@ -112,6 +128,9 @@ Note: Paths are relative to the script folder. If you include a folder, the fold
 included, not just its contents. This means that if you include `./` you will get the name of the 
 folder the script is in (along with all of its contents).
 
+This can be used to include additional code by inserting the relevant folder into `sys.path` before
+executing the body of a script.
+
 ```python
 # /// script
 # requires-python = ">=3.12"
@@ -119,6 +138,7 @@ folder the script is in (along with all of its contents).
 # 
 # [tool.ducktools.env]
 # include.data = ["./"]
+# include.license = ["license.md"]
 # ///
 from pathlib import Path
 
@@ -133,6 +153,13 @@ with get_data_folder() as fld_name:
 
 If you wish your script to persist as an "application" you can define 'owner', 'name' and 'version'
 fields.
+
+These environments **require** generation of a lockfile.
+
+A new version of the application will update the environment to depend on that version. The environment
+will be rebuilt if the lockfile is updated on updating to a new version. If the lockfile has changed
+but the version has not, running the application will fail (unless the version is a pre-release). 
+Old versions will also fail to run if the environment has been created for a new version.
 
 ```python
 # /// script
@@ -163,31 +190,19 @@ and deleted with
 where `<envname>` is the `name` of a temporary environment or the combination 
 `owner/name` of an application environment as shown in the list.
 
-## Discovering Python Installs ##
-
-When you run a script with ducktools-env it will look at the inline dependencies for the
-version of Python needed to run the script.
-
-It will use [ducktools-pythonfinder](https://github.com/DavidCEllis/ducktools-pythonfinder) to attempt
-to find the newest valid CPython install (not a venv) that satisfies any python requirement. See its own 
-page for which python installs it can find.
-
 ## Goals ##
 
 Future goals for this tool:
 
 * Optionally bundle requirements inside the zipapp for use without a connection.
-* Allow bundling of local wheel files unavailable on PyPI
-* Automatically install required Python if UV is available
 
 ## Dependencies ##
 
 Currently `ducktools.env` relies on the following tools.
 
 Subprocesses:
-* `venv` (via subprocess on python installs)
-  * (Might eventually use `virtualenv` as there are python installs without `venv`)
-* `pip` (as a zipapp via subprocess)
+* `venv` via subprocess on python installs where UV is unavailable
+* `pip` as a zipapp via subprocess used to install UV and where UV is unavailable
 * `uv` where available as a faster installer and for locking dependencies for bundles
 
 PyPI: 
@@ -237,6 +252,5 @@ into a zipapp that will work on the other end with only Python as the requiremen
 ### pipx ###
 
 `pipx` is another tool that allows you to install packages from PyPI and run them as applications
-based on their `[project.scripts]` and `[project.gui-scripts]`. This is a goal of ducktools.env, 
-except it would build separate zipapps for each script and the apps would share the same cached 
-python environment.
+based on their `[project.scripts]` and `[project.gui-scripts]`. This is different from `ducktools-env`
+which specifically builds scripts into bundles based on inline dependencies.

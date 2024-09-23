@@ -30,12 +30,28 @@ def version_check():
     v = sys.version_info
     if v < MINIMUM_PYTHON:
         major, minor = MINIMUM_PYTHON
-        print("The Python version used to unpack this zipapp is outdated.")
-        print(
+        header = "The Python version used to unpack this zipapp is outdated."
+        message = (
             f"Python {v.major}.{v.minor} is not supported. "
             f"Python {major}.{minor} is the minimum required version."
         )
         if sys.platform in {"win32", "darwin"}:
-            print("You can get the latest Python from: https://www.python.org/downloads/")
-        input("Press any key to close")
+            message += " You can get the latest Python from: https://www.python.org/downloads/"
+
+        if sys.stdout:
+            print(header)
+            print(message)
+        else:
+            from tkinter import messagebox, Tk
+            root = Tk()
+            root.withdraw()
+            try:
+                messagebox.showerror(
+                    parent=root,
+                    title=header,
+                    message=message,
+                )
+            finally:
+                root.destroy()
+
         sys.exit()

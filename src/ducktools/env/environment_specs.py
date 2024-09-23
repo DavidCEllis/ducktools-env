@@ -99,9 +99,11 @@ class EnvironmentDetails(Prefab, kw_only=True):
         return self.include_table.get("data")
 
     @property
-    def extra_wheels(self) -> list[str] | None:
-        # Not supported yet
-        return self.include_table.get("wheels")
+    def license(self) -> list[str] | None:
+        _license = self.include_table.get("license")
+        if isinstance(_license, str):
+            _license = [_license]
+        return _license
 
     def errors(self) -> list[str]:
         error_details = []
@@ -240,7 +242,7 @@ class EnvironmentSpec:
                     "-",
                 ]
 
-                print("Locking dependency tree")
+                log("Locking dependency tree")
                 lock_output = _laz.subprocess.run(
                     lock_cmd,
                     input=deps,

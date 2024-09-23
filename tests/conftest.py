@@ -38,7 +38,10 @@ def available_pythons():
 @pytest.fixture(scope="session")
 def this_python():
     py = sys.executable
-    return get_install_details(py)
+    details = get_install_details(py)
+    # Remove pre-release number from version!
+    details.version = *details.version[:3], "release", 0
+    return details
 
 
 @pytest.fixture(scope="session", autouse=True)

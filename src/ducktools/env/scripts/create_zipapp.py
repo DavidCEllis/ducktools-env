@@ -156,10 +156,14 @@ def build_zipapp(
 
         # UV should not be bundled - binary is not cross platform
         uv_base_exe = "uv.exe" if sys.platform == "win32" else "uv"
-        uv_pattern = shutil.ignore_patterns(uv_base_exe, f"{uv_base_exe}.version")
+        ignore_patterns = shutil.ignore_patterns(
+            "__pycache__",
+            uv_base_exe,
+            f"{uv_base_exe}.version"
+        )
 
         print("Copying pip.pyz and ducktools-env")
-        shutil.copytree(paths.manager_folder, build_folder, ignore=uv_pattern, dirs_exist_ok=True)
+        shutil.copytree(paths.manager_folder, build_folder, ignore=ignore_patterns, dirs_exist_ok=True)
 
         # Get the paths for modules that need to be copied
         resources = importlib.resources.files("ducktools.env")

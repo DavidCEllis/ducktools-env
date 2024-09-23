@@ -59,7 +59,10 @@ class BaseEnv(Prefab, kw_only=True):
     @property
     def python_path(self) -> str:
         if sys.platform == "win32":
-            return os.path.join(self.path, "Scripts", "python.exe")
+            if sys.stdout:
+                return os.path.join(self.path, "Scripts", "python.exe")
+            else:
+                return os.path.join(self.path, "Scripts", "pythonw.exe")
         else:
             return os.path.join(self.path, "bin", "python")
 
@@ -118,6 +121,11 @@ class ApplicationEnv(BaseEnv, kw_only=True):
             return False
         else:
             return _laz.Version(spec_version) > self.version_spec
+
+    def delete(self) -> None:
+        # Remove the parent folder of the venv
+        app_folder = os.path.normpath(os.path.join(self.path, os.path.pardir))
+        _laz.shutil.rmtree(app_folder)
 
 
 @prefab(kw_only=True)
@@ -218,18 +226,42 @@ class BaseCatalogue:
             return None
 
     @staticmethod
-    def _get_python_install(spec: EnvironmentSpec):
+    def _get_python_install(spec: EnvironmentSpec, uv_path: str | None):
+        install = None
+
         # Find a valid python executable
-        for install in _laz.list_python_installs():
-            if install.implementation.lower() != "cpython":
+        for inst in _laz.list_python_installs():
+            if inst.implementation.lower() != "cpython":
                 # Ignore all non cpython installs for now
                 continue
             if (
                 not spec.details.requires_python
-                or spec.details.requires_python_spec.contains(install.version_str, prereleases=True)
+                or spec.details.requires_python_spec.contains(inst.version_str)
             ):
+                install = inst
                 break
         else:
+            # If no Python was matched try to install a matching python from UV
+            if uv_path:
+                uv_pythons = _laz.get_available_pythons(uv_path)
+                matched_python = False
+                for ver in uv_pythons:
+                    if spec.details.requires_python_spec.contains(ver):
+                        # Install matching python
+                        _laz.install_uv_python(
+                            uv_path=uv_path,
+                            version_str=ver,
+                        )
+                        matched_python = ver
+                        break
+                if matched_python:
+                    # Recover the actual install
+                    for inst in _laz.get_installed_uv_pythons():
+                        if inst.version_str == matched_python:
+                            install = inst
+                            break
+
+        if install is None:
             raise PythonVersionNotFound(
                 f"Could not find a Python install satisfying {spec.details.requires_python!r}."
             )
@@ -270,10 +302,9 @@ class BaseCatalogue:
 
         if deps := spec.details.dependencies:
             dep_list = ", ".join(deps)
-            log(f"Installing dependencies from PyPI: {dep_list}")
 
             if spec.lockdata:
-                log("Using lockfile")
+                log("Downloading and installing locked dependencies...")
                 # Need a temporary file to use as the lockfile
                 with _laz.tempfile.TemporaryDirectory() as tempfld:
                     requirements_path = os.path.join(tempfld, "requirements.txt")
@@ -284,7 +315,6 @@ class BaseCatalogue:
                             dependency_command = [
                                 *installer_command,
                                 "install",
-                                "-q",  # Quiet
                                 "--python",
                                 env.python_path,
                                 "-r",
@@ -296,7 +326,6 @@ class BaseCatalogue:
                                 "--python",
                                 env.python_path,
                                 "install",
-                                "-q",  # Quiet
                                 "-r",
                                 requirements_path,
                             ]
@@ -309,12 +338,12 @@ class BaseCatalogue:
                         _laz.shutil.rmtree(env.path, ignore_errors=True)
                         raise VenvBuildError(f"Failed to install dependencies: {e}")
             else:
+                log(f"Installing dependencies from PyPI: {dep_list}")
                 try:
                     if uv_path:
                         dependency_command = [
                             *installer_command,
                             "install",
-                            "-q",  # Quiet
                             "--python",
                             env.python_path,
                             *deps,
@@ -325,7 +354,6 @@ class BaseCatalogue:
                             "--python",
                             env.python_path,
                             "install",
-                            "-q",  # Quiet
                             *deps,
                         ]
                     _laz.subprocess.run(
@@ -433,6 +461,7 @@ class TempCatalogue(BaseCatalogue):
             ):
                 log(f"Lockfile hash {spec.lock_hash!r} matched environment {cache.name}")
                 cache.last_used = _datetime_now_iso()
+                self.save()
                 return cache
         else:
             return None
@@ -529,7 +558,7 @@ class TempCatalogue(BaseCatalogue):
 
         cache_path = os.path.join(self.catalogue_folder, new_cachename)
 
-        install = self._get_python_install(spec)
+        install = self._get_python_install(spec, uv_path)
 
         # Construct the Env
         # noinspection PyArgumentList
@@ -566,9 +595,18 @@ class ApplicationCatalogue(BaseCatalogue):
             # The version should be the same if the hash matched
             # as the version is included in the hash
             if spec.lock_hash != env.lock_hash:
-                log("Spec matching but lockfile outdated, purging old environment")
-                self.delete_env(env.name)
-                env = None
+                if env.version_spec.is_prerelease:
+                    log(
+                        "Lockfile or Python version does not match, but version is prerelease.\n"
+                        "Clearing outdated environment."
+                    )
+                    self.delete_env(env.name)
+                    env = None
+                else:
+                    raise ApplicationError(
+                        "Application version is the same as the environment "
+                        "but the lockfile or Python version does not match."
+                    )
 
         return env
 
@@ -582,18 +620,27 @@ class ApplicationCatalogue(BaseCatalogue):
             # avoid generating the packaging.version. Otherwise we would check
             # for the outdated version first.
 
-            if spec.lock_hash == cache.lock_hash:
+            if (
+                spec.lock_hash == cache.lock_hash
+                and spec.details.requires_python_spec.contains(cache.python_version)
+            ):
                 if details.app.version == cache.version:
                     cache.last_used = _datetime_now_iso()
+                    cache.spec_hashes.append(spec.spec_hash)
                     env = cache
                 elif details.app.version_spec >= cache.version_spec:
                     # Allow for the version spec to be equal
                     cache.last_used = _datetime_now_iso()
+                    cache.version = details.app.version
+                    # Update hashed specs for cache
+                    if details.app.version_spec == cache.version_spec:
+                        cache.spec_hashes.append(spec.spec_hash)
+                    else:
+                        cache.spec_hashes = [spec.spec_hash]
                     env = cache
-                    env.version = details.app.version
                 else:
                     raise ApplicationError(
-                        f"Attempted to launch older version of application"
+                        f"Attempted to launch older version of application "
                         f"when newer version has been installed. \n"
                         f"app version: {details.app.version} \n"
                         f"installed version: {cache.version}"
@@ -607,26 +654,26 @@ class ApplicationCatalogue(BaseCatalogue):
                     # Equal spec is also a failure if lockfile does not match
                     if cache.version_spec.is_prerelease:
                         log(
-                            "Lockfile does not match, but version is prerelease.\n"
+                            "Lockfile or Python version does not match, but version is prerelease.\n"
                             "Clearing outdated environment."
                         )
                         self.delete_env(cache.name)
                     else:
                         raise ApplicationError(
                             "Application version is the same as the environment "
-                            "but the lockfile does not match."
+                            "but the lockfile or Python version does not match."
                         )
                 elif details.app.version_spec > cache.version_spec:
                     log("Updating application environment")
                     self.delete_env(cache.name)
                 else:
                     raise ApplicationError(
-                        f"Attempted to launch older version of application"
+                        f"Attempted to launch older version of application "
                         f"when newer version has been installed. \n"
                         f"app version: {details.app.version} \n"
                         f"installed version: {cache.version}"
                     )
-
+        self.save()
         return env
 
     def create_env(
@@ -661,13 +708,13 @@ class ApplicationCatalogue(BaseCatalogue):
             "env",
         )
 
-        install = self._get_python_install(spec)
+        install = self._get_python_install(spec, uv_path)
 
         # noinspection PyArgumentList
         new_env = self.ENV_TYPE(
             name=details.app.appkey,
             path=env_path,
-            python_version=install.version,
+            python_version=install.version_str,
             parent_python=install.executable,
             spec_hashes=[spec.spec_hash],
             lock_hash=spec.lock_hash,

@@ -50,6 +50,7 @@ def create_bundle(
     paths: ManagedPaths,
     installer_command: list[str],
     lockdata: str | None = None,
+    compressed: bool = False,
 ) -> None:
     """
     Create a zipapp bundle for the inline script
@@ -61,6 +62,7 @@ def create_bundle(
                         scriptfile path will be used with `.pyz` added as
                         file extension
     :param lockdata: Content of lockfile or None
+    :param compressed: Compress the archive bundle
     :raises ScriptNameClash: error raised if the script name clashes with a 
                              name required for bootstrapping.
     """
@@ -77,23 +79,28 @@ def create_bundle(
 
     if script_path.name in invalid_script_names:
         raise InvalidBundleScript(
-            f"Script {script_file!r} can't be bundled as the name clashes with "
+            f"Script '{script_file}' can't be bundled as the name clashes with "
             f"a script or library required for unbundling"
         )
 
     with paths.build_folder() as build_folder:
         build_path = Path(build_folder)
-        print(f"Building bundle in {build_folder!r}")
+        print(f"Building bundle in '{build_folder}'")
         print("Copying libraries into build folder")
         # Don't copy UV - it's platform dependent
+        # Don't copy __pycache__ folders either
         uv_base_exe = "uv.exe" if sys.platform == "win32" else "uv"
-        uv_pattern = shutil.ignore_patterns(uv_base_exe, f"{uv_base_exe}.version")
+        ignore_patterns = shutil.ignore_patterns(
+            "__pycache__",
+            uv_base_exe,
+            f"{uv_base_exe}.version"
+        )
 
         # Copy pip and ducktools zipapps into folder
         shutil.copytree(
             paths.manager_folder,
             build_path,
-            ignore=uv_pattern,
+            ignore=ignore_patterns,
             dirs_exist_ok=True,
         )
 
@@ -155,6 +162,13 @@ def create_bundle(
                 elif pth.is_dir():
                     shutil.copytree(pth, data_folder / pth.name)
 
+        if license_files := spec.details.license:
+            print("Including license files")
+            for f in license_files:
+                pth = Path(script_file).parent / f
+                if pth.is_file():
+                    shutil.copy(pth, build_path)
+
         if output_file is None:
             archive_path = Path(script_file).with_suffix(".pyz")
         else:
@@ -164,6 +178,7 @@ def create_bundle(
             source=build_folder,
             target=archive_path,
             interpreter="/usr/bin/env python",
+            compressed=compressed,
         )
 
-    print(f"Bundled {script_file!r} as '{archive_path}'")
+    print(f"Bundled '{script_file}' as '{archive_path}'")
