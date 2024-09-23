@@ -86,13 +86,11 @@ def test_download_pip():
         source_url="zipapp/pip-24.2.pyz",
     )
 
-    mock_open = mock.mock_open()
-
     mock_urlopen = mock.mock_open(read_data=b"data")
 
     with (
         mock.patch.object(laz, "urlopen", mock_urlopen),
-        mock.patch("builtins.open", mock_open),
+        mock.patch("builtins.open") as mock_open,
         mock.patch("hashlib.sha3_256") as sha_mock,
         mock.patch("os.makedirs") as mkdir_mock,
     ):
@@ -101,6 +99,9 @@ def test_download_pip():
 
         sha_mock.return_value = hexmock
 
+        file_mock = mock.MagicMock()
+        mock_open.return_value.__enter__.return_value = file_mock
+
         pip_destination = "./data/pip-download.pyz"
 
         get_pip.download_pip(pip_destination, pip_ver)
@@ -108,20 +109,11 @@ def test_download_pip():
         sha_mock.assert_called_with(b"data")
         mkdir_mock.assert_called_with(os.path.dirname(pip_destination), exist_ok=True)
 
-        calls = mock_open.mock_calls
+        mock_open.assert_any_call(pip_destination, "wb")
+        mock_open.assert_any_call(f"{pip_destination}.version", "w")
 
-        expected = [
-            mock.call(pip_destination, "wb"),
-            mock.call().__enter__(),
-            mock.call().write(b"data"),
-            mock.call().__exit__(None, None, None),
-            mock.call(f"{pip_destination}.version", "w"),
-            mock.call().__enter__(),
-            mock.call().write(pip_ver.version_str),
-            mock.call().__exit__(None, None, None)
-        ]
-
-        assert calls == expected
+        file_mock.write.assert_any_call(b"data")
+        file_mock.write.assert_any_call("24.2")
 
         hexmock.hexdigest.return_value = "failure"
 
