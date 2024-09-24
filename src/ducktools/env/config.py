@@ -40,7 +40,7 @@ else:
 
 
 def log(message):
-    LOGGER.write(message)
+    LOGGER.write(f"{message}")
     LOGGER.write("\n")
 
 
