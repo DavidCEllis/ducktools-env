@@ -459,6 +459,11 @@ class TempCatalogue(BaseCatalogue):
                 cache.lock_hash == spec.lock_hash
                 and cache.python_version in spec.details.requires_python_spec
             ):
+                if not cache.is_valid:
+                    log(f"Cache {cache.name!r} does not point to a valid python, removing.")
+                    self.delete_env(cache.name)
+                    continue
+
                 log(f"Lockfile hash {spec.lock_hash!r} matched environment {cache.name}")
                 cache.last_used = _datetime_now_iso()
                 self.save()
@@ -619,8 +624,11 @@ class ApplicationCatalogue(BaseCatalogue):
             # Logic is a bit long here because if the versions match we want to
             # avoid generating the packaging.version. Otherwise we would check
             # for the outdated version first.
+            if not cache.is_valid:
+                log(f"Cache {cache.name!r} does not point to a valid python, removing.")
+                self.delete_env(cache.name)
 
-            if (
+            elif (
                 spec.lock_hash == cache.lock_hash
                 and spec.details.requires_python_spec.contains(cache.python_version)
             ):
