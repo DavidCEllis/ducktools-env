@@ -20,17 +20,14 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import sys
 import os.path
 import subprocess
-
+import sys
 import unittest.mock as mock
-
 from pathlib import Path
 
 import ducktools.env.scripts.get_uv as get_uv
 from ducktools.env.platform_paths import ManagedPaths
-
 
 UV_PYTHON_LIST_OUTPUT = Path(__file__).parent / "data" / "uv_python_versions_list.txt"
 
