@@ -5,34 +5,43 @@ applications and scripts written in Python that require additional dependencies.
 
 ## What is this for? ##
 
-*Or: uv/hatch/pipx already exist, why are you creating yet another packaging tool?*
+Suppose you have a Python script that you wish to share with someone else, but 
+it relies on a third party dependency such as `requests`. In order for someone else
+to run your code they need to both have an appropriate version of Python
+and to create a virtual environment in which to install `requests` and subsequently
+run your script.
 
 PEP-723 introduced 
 [inline script metadata](https://packaging.python.org/en/latest/specifications/inline-script-metadata/#inline-script-metadata)
 which allows users to declare dependencies for single python files in a standardized format.
+This is designed to make sharing scripts with PyPI dependencies easier as now the script
+can define its own requirements.
 
-Using this format requires the use of an extra package such as 'UV' or 'hatch'
+However, using this format requires the use of an extra package such as 'UV' or 'hatch'
 using a specific command such as `uv run my_script.py` or `hatch run my_script.py`.
 
-`ducktools.env` provides a similar command 
-`python ducktools.pyz run my_script.py` or `python -m ducktools.env run my_script.py`.
+`ducktools.env` is designed to bundle your script into a Python 
+[zipapp](https://docs.python.org/3/library/zipapp.html) which can be run by any 
+Python 3.10+ install and will handle creating the virtualenv and launching the script
+with the appropriate dependencies *without* needing the other user to have any
+specific script running tool installed.
 
-The problem that `ducktools.env` seeks to solve is what if you want to share your 
-script or application with someone **who doesn't already have** `uv` or `hatch` or 
-any other script runner that recognises this format.
+To aid this, `ducktools.env` provides the `bundle` and `run` commands.
 
-To aid this, `ducktools.env` provides the `bundle` command.
+`python ducktools.pyz run my_script.py`
+
+Will run your script much like some of the other script runners.
 
 `python ducktools.pyz bundle my_script.py`
 
-This will generate a [zipapp](https://docs.python.org/3/library/zipapp.html) from your script
-that will automatically extract and run it in the same way as with the `run` command.
+Will then generate a zipapp bundle of your script and the required tools to extract and
+execute it in the same way as it is executed via the `run` command.
 
-This bundle will include `ducktools-env` and the `pip` zipapp in order to bootstrap the unbundling
-process. `UV` will be downloaded and installed on unbundling if it is available (on PyPI) 
-for the platform.
+The resulting bundle will include `ducktools-env` and the `pip` zipapp in order to 
+bootstrap the unbundling process. `UV` will be downloaded and installed on unbundling 
+if it is available (on PyPI) for the platform.
 
-### What if the user does not have Python installed ###
+## What if the user does not have Python installed ##
 
 Running the bundle requires the user to have an install of Python 3.10 or later.
 This should be available via python.org with installers for Windows/Mac and either
@@ -61,19 +70,24 @@ If using the tool from PyPI the commands are `python -m ducktools.env <command>`
 with the zipapp they are `python ducktools.pyz <command>` 
 
 Run a script that uses inline script metadata:
+
 `python ducktools.pyz run my_script.py`
 
 Bundle the script into a zipapp:
+
 `python ducktools.pyz bundle my_script.py`
 
 Clear the temporary environment cache:
+
 `python ducktools.pyz clear_cache`
 
 Clear the full `ducktools/env` install directory:
+
 `python ducktools.pyz clear_cache --full`
 
-Build the env folder from the installed package
-**Generally you should not need to do this from the zipapp**
+Build the env folder from the installed package 
+(**Generally you should not need to do this from the zipapp**)
+
 `python -m ducktools.env rebuild_env`
 
 ## Locking environments ##
@@ -86,22 +100,27 @@ script.
 This generation feature uses `uv` which will be automatically installed.
 `uv` is **not** required to use the generated lockfile (but will usually be installed).
 
-Create a lockfile without running a script
+Create a lockfile without running a script:
+
 `python ducktools.pyz generate_lock my_script.py`
 
-Run a script and output the generated lockfile (output as my_script.py.lock)
+Run a script and output the generated lockfile (output as my_script.py.lock):
+
 `python ducktools.pyz run --generate-lock my_script.py`
 
-Run a script using a pre-generated lockfile
+Run a script using a pre-generated lockfile:
+
 `python ducktools.pyz run --with-lock my_script.py.lock my_script.py`
 
-Bundle a script and generate a lockfile (that will be bundled)
+Bundle a script and generate a lockfile (that will be bundled):
+
 `python ducktools.pyz bundle --generate-lock my_script.py`
 
-Bundle a script with a pre-generated lockfile
+Bundle a script with a pre-generated lockfile:
+
 `python ducktools.pyz bundle --with-lock my_script.py.lock my_script.py`
 
-If a `my_script.py.lock` file exists it will automatically be used.
+**If a `my_script.py.lock` file exists it will automatically be used.**
 
 ## Including data files with script bundles ##
 
@@ -194,7 +213,7 @@ where `<envname>` is the `name` of a temporary environment or the combination
 
 Future goals for this tool:
 
-* Optionally bundle requirements inside the zipapp for use without a connection.
+* Optionally bundle requirements inside the zipapp for use as offline bundles.
 
 ## Dependencies ##
 
