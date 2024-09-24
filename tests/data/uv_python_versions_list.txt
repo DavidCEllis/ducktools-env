@@ -1,0 +1,93 @@
+cpython-3.13.0rc2-windows-x86_64-none    C:\Users\ducks\.pyenv\pyenv-win\versions\3.13.0rc2\python.exe
+cpython-3.13.0rc2-windows-x86_64-none    <download available>
+cpython-3.12.6-windows-x86_64-none       C:\Users\ducks\.pyenv\pyenv-win\versions\3.12.6\python.exe
+cpython-3.12.6-windows-x86_64-none       C:\Users\ducks\AppData\Roaming\uv\python\cpython-3.12.6-windows-x86_64-none\python.exe
+cpython-3.12.5-windows-x86_64-none       <download available>
+cpython-3.12.4-windows-x86_64-none       <download available>
+cpython-3.12.3-windows-x86_64-none       <download available>
+cpython-3.12.2-windows-x86_64-none       <download available>
+cpython-3.12.1-windows-x86_64-none       <download available>
+cpython-3.12.0-windows-x86_64-none       <download available>
+cpython-3.11.10-windows-x86_64-none      C:\Users\ducks\AppData\Roaming\uv\python\cpython-3.11.10-windows-x86_64-none\python.exe
+cpython-3.11.9-windows-x86_64-none       <download available>
+cpython-3.11.8-windows-x86_64-none       <download available>
+cpython-3.11.7-windows-x86_64-none       <download available>
+cpython-3.11.6-windows-x86_64-none       <download available>
+cpython-3.11.5-windows-x86_64-none       <download available>
+cpython-3.11.4-windows-x86_64-none       <download available>
+cpython-3.11.3-windows-x86_64-none       <download available>
+cpython-3.11.1-windows-x86_64-none       <download available>
+cpython-3.10.15-windows-x86_64-none      C:\Users\ducks\AppData\Roaming\uv\python\cpython-3.10.15-windows-x86_64-none\python.exe
+cpython-3.10.14-windows-x86_64-none      <download available>
+cpython-3.10.13-windows-x86_64-none      <download available>
+cpython-3.10.12-windows-x86_64-none      <download available>
+cpython-3.10.11-windows-x86_64-none      <download available>
+cpython-3.10.9-windows-x86_64-none       <download available>
+cpython-3.10.8-windows-x86_64-none       <download available>
+cpython-3.10.7-windows-x86_64-none       <download available>
+cpython-3.10.6-windows-x86_64-none       <download available>
+cpython-3.10.5-windows-x86_64-none       <download available>
+cpython-3.10.4-windows-x86_64-none       <download available>
+cpython-3.10.3-windows-x86_64-none       <download available>
+cpython-3.10.2-windows-x86_64-none       <download available>
+cpython-3.10.0-windows-x86_64-none       <download available>
+cpython-3.9.20-windows-x86_64-none       C:\Users\ducks\AppData\Roaming\uv\python\cpython-3.9.20-windows-x86_64-none\python.exe
+cpython-3.9.19-windows-x86_64-none       <download available>
+cpython-3.9.18-windows-x86_64-none       <download available>
+cpython-3.9.17-windows-x86_64-none       <download available>
+cpython-3.9.16-windows-x86_64-none       <download available>
+cpython-3.9.15-windows-x86_64-none       <download available>
+cpython-3.9.14-windows-x86_64-none       <download available>
+cpython-3.9.13-windows-x86_64-none       <download available>
+cpython-3.9.12-windows-x86_64-none       <download available>
+cpython-3.9.11-windows-x86_64-none       <download available>
+cpython-3.9.10-windows-x86_64-none       <download available>
+cpython-3.9.7-windows-x86_64-none        <download available>
+cpython-3.9.6-windows-x86_64-none        <download available>
+cpython-3.9.5-windows-x86_64-none        <download available>
+cpython-3.9.4-windows-x86_64-none        <download available>
+cpython-3.9.3-windows-x86_64-none        <download available>
+cpython-3.9.2-windows-x86_64-none        <download available>
+cpython-3.9.1-windows-x86_64-none        <download available>
+cpython-3.9.0-windows-x86_64-none        <download available>
+cpython-3.8.20-windows-x86_64-none       C:\Users\ducks\AppData\Roaming\uv\python\cpython-3.8.20-windows-x86_64-none\python.exe
+cpython-3.8.19-windows-x86_64-none       <download available>
+cpython-3.8.18-windows-x86_64-none       <download available>
+cpython-3.8.17-windows-x86_64-none       <download available>
+cpython-3.8.16-windows-x86_64-none       <download available>
+cpython-3.8.15-windows-x86_64-none       <download available>
+cpython-3.8.14-windows-x86_64-none       <download available>
+cpython-3.8.13-windows-x86_64-none       <download available>
+cpython-3.8.12-windows-x86_64-none       <download available>
+cpython-3.8.11-windows-x86_64-none       <download available>
+cpython-3.8.10-windows-x86_64-none       <download available>
+cpython-3.8.9-windows-x86_64-none        <download available>
+cpython-3.8.8-windows-x86_64-none        <download available>
+cpython-3.8.7-windows-x86_64-none        <download available>
+cpython-3.8.6-windows-x86_64-none        <download available>
+cpython-3.8.5-windows-x86_64-none        <download available>
+cpython-3.8.3-windows-x86_64-none        <download available>
+cpython-3.8.2-windows-x86_64-none        <download available>
+cpython-3.7.9-windows-x86_64-none        <download available>
+cpython-3.7.7-windows-x86_64-none        <download available>
+cpython-3.7.6-windows-x86_64-none        <download available>
+cpython-3.7.5-windows-x86_64-none        <download available>
+cpython-3.7.4-windows-x86_64-none        <download available>
+cpython-3.7.3-windows-x86_64-none        <download available>
+pypy-3.10.14-windows-x86_64-none         C:\Users\ducks\AppData\Roaming\uv\python\pypy-3.10.14-windows-x86_64-none\python.exe
+pypy-3.10.13-windows-x86_64-none         <download available>
+pypy-3.10.12-windows-x86_64-none         <download available>
+pypy-3.9.19-windows-x86_64-none          <download available>
+pypy-3.9.18-windows-x86_64-none          <download available>
+pypy-3.9.17-windows-x86_64-none          <download available>
+pypy-3.9.16-windows-x86_64-none          <download available>
+pypy-3.9.15-windows-x86_64-none          <download available>
+pypy-3.9.12-windows-x86_64-none          <download available>
+pypy-3.9.10-windows-x86_64-none          <download available>
+pypy-3.8.16-windows-x86_64-none          <download available>
+pypy-3.8.15-windows-x86_64-none          <download available>
+pypy-3.8.13-windows-x86_64-none          <download available>
+pypy-3.8.12-windows-x86_64-none          <download available>
+pypy-3.7.13-windows-x86_64-none          <download available>
+pypy-3.7.12-windows-x86_64-none          <download available>
+pypy-3.7.10-windows-x86_64-none          <download available>
