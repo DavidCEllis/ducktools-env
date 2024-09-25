@@ -155,11 +155,3 @@ class ManagedPaths:
 
         import tempfile
         return tempfile.TemporaryDirectory(dir=self.build_base)
-
-
-if __name__ == "__main__":
-    paths = ManagedPaths("ducktools")
-    print(paths.project_folder)
-    print(paths.config_path)
-    print(paths.cache_folder)
-    print(paths.cache_db)
