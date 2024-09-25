@@ -143,7 +143,7 @@ def build_zipapp(
         install_base_command: list[str],
         clear_old_builds=True
 ) -> None:
-    archive_name = f"ducktools.pyz"
+    archive_name = "ducktools.pyz"
 
     with paths.build_folder() as build_folder:
 
