@@ -32,9 +32,11 @@ from ducktools.classbuilder.prefab import Prefab, get_attributes, as_dict
 from ._lazy_imports import laz as _laz
 
 
+# If stderr does not exist, log to a StringIO
+# this may be used in windowed apps for now
 if sys.stderr:
     LOGGER = sys.stderr
-else:
+else:  # pragma: nocover
     from io import StringIO
     LOGGER = StringIO()
 
@@ -51,7 +53,7 @@ class Config(Prefab, kw_only=True):
 
     # Use uv and allow uv to auto install Python
     use_uv: bool = True
-    uv_install_python: bool = True  # Not yet functional
+    uv_install_python: bool = True
 
     @property
     def cache_lifetime_delta(self) -> _timedelta:
