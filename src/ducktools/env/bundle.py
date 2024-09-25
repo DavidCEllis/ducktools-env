@@ -45,29 +45,26 @@ invalid_script_names = {
 
 def create_bundle(
     *,
-    script_file: str,
+    spec: EnvironmentSpec,
     output_file: str | None = None,
     paths: ManagedPaths,
     installer_command: list[str],
-    lockdata: str | None = None,
     compressed: bool = False,
 ) -> None:
     """
     Create a zipapp bundle for the inline script
 
-    :param script_file: path to the source script file
+    :param spec: Bundle environment spec
     :param paths: ManagedPaths object containing application path info
     :param installer_command: appropriate UV or PIP 'install' command
     :param output_file: output path for the bundle, if not provided the
                         scriptfile path will be used with `.pyz` added as
                         file extension
-    :param lockdata: Content of lockfile or None
     :param compressed: Compress the archive bundle
     :raises ScriptNameClash: error raised if the script name clashes with a 
                              name required for bootstrapping.
     """
-    script_path = Path(script_file)
-    spec = EnvironmentSpec.from_script(script_path)
+    script_path = Path(spec.script_path)
 
     if spec.details.app and not spec.lock_hash:
         raise InvalidEnvironmentSpec("Application scripts require a lockfile")
@@ -79,7 +76,7 @@ def create_bundle(
 
     if script_path.name in invalid_script_names:
         raise InvalidBundleScript(
-            f"Script '{script_file}' can't be bundled as the name clashes with "
+            f"Script '{spec.script_path}' can't be bundled as the name clashes with "
             f"a script or library required for unbundling"
         )
 
@@ -142,10 +139,10 @@ def create_bundle(
 
         subprocess.run(pip_command)
 
-        if lockdata:
+        if spec.lockdata:
             # Copy the lockfile to the lock folder
             lock_path = Path(build_path) / f"{script_path.name}.lock"
-            lock_path.write_text(lockdata)
+            lock_path.write_text(spec.lockdata)
 
         print("Copying script to build folder and bundling")
         shutil.copy(script_path, build_path)
@@ -156,7 +153,7 @@ def create_bundle(
             data_folder.mkdir()
 
             for p in sources:
-                pth = Path(script_file).parent / p
+                pth = script_path.parent / p
                 if pth.is_file():
                     shutil.copy(pth, data_folder)
                 elif pth.is_dir():
@@ -165,12 +162,12 @@ def create_bundle(
         if license_files := spec.details.license:
             print("Including license files")
             for f in license_files:
-                pth = Path(script_file).parent / f
+                pth = script_path.parent / f
                 if pth.is_file():
                     shutil.copy(pth, build_path)
 
         if output_file is None:
-            archive_path = Path(script_file).with_suffix(".pyz")
+            archive_path = script_path.with_suffix(".pyz")
         else:
             archive_path = Path(output_file)
 
@@ -181,4 +178,4 @@ def create_bundle(
             compressed=compressed,
         )
 
-    print(f"Bundled '{script_file}' as '{archive_path}'")
+    print(f"Bundled '{spec.script_path}' as '{archive_path}'")

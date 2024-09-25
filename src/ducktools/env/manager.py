@@ -261,10 +261,9 @@ class Manager(Prefab):
             self.install()
 
         _laz.create_bundle(
-            script_file=spec.script_path,
+            spec=spec,
             output_file=output_file,
             paths=self.paths,
             installer_command=self.install_base_command,
-            lockdata=spec.lockdata,
             compressed=compressed,
         )
