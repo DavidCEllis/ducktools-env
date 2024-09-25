@@ -102,6 +102,7 @@ class ScriptData(Prefab):
             else:
                 self._makedir_bundle(tempdir)
                 temp_path = os.path.join(tempdir.name, DATA_BUNDLE_FOLDER)
+                
         except Exception:
             # Make sure the temporary directory is cleaned up if there is an error
             # This should happen by nature of falling out of scope, but be explicit
@@ -114,6 +115,7 @@ class ScriptData(Prefab):
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._temporary_directory:
             self._temporary_directory.cleanup()
+        self._temporary_directory = None
 
 
 def get_data_folder():
@@ -133,9 +135,6 @@ def get_data_folder():
     launch_type = os.environ.get(LAUNCH_TYPE_ENVVAR)
     data_bundle = os.environ.get(DATA_BUNDLE_ENVVAR)
 
-    if data_bundle is None:
-        raise BundledDataError(f"No bundled data included with script {launch_path!r}")
-
     env_pairs = [
         (FOLDER_ENVVAR, ducktools_base_folder),
         (LAUNCH_PATH_ENVVAR, launch_path),
@@ -148,6 +147,9 @@ def get_data_folder():
                 f"Environment variable {envkey!r} not found, "
                 f"get_data_folder will only work with a bundled executable or script run"
             )
+        
+    if data_bundle is None:
+        raise BundledDataError(f"No bundled data included with script {launch_path!r}")
 
     data_dest_base = os.path.join(ducktools_base_folder, "tempdata")
 
