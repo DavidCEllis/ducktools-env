@@ -100,7 +100,7 @@ class TestLoad:
 
     def test_load_failure_decode(self):
         with (
-            mock.patch("builtins.open") as open_mock,
+            mock.patch("builtins.open"),
             mock.patch("json.load") as json_load_mock,
         ):
             json_load_mock.side_effect = json.JSONDecodeError("failed", "doc", 1)
