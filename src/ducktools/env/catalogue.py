@@ -226,7 +226,11 @@ class BaseCatalogue:
             return None
 
     @staticmethod
-    def _get_python_install(spec: EnvironmentSpec, uv_path: str | None):
+    def _get_python_install(
+        spec: EnvironmentSpec, 
+        uv_path: str | None,
+        config: Config,
+    ):
         install = None
 
         # Find a valid python executable
@@ -242,7 +246,7 @@ class BaseCatalogue:
                 break
         else:
             # If no Python was matched try to install a matching python from UV
-            if uv_path:
+            if uv_path and config.uv_install_python:
                 uv_pythons = _laz.get_available_pythons(uv_path)
                 matched_python = False
                 for ver in uv_pythons:
@@ -563,7 +567,11 @@ class TempCatalogue(BaseCatalogue):
 
         cache_path = os.path.join(self.catalogue_folder, new_cachename)
 
-        install = self._get_python_install(spec, uv_path)
+        install = self._get_python_install(
+            spec=spec, 
+            uv_path=uv_path,
+            config=config,
+        )
 
         # Construct the Env
         # noinspection PyArgumentList
@@ -716,7 +724,11 @@ class ApplicationCatalogue(BaseCatalogue):
             "env",
         )
 
-        install = self._get_python_install(spec, uv_path)
+        install = self._get_python_install(
+            spec=spec, 
+            uv_path=uv_path,
+            config=config,
+        )
 
         # noinspection PyArgumentList
         new_env = self.ENV_TYPE(
