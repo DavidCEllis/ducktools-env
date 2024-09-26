@@ -104,12 +104,16 @@ def create_bundle(
         resources = importlib.resources.files("ducktools.env")
 
         with importlib.resources.as_file(resources) as env_folder:
+            print("Copying bootstrapping paths")
             platform_paths_path = env_folder / "platform_paths.py"
+            logger_path = env_folder / "_logger.py"
             bootstrap_path = env_folder / "bootstrapping" / "bootstrap.py"
-            main_zipapp_path = env_folder / "bootstrapping" / "bundle_main.py"
             check_outdated_path = env_folder / "bootstrapping" / "version_check.py"
 
+            main_zipapp_path = env_folder / "bootstrapping" / "bundle_main.py"
+
             shutil.copy(platform_paths_path, build_path / "_platform_paths.py")
+            shutil.copy(logger_path, build_path / "_logger.py")
             shutil.copy(bootstrap_path, build_path / "_bootstrap.py")
             shutil.copy(check_outdated_path, build_path / "_version_check.py")
 

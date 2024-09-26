@@ -26,16 +26,7 @@ from pathlib import Path
 import unittest.mock as mock
 
 from ducktools.classbuilder.prefab import as_dict
-from ducktools.env.config import Config, log
-
-
-def test_log():
-    with mock.patch("ducktools.env.config.LOGGER") as logger_mock:
-        log("test")
-        logger_mock.assert_has_calls([
-            mock.call.write("test"),
-            mock.call.write("\n"),
-        ])
+from ducktools.env.config import Config
 
 
 def test_lifetime_delta():

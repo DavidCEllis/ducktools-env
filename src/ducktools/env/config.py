@@ -23,27 +23,12 @@
 """
 User global configuration
 """
-import sys
 import os
 
 from datetime import timedelta as _timedelta
 
 from ducktools.classbuilder.prefab import Prefab, get_attributes, as_dict
 from ._lazy_imports import laz as _laz
-
-
-# If stderr does not exist, log to a StringIO
-# this may be used in windowed apps for now
-if sys.stderr:
-    LOGGER = sys.stderr
-else:  # pragma: nocover
-    from io import StringIO
-    LOGGER = StringIO()
-
-
-def log(message):
-    LOGGER.write(f"{message}")
-    LOGGER.write("\n")
 
 
 class Config(Prefab, kw_only=True):

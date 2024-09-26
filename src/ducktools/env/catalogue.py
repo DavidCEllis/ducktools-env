@@ -30,7 +30,8 @@ from ducktools.classbuilder.prefab import Prefab, prefab, attribute, as_dict, ge
 
 from .exceptions import PythonVersionNotFound, InvalidEnvironmentSpec, VenvBuildError, ApplicationError
 from .environment_specs import EnvironmentSpec
-from .config import Config, log
+from .config import Config
+from ._logger import log
 
 
 from ._lazy_imports import laz as _laz

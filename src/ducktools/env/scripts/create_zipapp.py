@@ -147,11 +147,11 @@ def build_zipapp(
 
     with paths.build_folder() as build_folder:
 
-        build_folder_path = Path(build_folder)
+        build_path = Path(build_folder)
 
         if clear_old_builds:
-            for p in build_folder_path.parent.glob("*"):
-                if p != build_folder_path:
+            for p in build_path.parent.glob("*"):
+                if p != build_path:
                     shutil.rmtree(p)
 
         # UV should not be bundled - binary is not cross platform
@@ -170,21 +170,26 @@ def build_zipapp(
 
         with importlib.resources.as_file(resources) as env_folder:
             platform_paths_path = env_folder / "platform_paths.py"
+            logging_path = env_folder / "_logger.py"
             bootstrap_path = env_folder / "bootstrapping" / "bootstrap.py"
-            main_zipapp_path = env_folder / "bootstrapping" / "zipapp_main.py"
             version_check_path = env_folder / "bootstrapping" / "version_check.py"
 
+            main_zipapp_path = env_folder / "bootstrapping" / "zipapp_main.py"
+
             print("Copying platform paths")
-            shutil.copy(platform_paths_path, os.path.join(build_folder, "_platform_paths.py"))
+            shutil.copy(platform_paths_path, build_path / "_platform_paths.py")
 
             print("Copying bootstrap script")
-            shutil.copy(bootstrap_path, os.path.join(build_folder, "_bootstrap.py"))
+            shutil.copy(bootstrap_path, build_path / "_bootstrap.py")
 
             print("Copying version check script")
-            shutil.copy(version_check_path, os.path.join(build_folder, "_version_check.py"))
+            shutil.copy(version_check_path, build_path / "_version_check.py")
+
+            print("Copying logger script")
+            shutil.copy(logging_path, build_path / "_logger.py")
 
             print("Copying __main__ script")
-            shutil.copy(main_zipapp_path, os.path.join(build_folder, "__main__.py"))
+            shutil.copy(main_zipapp_path, build_path / "__main__.py")
 
         print("Installing bootstrap requirements")
         vendor_folder = os.path.join(build_folder, "_vendor")

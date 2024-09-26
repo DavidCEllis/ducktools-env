@@ -24,7 +24,7 @@ import os.path
 import sys
 
 from .get_pip import retrieve_pip
-from ..config import log
+from .._logger import log
 from .._lazy_imports import laz as _laz
 from ..platform_paths import ManagedPaths
 
