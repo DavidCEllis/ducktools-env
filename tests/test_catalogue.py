@@ -21,14 +21,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import sys
-from datetime import datetime, timedelta
-
 import unittest.mock as mock
+from datetime import datetime, timedelta
 from pathlib import Path
 
-import pytest
+from ducktools.classbuilder.prefab import as_dict
 
-from ducktools.env.catalogue import BaseCatalogue, TempCatalogue, TemporaryEnv
+import pytest
+from packaging.version import Version
+
+from ducktools.env.catalogue import (
+    BaseCatalogue, 
+    ApplicationCatalogue,
+    TempCatalogue, 
+    ApplicationEnv,
+    TemporaryEnv,
+)
 
 
 @pytest.fixture
@@ -43,12 +51,13 @@ def fake_temp_envs(catalogue_path):
     env_0_path = str(Path(catalogue_path).parent / "env_0")
     env_1_path = str(Path(catalogue_path).parent / "env_1")
     python_path = sys.executable
+    python_version = ".".join(str(item) for item in sys.version_info[:3])
 
     # ENV examples based on examples folder
     env_0 = TemporaryEnv(
         name="env_0",
         path=env_0_path,
-        python_version="3.12.5",
+        python_version=python_version,
         parent_python=python_path,
         created_on="2024-09-02T14:55:53.102038",
         last_used="2024-09-02T14:55:53.102038",
@@ -69,7 +78,7 @@ def fake_temp_envs(catalogue_path):
     env_1 = TemporaryEnv(
         name="env_1",
         path=env_1_path,
-        python_version="3.12.5",
+        python_version=python_version,
         parent_python=python_path,
         created_on="2024-09-02T14:55:58.827666",
         last_used="2024-09-02T14:55:58.827666",
@@ -78,6 +87,35 @@ def fake_temp_envs(catalogue_path):
     )
 
     return {"env_0": env_0, "env_1": env_1}
+
+@pytest.fixture
+def fake_app_env(catalogue_path):
+    python_path = sys.executable
+    python_version = ".".join(str(item) for item in sys.version_info[:3])
+
+    # Env based on examples folder
+    appname = "ducktools_testing/cowsay_example"
+    env = ApplicationEnv(
+        name=appname,
+        path=str(Path(catalogue_path).parent / "ducktools_testing/cowsay_example/env"),
+        python_version=python_version,
+        parent_python=python_path,
+        created_on="2024-09-25T17:55:23.254577",
+        last_used="2024-09-26T11:29:12.233691",
+        spec_hashes=[
+            "226500066700d7910b3a57470f12f97ed402fe68b8b31fb592f0a76f7f0bd682"
+        ],
+        lock_hash="840760dd5d911f145b94c72e670754391bf19c33d5272da7362b629c484fd1f6",
+        installed_modules=[
+            "cowsay==6.1"
+        ],
+        owner="ducktools_testing",
+        appname="cowsay_example",
+        version="v0.1.0",
+    )
+
+    return env
+    
 
 @pytest.fixture(scope="function")
 def fake_temp_catalogue(catalogue_path, fake_temp_envs):
@@ -90,8 +128,113 @@ def fake_temp_catalogue(catalogue_path, fake_temp_envs):
     yield cat
 
 
+# ENVIRONMENT TESTS
+
+@pytest.mark.usefixtures("mock_save")
+class TestTempEnv:
+    @pytest.mark.parametrize("envname", ["env_0", "env_1"])
+    def test_python_path(self, fake_temp_envs, envname, catalogue_path):
+        env = fake_temp_envs[envname]
+        base_path = Path(catalogue_path).parent
+
+        if sys.platform == "win32":
+            assert env.python_path == str(base_path / envname / "Scripts" / "python.exe")
+        else:
+            assert env.python_path == str(base_path / envname / "bin" / "python")
+        
+    @pytest.mark.skipif(sys.platform != "win32", reason="Windows only test")
+    @pytest.mark.parametrize("envname", ["env_0", "env_1"])
+    def test_python_path_windowed(self, fake_temp_envs, envname, catalogue_path):
+        # If there is no stdout on windows assume windowed executable
+        with mock.patch("sys.stdout", new=None):
+            env = fake_temp_envs[envname]
+            base_path = Path(catalogue_path).parent
+
+            assert env.python_path == str(base_path / envname / "Scripts" / "pythonw.exe")
+
+    def test_dates(self, fake_temp_envs):
+        env_0 = fake_temp_envs["env_0"]
+        assert env_0.last_used_simple == "2024-09-02 14:55:53"
+
+        env_1 = fake_temp_envs["env_1"]
+        assert env_1.last_used_simple == "2024-09-02 14:55:58"
+        
+    def test_exists(self, fake_temp_envs):
+        env_0 = fake_temp_envs["env_0"]
+        assert env_0.exists is False
+        assert env_0.parent_exists is True  # sys.executable should exist!
+        assert env_0.is_valid is False
+
+        # Check the logic requires both exists and parent_exists to be True
+        with mock.patch.object(
+            TemporaryEnv, 
+            "exists", 
+            new_callable=mock.PropertyMock
+        ) as mock_exists:
+            mock_exists.return_value = True
+            assert env_0.is_valid is True
+
+            with mock.patch.object(
+                TemporaryEnv, 
+                "parent_exists", 
+                new_callable=mock.PropertyMock
+            ) as mock_parent_exists:
+                mock_parent_exists.return_value = False
+                assert env_0.is_valid is False
+
+    @pytest.mark.parametrize("envname", ["env_0", "env_1"])
+    def test_delete(self, fake_temp_envs, envname):
+        with mock.patch("shutil.rmtree") as rmtree:
+            env = fake_temp_envs[envname]
+            env.delete()
+
+            rmtree.assert_called_once_with(env.path)
+
+
+@pytest.mark.usefixtures("mock_save")
+class TestAppEnv:
+    def test_version_spec(self, fake_app_env):
+        assert fake_app_env.version_spec == Version("0.1.0")
+
+        assert not fake_app_env.is_outdated("v0.1.0")
+        assert not fake_app_env.is_outdated("0.1.0")
+        assert not fake_app_env.is_outdated("0.0.99")
+        assert not fake_app_env.is_outdated("0.1.0rc3")
+
+        assert fake_app_env.is_outdated("v0.1.1")
+        assert fake_app_env.is_outdated("v0.1.1a1")
+
+    def test_delete(self, fake_app_env):
+        with mock.patch("shutil.rmtree") as rmtree:
+            fake_app_env.delete()
+
+            del_path = str(Path(fake_app_env.path).parent)
+            rmtree.assert_called_once_with(del_path)
+
+
+# CATALOGUE TESTS
+
+# All other tests mock out the save command
+def test_catalogue_save(fake_temp_catalogue):
+    cat = fake_temp_catalogue
+    with (
+        mock.patch("os.makedirs") as makedirs_mock,
+        mock.patch("json.dump") as dump_mock,
+        mock.patch("builtins.open") as open_mock
+    ):
+        file_mock = mock.MagicMock()
+        open_mock.return_value.__enter__.return_value = file_mock
+
+        cat.save()
+
+        makedirs_mock.assert_called_once_with(cat.catalogue_folder, exist_ok=True)
+        open_mock.assert_called_once_with(cat.path, "w")
+        dump_mock.assert_called_once_with(cat, file_mock, default=as_dict, indent=2)
+
+
 @pytest.mark.usefixtures("mock_save")
 class TestTempCatalogue:
+
     def test_delete_env(self, fake_temp_catalogue, fake_temp_envs, mock_save):
         with mock.patch("shutil.rmtree") as rmtree:
             pth = fake_temp_envs["env_0"].path
