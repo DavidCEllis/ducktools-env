@@ -89,12 +89,20 @@ class TestManagedPaths:
             assert pip_ver == env_ver == uv_ver == "0.1.0"
 
     def test_build_folder(self):
-        with mock.patch("tempfile.TemporaryDirectory") as tempdir_mock:
+        with (
+            mock.patch("tempfile.TemporaryDirectory") as tempdir_mock,
+            mock.patch("os.makedirs") as makedirs_mock,
+        ):
             tmpdir = "fake/temp/dir"
             tempdir_mock.return_value.__enter__.return_value = tmpdir
 
             with self.paths.build_folder() as fld:
                 assert fld == tmpdir
+
+            makedirs_mock.assert_called_once_with(
+                self.paths.build_base,
+                exist_ok=True,
+            )
 
             tempdir_mock.assert_called_once_with(
                 dir=self.paths.build_base
