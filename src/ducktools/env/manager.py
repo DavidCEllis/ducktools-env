@@ -39,7 +39,7 @@ from .config import Config
 from .platform_paths import ManagedPaths
 from .catalogue import TempCatalogue, ApplicationCatalogue
 from .environment_specs import EnvironmentSpec
-from .exceptions import UVUnavailableError, InvalidEnvironmentSpec, ApplicationError
+from .exceptions import UVUnavailableError, InvalidEnvironmentSpec
 
 from ._lazy_imports import laz as _laz
 from ._logger import log
