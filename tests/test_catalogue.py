@@ -38,6 +38,8 @@ from ducktools.env.catalogue import (
     TemporaryEnv,
 )
 
+from ducktools.env.environment_specs import EnvironmentSpec
+
 
 @pytest.fixture
 def mock_save():
@@ -50,6 +52,7 @@ def mock_save():
 def fake_temp_envs(catalogue_path):
     env_0_path = str(Path(catalogue_path).parent / "env_0")
     env_1_path = str(Path(catalogue_path).parent / "env_1")
+    env_2_path = str(Path(catalogue_path).parent / "env_2")
     python_path = sys.executable
     python_version = ".".join(str(item) for item in sys.version_info[:3])
 
@@ -86,7 +89,19 @@ def fake_temp_envs(catalogue_path):
         installed_modules=["cowsay==6.1"],
     )
 
-    return {"env_0": env_0, "env_1": env_1}
+    env_2 = TemporaryEnv(
+        name="env_2",
+        path=env_2_path,
+        python_version=python_version,
+        parent_python=python_path,
+        created_on="2024-09-25T17:55:23.254577",
+        last_used="2024-09-26T11:29:12.233691",
+        spec_hashes=["85cdf5c0f9b109ba70cd936b153fd175307406eb802e05df453d5ccf5a19383f"],
+        lock_hash="840760dd5d911f145b94c72e670754391bf19c33d5272da7362b629c484fd1f6",
+        installed_modules=["cowsay==6.1"],
+    )
+
+    return {"env_0": env_0, "env_1": env_1, "env_2": env_2}
 
 @pytest.fixture
 def fake_app_env(catalogue_path):
@@ -132,7 +147,7 @@ def fake_temp_catalogue(catalogue_path, fake_temp_envs):
 
 @pytest.mark.usefixtures("mock_save")
 class TestTempEnv:
-    @pytest.mark.parametrize("envname", ["env_0", "env_1"])
+    @pytest.mark.parametrize("envname", ["env_0", "env_1", "env_2"])
     def test_python_path(self, fake_temp_envs, envname, catalogue_path):
         env = fake_temp_envs[envname]
         base_path = Path(catalogue_path).parent
@@ -143,7 +158,7 @@ class TestTempEnv:
             assert env.python_path == str(base_path / envname / "bin" / "python")
         
     @pytest.mark.skipif(sys.platform != "win32", reason="Windows only test")
-    @pytest.mark.parametrize("envname", ["env_0", "env_1"])
+    @pytest.mark.parametrize("envname", ["env_0", "env_1", "env_2"])
     def test_python_path_windowed(self, fake_temp_envs, envname, catalogue_path):
         # If there is no stdout on windows assume windowed executable
         with mock.patch("sys.stdout", new=None):
@@ -182,7 +197,7 @@ class TestTempEnv:
                 mock_parent_exists.return_value = False
                 assert env_0.is_valid is False
 
-    @pytest.mark.parametrize("envname", ["env_0", "env_1"])
+    @pytest.mark.parametrize("envname", ["env_0", "env_1", "env_2"])
     def test_delete(self, fake_temp_envs, envname):
         with mock.patch("shutil.rmtree") as rmtree:
             env = fake_temp_envs[envname]
@@ -234,6 +249,40 @@ def test_catalogue_save(fake_temp_catalogue):
 
 @pytest.mark.usefixtures("mock_save")
 class TestTempCatalogue:
+    # Shared tests for any catalogue
+    def test_load_env(self, fake_temp_catalogue):
+        with (
+            mock.patch("json.load") as mock_load,
+            mock.patch("builtins.open") as mock_open,
+        ):
+            mock_file = mock.MagicMock()
+            mock_open.return_value.__enter__.return_value = mock_file
+
+            catalogue_dict = as_dict(fake_temp_catalogue)
+            catalogue_dict["environments"] = {
+                env.name: as_dict(env) 
+                for env in catalogue_dict["environments"].values()
+            }
+
+            mock_load.return_value = catalogue_dict
+
+            fake_path = "path/to/catalogue.json"
+
+            cat = TempCatalogue.load(fake_path)
+
+            assert cat == fake_temp_catalogue
+
+            mock_open.assert_called_once_with(fake_path, 'r')
+            mock_load.assert_called_once_with(mock_file)
+
+    def test_load_fail_notfound(self):
+        with mock.patch("builtins.open") as mock_open:
+            mock_open.side_effect = FileNotFoundError()
+            fake_path = "path/to/catalogue.json"
+
+            cat = TempCatalogue.load(fake_path)
+
+            assert cat == TempCatalogue(path=fake_path)
 
     def test_delete_env(self, fake_temp_catalogue, fake_temp_envs, mock_save):
         with mock.patch("shutil.rmtree") as rmtree:
@@ -252,14 +301,60 @@ class TestTempCatalogue:
             with pytest.raises(FileNotFoundError):
                 fake_temp_catalogue.delete_env("env_42")
 
-    def test_purge_folder(self, fake_temp_catalogue, fake_temp_envs):
+    def test_purge_folder(self, fake_temp_catalogue):
         with mock.patch("shutil.rmtree") as rmtree:
 
             fake_temp_catalogue.purge_folder()
             rmtree.assert_called_once_with(fake_temp_catalogue.catalogue_folder)
 
         assert fake_temp_catalogue.environments == {}
-        
+
+    def test_find_env_hash(self, fake_temp_catalogue, fake_temp_envs):
+        example_paths = Path(__file__).parent / "example_scripts"
+
+        # The python path and folder doesn't actually exist
+        # But pretend it does
+        with mock.patch.object(TemporaryEnv, "is_valid", new=True):
+            env_0_spec = EnvironmentSpec.from_script(
+                str(example_paths / "pep_723_example.py")
+            )
+            env_0_recover = fake_temp_catalogue.find_env_hash(spec=env_0_spec)
+
+            # This should find the env without the lockfile
+            env_1_spec = EnvironmentSpec.from_script(
+                str(example_paths / "cowsay_ex_nolock.py")
+            )
+            env_1_recover = fake_temp_catalogue.find_env_hash(spec=env_1_spec)
+
+            # This should only find the env *with* the lockfile
+            # Despite being the same original spec
+            env_2_spec = EnvironmentSpec.from_script(
+                str(example_paths / "cowsay_ex.py")
+            )
+            env_2_recover = fake_temp_catalogue.find_env_hash(spec=env_2_spec)
+
+        assert env_0_recover == fake_temp_envs["env_0"]
+        assert env_1_recover == fake_temp_envs["env_1"]
+        assert env_2_recover == fake_temp_envs["env_2"]
+
+    def test_find_env_hash_fail(self, fake_temp_catalogue):
+        with (
+            mock.patch.object(TempCatalogue, "delete_env") as mock_delete,
+            mock.patch.object(TemporaryEnv, "is_valid", new=False)
+        ):
+            example_paths = Path(__file__).parent / "example_scripts"
+            env_0_spec = EnvironmentSpec.from_script(
+                str(example_paths / "pep_723_example.py")
+            )
+
+            empty_recover = fake_temp_catalogue.find_env_hash(spec=env_0_spec)
+
+            assert empty_recover is None
+
+            mock_delete.assert_called_with("env_0")
+
+
+    # Temp catalogue specific tests
     def test_oldest_cache(self, fake_temp_catalogue):
         assert fake_temp_catalogue.oldest_cache == "env_0"
 
