@@ -110,11 +110,10 @@ class Manager(Prefab):
 
         return uv_path
 
-    @property
-    def install_base_command(self) -> list[str]:
+    def install_base_command(self, use_uv=True) -> list[str]:
         # Get the installer command for python packages
         # Pip or the faster uv_pip if it is available
-        if uv_path := self.retrieve_uv():
+        if use_uv and (uv_path := self.retrieve_uv()):
             return [uv_path, "pip"]
         else:
             pip_path = self.retrieve_pip()
@@ -181,7 +180,7 @@ class Manager(Prefab):
                         spec=spec,
                         config=self.config,
                         uv_path=self.retrieve_uv(),
-                        installer_command=self.install_base_command,
+                        installer_command=self.install_base_command(),
                     )
 
             else:
@@ -192,7 +191,7 @@ class Manager(Prefab):
                         spec=spec,
                         config=self.config,
                         uv_path=self.retrieve_uv(),
-                        installer_command=self.install_base_command,
+                        installer_command=self.install_base_command(),
                     )
         return env
 
@@ -283,6 +282,6 @@ class Manager(Prefab):
             spec=spec,
             output_file=output_file,
             paths=self.paths,
-            installer_command=self.install_base_command,
+            installer_command=self.install_base_command(use_uv=False),
             compressed=compressed,
         )

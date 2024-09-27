@@ -36,7 +36,7 @@ class TestBuildRetrieve:
             spec=spec,
             config=test_config,
             uv_path=manager.retrieve_uv(),
-            installer_command=manager.install_base_command,
+            installer_command=manager.install_base_command(),
         )
 
         assert real_env is not None
