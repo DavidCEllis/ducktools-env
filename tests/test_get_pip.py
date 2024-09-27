@@ -21,20 +21,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import os
-
 import unittest.mock as mock
 from pathlib import Path
 
+import pytest
 from packaging.version import Version
 
 import ducktools.env.scripts.get_pip as get_pip
-
 from ducktools.env._lazy_imports import laz
-from ducktools.env.platform_paths import ManagedPaths
 from ducktools.env.exceptions import InvalidPipDownload
-
-import pytest
-
+from ducktools.env.platform_paths import ManagedPaths
 
 PIP_ZIPAPP = Path(__file__).parent / "data/pip-24.2.pyz"
 

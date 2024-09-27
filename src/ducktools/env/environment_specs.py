@@ -26,7 +26,7 @@ from ducktools.classbuilder.prefab import Prefab, as_dict, attribute
 import ducktools.scriptmetadata as scriptmetadata
 
 from .exceptions import ApplicationError
-from .config import log
+from ._logger import log
 
 from ._lazy_imports import laz as _laz
 

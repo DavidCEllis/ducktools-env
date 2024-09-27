@@ -34,7 +34,7 @@ import os.path
 from ducktools.classbuilder.prefab import prefab
 
 from ..platform_paths import ManagedPaths
-from ..config import log
+from .._logger import log
 from ..exceptions import InvalidPipDownload
 from .._lazy_imports import laz as _laz
 

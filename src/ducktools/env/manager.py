@@ -35,13 +35,14 @@ from . import (
     LAUNCH_PATH_ENVVAR,
     LAUNCH_TYPE_ENVVAR,
 )
-from .config import Config, log
+from .config import Config
 from .platform_paths import ManagedPaths
 from .catalogue import TempCatalogue, ApplicationCatalogue
 from .environment_specs import EnvironmentSpec
-from .exceptions import UVUnavailableError, InvalidEnvironmentSpec, ApplicationError
-from ._lazy_imports import laz as _laz
+from .exceptions import UVUnavailableError, InvalidEnvironmentSpec
 
+from ._lazy_imports import laz as _laz
+from ._logger import log
 
 class Manager(Prefab):
     project_name: str = PROJECT_NAME
@@ -261,10 +262,9 @@ class Manager(Prefab):
             self.install()
 
         _laz.create_bundle(
-            script_file=spec.script_path,
+            spec=spec,
             output_file=output_file,
             paths=self.paths,
             installer_command=self.install_base_command,
-            lockdata=spec.lockdata,
             compressed=compressed,
         )

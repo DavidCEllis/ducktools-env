@@ -32,6 +32,7 @@ import zipfile
 
 # This file is moved and these imports created when bundling
 from _platform_paths import ManagedPaths  # type: ignore
+from _logger import log  # type: ignore
 
 # This bootstrap script exists without ducktools.env and so needs a copy of project_name
 PROJECT_NAME = "ducktools"
@@ -81,14 +82,14 @@ def update_libraries():
 
         # Copy ducktools if outdated
         if is_outdated(default_paths.get_env_version(), bundled_ducktools_ver):
-            logger.write("Installed ducktools is older than bundled, replacing.\n")
+            log("Installed ducktools is older than bundled, replacing.")
             extract_names = sorted(n for n in zf.namelist() if n.startswith("ducktools-env/"))
             zf.extractall(default_paths.manager_folder, members=extract_names)
             zf.extract("ducktools-env.version", default_paths.manager_folder)
 
         # Copy pip if outdated
         if is_outdated(default_paths.get_pip_version(), bundled_pip_ver):
-            logger.write("Installed pip is older than bundled, replacing.\n")
+            log("Installed pip is older than bundled, replacing.")
             zf.extract("pip.pyz", default_paths.manager_folder)
             zf.extract("pip.pyz.version", default_paths.manager_folder)
 

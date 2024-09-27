@@ -30,7 +30,8 @@ from ducktools.classbuilder.prefab import Prefab, prefab, attribute, as_dict, ge
 
 from .exceptions import PythonVersionNotFound, InvalidEnvironmentSpec, VenvBuildError, ApplicationError
 from .environment_specs import EnvironmentSpec
-from .config import Config, log
+from .config import Config
+from ._logger import log
 
 
 from ._lazy_imports import laz as _laz
@@ -226,7 +227,11 @@ class BaseCatalogue:
             return None
 
     @staticmethod
-    def _get_python_install(spec: EnvironmentSpec, uv_path: str | None):
+    def _get_python_install(
+        spec: EnvironmentSpec, 
+        uv_path: str | None,
+        config: Config,
+    ):
         install = None
 
         # Find a valid python executable
@@ -242,7 +247,7 @@ class BaseCatalogue:
                 break
         else:
             # If no Python was matched try to install a matching python from UV
-            if uv_path:
+            if uv_path and config.uv_install_python:
                 uv_pythons = _laz.get_available_pythons(uv_path)
                 matched_python = False
                 for ver in uv_pythons:
@@ -459,6 +464,11 @@ class TempCatalogue(BaseCatalogue):
                 cache.lock_hash == spec.lock_hash
                 and cache.python_version in spec.details.requires_python_spec
             ):
+                if not cache.is_valid:
+                    log(f"Cache {cache.name!r} does not point to a valid python, removing.")
+                    self.delete_env(cache.name)
+                    continue
+
                 log(f"Lockfile hash {spec.lock_hash!r} matched environment {cache.name}")
                 cache.last_used = _datetime_now_iso()
                 self.save()
@@ -558,7 +568,11 @@ class TempCatalogue(BaseCatalogue):
 
         cache_path = os.path.join(self.catalogue_folder, new_cachename)
 
-        install = self._get_python_install(spec, uv_path)
+        install = self._get_python_install(
+            spec=spec, 
+            uv_path=uv_path,
+            config=config,
+        )
 
         # Construct the Env
         # noinspection PyArgumentList
@@ -619,8 +633,11 @@ class ApplicationCatalogue(BaseCatalogue):
             # Logic is a bit long here because if the versions match we want to
             # avoid generating the packaging.version. Otherwise we would check
             # for the outdated version first.
+            if not cache.is_valid:
+                log(f"Cache {cache.name!r} does not point to a valid python, removing.")
+                self.delete_env(cache.name)
 
-            if (
+            elif (
                 spec.lock_hash == cache.lock_hash
                 and spec.details.requires_python_spec.contains(cache.python_version)
             ):
@@ -708,7 +725,11 @@ class ApplicationCatalogue(BaseCatalogue):
             "env",
         )
 
-        install = self._get_python_install(spec, uv_path)
+        install = self._get_python_install(
+            spec=spec, 
+            uv_path=uv_path,
+            config=config,
+        )
 
         # noinspection PyArgumentList
         new_env = self.ENV_TYPE(
