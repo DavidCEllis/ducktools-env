@@ -51,7 +51,7 @@ class TestManagedPaths:
         # This test is to check all folder paths are correct and make sure
         # they are not accidentally changed.
 
-        project_folder = USER_PATH / self.project_name / "env"
+        project_folder = Path(get_platform_folder(self.project_name)) / "env"
 
         assert self.paths.project_folder == str(project_folder)
         assert self.paths.config_path == str(project_folder / "config.json")
