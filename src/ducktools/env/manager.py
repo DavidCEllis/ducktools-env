@@ -87,6 +87,9 @@ class Manager(Prefab):
         installed_ver = self.paths.get_env_version()
         if this_ver == installed_ver:
             return False
+        elif _laz.Version(installed_ver).local:
+            # Local versions are *always* outdated
+            return True
         else:
             return _laz.Version(this_ver) > _laz.version(installed_ver)
 
