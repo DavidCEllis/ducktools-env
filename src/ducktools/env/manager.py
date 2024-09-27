@@ -34,6 +34,7 @@ from . import (
     LAUNCH_ENVIRONMENT_ENVVAR,
     LAUNCH_PATH_ENVVAR,
     LAUNCH_TYPE_ENVVAR,
+    __version__,
 )
 from .config import Config
 from .platform_paths import ManagedPaths
@@ -43,6 +44,7 @@ from .exceptions import UVUnavailableError, InvalidEnvironmentSpec
 
 from ._lazy_imports import laz as _laz
 from ._logger import log
+
 
 class Manager(Prefab):
     project_name: str = PROJECT_NAME
@@ -74,6 +76,19 @@ class Manager(Prefab):
     @property
     def is_installed(self):
         return os.path.exists(self.paths.pip_zipapp) and os.path.exists(self.paths.env_folder)
+
+    @property
+    def install_outdated(self):
+        """
+        Return True if the version running this script is newer than the version
+        installed in the cache.
+        """
+        this_ver = __version__
+        installed_ver = self.paths.get_env_version()
+        if this_ver == installed_ver:
+            return False
+        else:
+            return _laz.Version(this_ver) > _laz.version(installed_ver)
 
     # Ducktools build commands
     def retrieve_pip(self) -> str:
@@ -258,7 +273,7 @@ class Manager(Prefab):
         :param output_file: output path to zipapp bundle (script_file.pyz default)
         :param compressed: Compress the resulting zipapp
         """
-        if not self.is_installed:
+        if not self.is_installed or self.install_outdated:
             self.install()
 
         _laz.create_bundle(
