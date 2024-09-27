@@ -91,7 +91,7 @@ class Manager(Prefab):
             # Local versions are *always* outdated
             return True
         else:
-            return _laz.Version(this_ver) > _laz.version(installed_ver)
+            return _laz.Version(this_ver) > _laz.Version(installed_ver)
 
     # Ducktools build commands
     def retrieve_pip(self) -> str:
