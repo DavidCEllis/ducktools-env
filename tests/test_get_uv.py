@@ -216,14 +216,14 @@ class TestRetrieveUV:
             open_mock.assert_not_called()
             remove_mock.assert_not_called()
 
-
     def test_uv_exists_keep(self):
-
         with (
             mock.patch("os.path.exists") as exists_mock,
             mock.patch("os.remove") as remove_mock,
             mock.patch("subprocess.run") as run_mock,
+            mock.patch.object(ManagedPaths, "get_uv_version") as uv_ver_mock
         ):
+            uv_ver_mock.return_value = "0.4.6"
             exists_mock.return_value = True
             uv_path = get_uv.retrieve_uv(paths=self.paths, reinstall=False)
 
@@ -232,8 +232,6 @@ class TestRetrieveUV:
             run_mock.assert_not_called()
 
             assert uv_path == self.paths.uv_executable
-        
-
 
 
 def test_get_available_pythons():

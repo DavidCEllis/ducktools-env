@@ -39,7 +39,9 @@ def retrieve_uv(paths: ManagedPaths, reinstall: bool = False) -> str | None:
 
     if os.path.exists(paths.uv_executable):
         uv_path = paths.uv_executable
-        if reinstall:
+        uv_version = paths.get_uv_version()
+
+        if reinstall or not uv_version or uv_version not in _laz.SpecifierSet(uv_versionspec):
             uv_versionfile = f"{uv_path}.version"
             os.remove(uv_path)
             os.remove(uv_versionfile)
