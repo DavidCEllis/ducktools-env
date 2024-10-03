@@ -36,6 +36,9 @@ dynamic = ["version"]
 [project.optional-dependencies]
 testing = ["pytest", "pytest-cov", "coverage-conditional-plugin"]
 
+[project.scripts]
+"ducktools-env" = "ducktools.env.__main__:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
