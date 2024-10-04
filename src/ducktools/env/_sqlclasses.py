@@ -76,11 +76,11 @@ def get_sql_fields(cls) -> dict[str, SQLAttribute]:
 annotation_gatherer = make_annotation_gatherer(SQLAttribute)
 
 
-def flatten_list(strings: list[str], *, delimiter=";"):
+def flatten_list(strings: list[str], *, delimiter=";") -> str:
     return delimiter.join(strings)
 
 
-def separate_list(string: str, *, delimiter=";"):
+def separate_list(string: str, *, delimiter=";") -> list[str]:
     return string.split(delimiter)
 
 
