@@ -93,6 +93,11 @@ class BaseEnv(Prefab, kw_only=True):
         """Check that both the folder exists and the source python exists"""
         return self.exists and self.parent_exists
 
+    @property
+    def base_path(self) -> str:
+        # Override if there is a parent folder to the environment
+        return self.path
+
 
 class TemporaryEnv(BaseEnv, kw_only=True):
     """
@@ -119,10 +124,10 @@ class ApplicationEnv(BaseEnv, kw_only=True):
         else:
             return _laz.Version(spec_version) > self.version_spec
 
-    def delete(self) -> None:
-        # Remove the parent folder of the venv
-        app_folder = os.path.normpath(os.path.join(self.path, os.path.pardir))
-        _laz.shutil.rmtree(app_folder)
+    @property
+    def base_path(self) -> str:
+        # Apps are in a /env subfolder, this gets the parent app folder
+        return os.path.normpath(os.path.join(self.path, os.path.pardir))
 
 
 @prefab(kw_only=True)
@@ -170,7 +175,7 @@ class BaseCatalogue:
 
     def delete_env(self, envname: str) -> None:
         if env := self.environments.get(envname):
-            _laz.shutil.rmtree(env.path)
+            _laz.shutil.rmtree(env.base_path)
             del self.environments[envname]
             self.save()
         else:
