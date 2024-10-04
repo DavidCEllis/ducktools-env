@@ -199,14 +199,6 @@ class TestTempEnv:
                 mock_parent_exists.return_value = False
                 assert env_0.is_valid is False
 
-    @pytest.mark.parametrize("envname", ["env_0", "env_1", "env_2"])
-    def test_delete(self, fake_temp_envs, envname):
-        with mock.patch("shutil.rmtree") as rmtree:
-            env = fake_temp_envs[envname]
-            env.delete()
-
-            rmtree.assert_called_once_with(env.path)
-
 
 @pytest.mark.usefixtures("mock_save")
 class TestAppEnv:

@@ -93,10 +93,6 @@ class BaseEnv(Prefab, kw_only=True):
         """Check that both the folder exists and the source python exists"""
         return self.exists and self.parent_exists
 
-    def delete(self) -> None:
-        """Delete the cache folder"""
-        _laz.shutil.rmtree(self.path)
-
 
 class TemporaryEnv(BaseEnv, kw_only=True):
     """
@@ -174,7 +170,7 @@ class BaseCatalogue:
 
     def delete_env(self, envname: str) -> None:
         if env := self.environments.get(envname):
-            env.delete()
+            _laz.shutil.rmtree(env.path)
             del self.environments[envname]
             self.save()
         else:
