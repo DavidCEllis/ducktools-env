@@ -280,21 +280,6 @@ def demoing():
     print(delete_row_generator(Demo).source_code)
     print(row_factory_generator(Demo).source_code)
 
-    class FakeCon:
-        @staticmethod
-        def execute(*args):
-            print(", ".join(repr(arg) for arg in args))
-
-    demo = Demo(42, "path/to/python", ["aaa", "bbb"])
-
-    demo.create_table(FakeCon)
-    demo.insert_row(FakeCon)
-
-    demo.spec_hashes = ["bloop", "scoop"]
-
-    demo.update_row(FakeCon, ["spec_hashes"])
-    demo.delete_row(FakeCon)
-
 
 if __name__ == "__main__":
     demoing()
