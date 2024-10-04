@@ -127,6 +127,7 @@ def insert_row_generator(cls: type, funcname: str = "insert_row") -> GeneratedCo
     )
 
     valid_fields = {name for name, field in fields.items() if not field.internal}
+    pk = cls.PRIMARY_KEY
 
     sql_statement = f"INSERT INTO {table_name} VALUES({columns})"
 
@@ -144,7 +145,9 @@ def insert_row_generator(cls: type, funcname: str = "insert_row") -> GeneratedCo
         f"        for name, value in raw_values.items()\n"
         f"        if name in valid_fields\n"
         f"    }}\n"
-        f"    con.execute(\"{sql_statement}\", processed_values)\n"
+        f"    result = con.execute(\"{sql_statement}\", processed_values)\n"
+        f"    if self.{pk} is None:\n"
+        f"        self.{pk} = result.lastrowid\n"
     )
 
     return GeneratedCode(code, globs)
