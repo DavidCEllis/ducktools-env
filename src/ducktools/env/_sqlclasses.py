@@ -239,7 +239,7 @@ methods = {
 def sqlclass(table_name: str):
     def class_maker(cls):
         setattr(cls, "TABLE_NAME", table_name)
-        builder(cls, gatherer=annotation_gatherer, methods=methods)
+        builder(cls, gatherer=annotation_gatherer, methods=methods, flags={"kw_only": True})
 
         # Need to set PREFAB_FIELDS for as_dict to recognise the class
         fields = get_sql_fields(cls)
