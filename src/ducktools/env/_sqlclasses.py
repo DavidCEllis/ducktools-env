@@ -188,9 +188,33 @@ def delete_row_generator(cls: type, funcname: str = "delete_row") -> GeneratedCo
     code = (
         f"def {funcname}(self, con):\n"
         f"    values = {{\"{pk}\": self.{pk}}}\n"
-        f"    con.execute(\"{sql_statement}\", values)"
+        f"    con.execute(\"{sql_statement}\", values)\n"
     )
     globs = {}
+    return GeneratedCode(code, globs)
+
+
+def row_factory_generator(cls: type, funcname: str = "row_factory") -> GeneratedCode:
+    split_rows = {
+        name
+        for name, field in get_sql_fields(cls).items()
+        if field.type == list[str]
+    }
+
+    code = (
+        f"@classmethod\n"
+        f"def {funcname}(cls, cursor, row):\n"
+        f"    fields = [column[0] for column in cursor.description]\n"
+        f"    kwargs = {{\n"
+        f"        key: separate_list(value) if key in split_rows else value\n"
+        f"        for key, value in zip(fields, row)\n"
+        f"    }}\n"
+        f"    return cls(**kwargs)\n"
+    )
+    globs = {
+        "split_rows": split_rows,
+        "separate_list": separate_list,
+    }
     return GeneratedCode(code, globs)
 
 
@@ -198,6 +222,7 @@ create_table_maker = MethodMaker("create_table", create_table_generator)
 insert_row_maker = MethodMaker("insert_row", insert_row_generator)
 update_row_maker = MethodMaker("update_row", update_row_generator)
 delete_row_maker = MethodMaker("delete_row", delete_row_generator)
+row_factory_maker = MethodMaker("row_factory", row_factory_generator)
 
 methods = {
     init_maker,
@@ -207,6 +232,7 @@ methods = {
     insert_row_maker,
     update_row_maker,
     delete_row_maker,
+    row_factory_maker,
 }
 
 
@@ -249,6 +275,7 @@ def demoing():
     print(insert_row_generator(Demo).source_code)
     print(update_row_generator(Demo).source_code)
     print(delete_row_generator(Demo).source_code)
+    print(row_factory_generator(Demo).source_code)
 
     class FakeCon:
         @staticmethod
