@@ -38,7 +38,7 @@ from . import (
 )
 from .config import Config
 from .platform_paths import ManagedPaths
-from .catalogue import TempCatalogue, ApplicationCatalogue
+from .catalogue import TemporaryCatalogue, ApplicationCatalogue
 from .environment_specs import EnvironmentSpec
 from .exceptions import UVUnavailableError, InvalidEnvironmentSpec
 
@@ -51,7 +51,7 @@ class Manager(Prefab):
     config: Config = None
 
     paths: ManagedPaths = attribute(init=False, repr=False)
-    _temp_catalogue: TempCatalogue | None = attribute(default=None, private=True)
+    _temp_catalogue: TemporaryCatalogue | None = attribute(default=None, private=True)
     _app_catalogue: ApplicationCatalogue | None = attribute(default=None, private=True)
 
     def __prefab_post_init__(self, config):
@@ -59,9 +59,9 @@ class Manager(Prefab):
         self.config = Config.load(self.paths.config_path) if config is None else config
 
     @property
-    def temp_catalogue(self) -> TempCatalogue:
+    def temp_catalogue(self) -> TemporaryCatalogue:
         if self._temp_catalogue is None:
-            self._temp_catalogue = TempCatalogue.load(self.paths.cache_db)
+            self._temp_catalogue = TemporaryCatalogue.load(self.paths.cache_db)
 
             # Clear expired caches on load
             self._temp_catalogue.expire_caches(self.config.cache_lifetime_delta)

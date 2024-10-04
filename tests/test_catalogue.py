@@ -33,7 +33,7 @@ from packaging.version import Version
 from ducktools.env.catalogue import (
     BaseCatalogue, 
     ApplicationCatalogue,
-    TempCatalogue, 
+    TemporaryCatalogue,
     ApplicationEnv,
     TemporaryEnv,
 )
@@ -136,7 +136,7 @@ def fake_app_env(catalogue_path):
 
 @pytest.fixture(scope="function")
 def fake_temp_catalogue(catalogue_path, fake_temp_envs):
-    cat = TempCatalogue(
+    cat = TemporaryCatalogue(
         path=catalogue_path,
         environments=fake_temp_envs,
         env_counter=2,
@@ -300,7 +300,7 @@ class TestTempCatalogue:
 
             fake_path = "path/to/catalogue.json"
 
-            cat = TempCatalogue.load(fake_path)
+            cat = TemporaryCatalogue.load(fake_path)
 
             assert cat == fake_temp_catalogue
 
@@ -312,9 +312,9 @@ class TestTempCatalogue:
             mock_open.side_effect = FileNotFoundError()
             fake_path = "path/to/catalogue.json"
 
-            cat = TempCatalogue.load(fake_path)
+            cat = TemporaryCatalogue.load(fake_path)
 
-            assert cat == TempCatalogue(path=fake_path)
+            assert cat == TemporaryCatalogue(path=fake_path)
 
     def test_delete_env(self, fake_temp_catalogue, fake_temp_envs, mock_save):
         with mock.patch("shutil.rmtree") as rmtree:
@@ -371,7 +371,7 @@ class TestTempCatalogue:
 
     def test_find_env_hash_fail(self, fake_temp_catalogue):
         with (
-            mock.patch.object(TempCatalogue, "delete_env") as mock_delete,
+            mock.patch.object(TemporaryCatalogue, "delete_env") as mock_delete,
             mock.patch.object(TemporaryEnv, "is_valid", new=False)
         ):
             example_paths = Path(__file__).parent / "example_scripts"

@@ -405,7 +405,7 @@ class BaseCatalogue:
 
 
 @prefab(kw_only=True)
-class TempCatalogue(BaseCatalogue):
+class TemporaryCatalogue(BaseCatalogue):
     """
     Catalogue for temporary environments
     """

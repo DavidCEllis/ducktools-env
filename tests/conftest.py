@@ -21,7 +21,7 @@ import shutil
 from ducktools.pythonfinder import get_python_installs
 from ducktools.pythonfinder.shared import get_install_details
 
-from ducktools.env.catalogue import TempCatalogue
+from ducktools.env.catalogue import TemporaryCatalogue
 from ducktools.env.config import Config
 
 import ducktools.env.platform_paths as platform_paths
@@ -76,5 +76,5 @@ def test_config():
 
 @pytest.fixture(scope="function")
 def testing_catalogue(catalogue_path):
-    catalogue = TempCatalogue(path=catalogue_path)
+    catalogue = TemporaryCatalogue(path=catalogue_path)
     yield catalogue
