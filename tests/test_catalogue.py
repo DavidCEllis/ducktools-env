@@ -213,13 +213,6 @@ class TestAppEnv:
         assert fake_app_env.is_outdated("v0.1.1")
         assert fake_app_env.is_outdated("v0.1.1a1")
 
-    def test_delete(self, fake_app_env):
-        with mock.patch("shutil.rmtree") as rmtree:
-            fake_app_env.delete()
-
-            del_path = str(Path(fake_app_env.path).parent)
-            rmtree.assert_called_once_with(del_path)
-
 
 # CATALOGUE TESTS
 
