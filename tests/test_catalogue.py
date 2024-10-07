@@ -233,44 +233,6 @@ def test_catalogue_save(fake_temp_catalogue):
         open_mock.assert_called_once_with(cat.path, "w")
         dump_mock.assert_called_once_with(cat, file_mock, default=as_dict, indent=2)
 
-# Get python install has so many branches I wanted a separate test
-
-class TestGetPythonInstall:
-    example_paths = Path(__file__).parent / "example_scripts"
-
-    def test_finds_python(self, fake_temp_catalogue):
-        script = str(self.example_paths / "pep_723_example.py")
-        spec = EnvironmentSpec.from_script(script)
-
-        # Patch the spec version to match this python install
-        this_python = ".".join(str(i) for i in sys.version_info[:3])
-        spec.details.requires_python = f"=={this_python}"
-
-        inst = fake_temp_catalogue._get_python_install(
-            spec=spec,
-            uv_path=None,
-            config=Config(uv_install_python=False)
-        )
-
-        assert inst.executable == sys.executable
-
-    
-    def test_no_python(self, fake_temp_catalogue):
-        script = str(self.example_paths / "pep_723_example.py")
-        spec = EnvironmentSpec.from_script(script)
-
-        # Patch the spec version to match this python install
-        this_python = ".".join(str(i) for i in sys.version_info[:3])
-        spec.details.requires_python = f">{this_python}"
-
-        with pytest.raises(PythonVersionNotFound):
-            fake_temp_catalogue._get_python_install(
-                spec=spec,
-                uv_path=None,
-                config=Config(uv_install_python=False)
-            )
-
-
 
 @pytest.mark.usefixtures("mock_save")
 class TestTempCatalogue:

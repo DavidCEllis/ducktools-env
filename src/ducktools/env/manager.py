@@ -40,7 +40,7 @@ from .config import Config
 from .platform_paths import ManagedPaths
 from .catalogue import TemporaryCatalogue, ApplicationCatalogue
 from .environment_specs import EnvironmentSpec
-from .exceptions import UVUnavailableError, InvalidEnvironmentSpec
+from .exceptions import UVUnavailableError, InvalidEnvironmentSpec, PythonVersionNotFound
 
 from ._lazy_imports import laz as _laz
 from ._logger import log
@@ -110,6 +110,48 @@ class Manager(Prefab):
 
         return uv_path
 
+    def _get_python_install(self, spec: EnvironmentSpec):
+        install = None
+
+        # Find a valid python executable
+        for inst in _laz.list_python_installs():
+            if inst.implementation.lower() != "cpython":
+                # Ignore all non cpython installs for now
+                continue
+            if (
+                not spec.details.requires_python
+                or spec.details.requires_python_spec.contains(inst.version_str)
+            ):
+                install = inst
+                break
+        else:
+            # If no Python was matched try to install a matching python from UV
+            if (uv_path := self.retrieve_uv()) and self.config.uv_install_python:
+                uv_pythons = _laz.get_available_pythons(uv_path)
+                matched_python = False
+                for ver in uv_pythons:
+                    if spec.details.requires_python_spec.contains(ver):
+                        # Install matching python
+                        _laz.install_uv_python(
+                            uv_path=uv_path,
+                            version_str=ver,
+                        )
+                        matched_python = ver
+                        break
+                if matched_python:
+                    # Recover the actual install
+                    for inst in _laz.get_installed_uv_pythons():
+                        if inst.version_str == matched_python:
+                            install = inst
+                            break
+
+        if install is None:
+            raise PythonVersionNotFound(
+                f"Could not find a Python install satisfying {spec.details.requires_python!r}."
+            )
+
+        return install
+
     def install_base_command(self, use_uv=True) -> list[str]:
         # Get the installer command for python packages
         # Pip or the faster uv_pip if it is available
@@ -175,23 +217,29 @@ class Manager(Prefab):
                 # Request an application environment
                 env = self.app_catalogue.find_env(spec=spec)
 
+                base_python = self._get_python_install(spec=spec)
+
                 if not env:
                     env = self.app_catalogue.create_env(
                         spec=spec,
                         config=self.config,
                         uv_path=self.retrieve_uv(),
                         installer_command=self.install_base_command(),
+                        base_python=base_python
                     )
 
             else:
                 env = self.temp_catalogue.find_env(spec=spec)
                 if not env:
                     log("Existing environment not found, creating new environment.")
+                    base_python = self._get_python_install(spec=spec)
+
                     env = self.temp_catalogue.create_env(
                         spec=spec,
                         config=self.config,
                         uv_path=self.retrieve_uv(),
                         installer_command=self.install_base_command(),
+                        base_python=base_python,
                     )
         return env
 

@@ -28,7 +28,7 @@ from datetime import datetime as _datetime, timedelta as _timedelta
 
 from ducktools.classbuilder.prefab import Prefab, prefab, attribute, as_dict, get_attributes
 
-from .exceptions import PythonVersionNotFound, InvalidEnvironmentSpec, VenvBuildError, ApplicationError
+from .exceptions import InvalidEnvironmentSpec, VenvBuildError, ApplicationError
 from .environment_specs import EnvironmentSpec
 from .config import Config
 from ._logger import log
@@ -226,53 +226,6 @@ class BaseCatalogue:
                 return cache
         else:
             return None
-
-    @staticmethod
-    def _get_python_install(
-        spec: EnvironmentSpec, 
-        uv_path: str | None,
-        config: Config,
-    ):
-        install = None
-
-        # Find a valid python executable
-        for inst in _laz.list_python_installs():
-            if inst.implementation.lower() != "cpython":
-                # Ignore all non cpython installs for now
-                continue
-            if (
-                not spec.details.requires_python
-                or spec.details.requires_python_spec.contains(inst.version_str)
-            ):
-                install = inst
-                break
-        else:
-            # If no Python was matched try to install a matching python from UV
-            if uv_path and config.uv_install_python:
-                uv_pythons = _laz.get_available_pythons(uv_path)
-                matched_python = False
-                for ver in uv_pythons:
-                    if spec.details.requires_python_spec.contains(ver):
-                        # Install matching python
-                        _laz.install_uv_python(
-                            uv_path=uv_path,
-                            version_str=ver,
-                        )
-                        matched_python = ver
-                        break
-                if matched_python:
-                    # Recover the actual install
-                    for inst in _laz.get_installed_uv_pythons():
-                        if inst.version_str == matched_python:
-                            install = inst
-                            break
-
-        if install is None:
-            raise PythonVersionNotFound(
-                f"Could not find a Python install satisfying {spec.details.requires_python!r}."
-            )
-
-        return install
 
     def _create_venv(
         self,
@@ -553,6 +506,7 @@ class TemporaryCatalogue(BaseCatalogue):
         config: Config,
         uv_path: str | None,
         installer_command: list[str],
+        base_python,
     ) -> ENV_TYPE:
         # Check the spec is valid
         if spec_errors := spec.details.errors():
@@ -569,19 +523,13 @@ class TemporaryCatalogue(BaseCatalogue):
 
         cache_path = os.path.join(self.catalogue_folder, new_cachename)
 
-        install = self._get_python_install(
-            spec=spec, 
-            uv_path=uv_path,
-            config=config,
-        )
-
         # Construct the Env
         # noinspection PyArgumentList
         new_env = self.ENV_TYPE(
             name=new_cachename,
             path=cache_path,
-            python_version=install.version_str,
-            parent_python=install.executable,
+            python_version=base_python.version_str,
+            parent_python=base_python.executable,
             spec_hashes=[spec.spec_hash],
             lock_hash=spec.lock_hash,
         )
@@ -701,6 +649,7 @@ class ApplicationCatalogue(BaseCatalogue):
         config: Config,
         uv_path: str,
         installer_command: list[str],
+        base_python,
     ):
         if not spec.lockdata:
             raise ApplicationError("Application environments require a lockfile.")
@@ -726,18 +675,12 @@ class ApplicationCatalogue(BaseCatalogue):
             "env",
         )
 
-        install = self._get_python_install(
-            spec=spec, 
-            uv_path=uv_path,
-            config=config,
-        )
-
         # noinspection PyArgumentList
         new_env = self.ENV_TYPE(
             name=details.app.appkey,
             path=env_path,
-            python_version=install.version_str,
-            parent_python=install.executable,
+            python_version=base_python.version_str,
+            parent_python=base_python.executable,
             spec_hashes=[spec.spec_hash],
             lock_hash=spec.lock_hash,
             owner=details.app.owner,
