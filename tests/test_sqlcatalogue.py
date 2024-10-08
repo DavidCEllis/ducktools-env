@@ -42,8 +42,11 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import os
 import sys
+import tempfile
 import unittest.mock as mock
+
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -63,19 +66,38 @@ from ducktools.env.sql_catalogue import (
 from ducktools.env.config import Config
 from ducktools.env.environment_specs import EnvironmentSpec
 from ducktools.env.exceptions import PythonVersionNotFound
+import ducktools.env.platform_paths as platform_paths
 
 
 @pytest.fixture(scope="function")
-def fake_temp_envs(catalogue_path):
-    env_0_path = str(Path(catalogue_path).parent / "env_0")
-    env_1_path = str(Path(catalogue_path).parent / "env_1")
-    env_2_path = str(Path(catalogue_path).parent / "env_2")
+def sql_catalogue_path():
+    """
+    Provide a test folder path for python environments, delete after tests in a class have run.
+    """
+    base_folder = os.path.join(os.path.dirname(__file__), "testing_data")
+    os.makedirs(base_folder, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=base_folder) as folder:
+        cache_file = os.path.join(folder, platform_paths.SQL_CATALOGUE_FILENAME)
+        yield cache_file
+
+
+@pytest.fixture(scope="function")
+def fake_temp_catalogue(sql_catalogue_path):
+    cat = TemporaryCatalogue(
+        path=sql_catalogue_path,
+    )
+    return cat
+
+
+@pytest.fixture(scope="function")
+def fake_temp_envs(fake_temp_catalogue):
     python_path = sys.executable
     python_version = ".".join(str(item) for item in sys.version_info[:3])
 
     # ENV examples based on examples folder
     env_0 = TemporaryEnvironment(
         row_id=0,
+        root_path=fake_temp_catalogue.catalogue_folder,
         python_version=python_version,
         parent_python=python_path,
         created_on="2024-09-02T14:55:53.102038",
@@ -96,6 +118,7 @@ def fake_temp_envs(catalogue_path):
 
     env_1 = TemporaryEnvironment(
         row_id=1,
+        root_path=fake_temp_catalogue.catalogue_folder,
         python_version=python_version,
         parent_python=python_path,
         created_on="2024-09-02T14:55:58.827666",
@@ -106,6 +129,7 @@ def fake_temp_envs(catalogue_path):
 
     env_2 = TemporaryEnvironment(
         row_id=2,
+        root_path=fake_temp_catalogue.catalogue_folder,
         python_version=python_version,
         parent_python=python_path,
         created_on="2024-09-25T17:55:23.254577",
@@ -115,11 +139,23 @@ def fake_temp_envs(catalogue_path):
         installed_modules=["cowsay==6.1"],
     )
 
+    # Add the environments to the catalogue so they get names and paths
+    with fake_temp_catalogue.connection as con:
+        env_0.insert_row(con)
+        env_1.insert_row(con)
+        env_2.insert_row(con)
+
     return {"env_0": env_0, "env_1": env_1, "env_2": env_2}
 
 
+@pytest.fixture(scope="function")
+def fake_full_catalogue(fake_temp_catalogue, fake_temp_envs):
+    # By using fake_temp_envs the catalogue is populated
+    return fake_temp_catalogue
+
+
 @pytest.fixture
-def fake_app_env(catalogue_path):
+def fake_app_env(sql_catalogue_path):
     python_path = sys.executable
     python_version = ".".join(str(item) for item in sys.version_info[:3])
 
@@ -127,7 +163,7 @@ def fake_app_env(catalogue_path):
     appname = "ducktools_testing/cowsay_example"
     env = ApplicationEnvironment(
         name=appname,
-        path=str(Path(catalogue_path).parent / "ducktools_testing/cowsay_example/env"),
+        path=str(Path(sql_catalogue_path).parent / "ducktools_testing/cowsay_example/env"),
         python_version=python_version,
         parent_python=python_path,
         created_on="2024-09-25T17:55:23.254577",
@@ -147,25 +183,13 @@ def fake_app_env(catalogue_path):
     return env
 
 
-@pytest.fixture(scope="function")
-def fake_temp_catalogue(catalogue_path, fake_temp_envs):
-    cat = TemporaryCatalogue(
-        path=catalogue_path,
-        environments=fake_temp_envs,
-        env_counter=2,
-    )
-
-    yield cat
-
-
 # ENVIRONMENT TESTS
 
-@pytest.mark.usefixtures("mock_save")
 class TestTempEnv:
     @pytest.mark.parametrize("envname", ["env_0", "env_1", "env_2"])
-    def test_python_path(self, fake_temp_envs, envname, catalogue_path):
+    def test_python_path(self, fake_temp_envs, envname, sql_catalogue_path):
         env = fake_temp_envs[envname]
-        base_path = Path(catalogue_path).parent
+        base_path = Path(sql_catalogue_path).parent
 
         if sys.platform == "win32":
             assert env.python_path == str(base_path / envname / "Scripts" / "python.exe")
@@ -174,11 +198,11 @@ class TestTempEnv:
 
     @pytest.mark.skipif(sys.platform != "win32", reason="Windows only test")
     @pytest.mark.parametrize("envname", ["env_0", "env_1", "env_2"])
-    def test_python_path_windowed(self, fake_temp_envs, envname, catalogue_path):
+    def test_python_path_windowed(self, fake_temp_envs, envname, sql_catalogue_path):
         # If there is no stdout on windows assume windowed executable
         with mock.patch("sys.stdout", new=None):
             env = fake_temp_envs[envname]
-            base_path = Path(catalogue_path).parent
+            base_path = Path(sql_catalogue_path).parent
 
             assert env.python_path == str(base_path / envname / "Scripts" / "pythonw.exe")
 
@@ -197,7 +221,7 @@ class TestTempEnv:
 
         # Check the logic requires both exists and parent_exists to be True
         with mock.patch.object(
-            TemporaryEnv,
+            TemporaryEnvironment,
             "exists",
             new_callable=mock.PropertyMock
         ) as mock_exists:
@@ -205,7 +229,7 @@ class TestTempEnv:
             assert env_0.is_valid is True
 
             with mock.patch.object(
-                TemporaryEnv,
+                TemporaryEnvironment,
                 "parent_exists",
                 new_callable=mock.PropertyMock
             ) as mock_parent_exists:
@@ -213,7 +237,6 @@ class TestTempEnv:
                 assert env_0.is_valid is False
 
 
-@pytest.mark.usefixtures("mock_save")
 class TestAppEnv:
     def test_version_spec(self, fake_app_env):
         assert fake_app_env.version_spec == Version("0.1.0")
@@ -228,71 +251,15 @@ class TestAppEnv:
 
 
 # CATALOGUE TESTS
-
-# All other tests mock out the save command
-def test_catalogue_save(fake_temp_catalogue):
-    cat = fake_temp_catalogue
-    with (
-        mock.patch("os.makedirs") as makedirs_mock,
-        mock.patch("json.dump") as dump_mock,
-        mock.patch("builtins.open") as open_mock
-    ):
-        file_mock = mock.MagicMock()
-        open_mock.return_value.__enter__.return_value = file_mock
-
-        cat.save()
-
-        makedirs_mock.assert_called_once_with(cat.catalogue_folder, exist_ok=True)
-        open_mock.assert_called_once_with(cat.path, "w")
-        dump_mock.assert_called_once_with(cat, file_mock, default=as_dict, indent=2)
-
-
-@pytest.mark.usefixtures("mock_save")
 class TestTempCatalogue:
     # Shared tests for any catalogue
-    def test_load_env(self, fake_temp_catalogue):
-        with (
-            mock.patch("json.load") as mock_load,
-            mock.patch("builtins.open") as mock_open,
-        ):
-            mock_file = mock.MagicMock()
-            mock_open.return_value.__enter__.return_value = mock_file
-
-            catalogue_dict = as_dict(fake_temp_catalogue)
-            catalogue_dict["environments"] = {
-                env.name: as_dict(env)
-                for env in catalogue_dict["environments"].values()
-            }
-
-            mock_load.return_value = catalogue_dict
-
-            fake_path = "path/to/catalogue.json"
-
-            cat = TemporaryCatalogue.load(fake_path)
-
-            assert cat == fake_temp_catalogue
-
-            mock_open.assert_called_once_with(fake_path, 'r')
-            mock_load.assert_called_once_with(mock_file)
-
-    def test_load_fail_notfound(self):
-        with mock.patch("builtins.open") as mock_open:
-            mock_open.side_effect = FileNotFoundError()
-            fake_path = "path/to/catalogue.json"
-
-            cat = TemporaryCatalogue.load(fake_path)
-
-            assert cat == TemporaryCatalogue(path=fake_path)
-
-    def test_delete_env(self, fake_temp_catalogue, fake_temp_envs, mock_save):
+    def test_delete_env(self, fake_temp_catalogue, fake_temp_envs):
         with mock.patch("shutil.rmtree") as rmtree:
             pth = fake_temp_envs["env_0"].path
 
             fake_temp_catalogue.delete_env("env_0")
 
             rmtree.assert_called_once_with(pth)
-
-            mock_save.assert_called()
 
             assert "env_0" not in fake_temp_catalogue.environments
 
@@ -313,7 +280,7 @@ class TestTempCatalogue:
 
         # The python path and folder doesn't actually exist
         # But pretend it does
-        with mock.patch.object(TemporaryEnv, "is_valid", new=True):
+        with mock.patch.object(TemporaryEnvironment, "is_valid", new=True):
             env_0_spec = EnvironmentSpec.from_script(
                 str(example_paths / "pep_723_example.py")
             )
@@ -336,40 +303,43 @@ class TestTempCatalogue:
         assert env_1_recover == fake_temp_envs["env_1"]
         assert env_2_recover == fake_temp_envs["env_2"]
 
-    def test_find_env_hash_fail(self, fake_temp_catalogue):
+    def test_find_env_hash_fail(self, fake_full_catalogue):
         with (
             mock.patch.object(TemporaryCatalogue, "delete_env") as mock_delete,
-            mock.patch.object(TemporaryEnv, "is_valid", new=False)
+            mock.patch.object(TemporaryEnvironment, "is_valid", new=False)
         ):
             example_paths = Path(__file__).parent / "example_scripts"
             env_0_spec = EnvironmentSpec.from_script(
                 str(example_paths / "pep_723_example.py")
             )
 
-            empty_recover = fake_temp_catalogue.find_env_hash(spec=env_0_spec)
+            empty_recover = fake_full_catalogue.find_env_hash(spec=env_0_spec)
 
             assert empty_recover is None
 
             mock_delete.assert_called_with("env_0")
 
     # Temp catalogue specific tests
-    def test_oldest_cache(self, fake_temp_catalogue):
-        assert fake_temp_catalogue.oldest_cache == "env_0"
+    def test_oldest_cache(self, fake_full_catalogue):
+        assert fake_full_catalogue.oldest_cache == "env_0"
 
         # "Use" env_0
-        fake_temp_catalogue.environments["env_0"].last_used = datetime.now().isoformat()
+        env_0 = fake_full_catalogue.environments["env_0"]
+        env_0.last_used = datetime.now().isoformat()
 
-        assert fake_temp_catalogue.oldest_cache == "env_1"
+        with fake_full_catalogue.connection as con:
+            env_0.update_row(con, columns=["last_used"])
 
-        # Empty catalogue returns None as oldest cache
-        fake_temp_catalogue.environments = {}
+        assert fake_full_catalogue.oldest_cache == "env_1"
 
-        assert fake_temp_catalogue.oldest_cache is None
+        fake_full_catalogue.purge_folder()
 
-    def test_expire_caches(self, fake_temp_catalogue, mock_save):
-        with mock.patch.object(fake_temp_catalogue, "delete_env") as del_env:
+        assert fake_full_catalogue.oldest_cache is None
+
+    def test_expire_caches(self, fake_full_catalogue):
+        with mock.patch.object(fake_full_catalogue, "delete_env") as del_env:
             # Expire all caches
-            fake_temp_catalogue.expire_caches(timedelta(seconds=1))
+            fake_full_catalogue.expire_caches(timedelta(seconds=1))
 
             calls = [
                 mock.call("env_0"),
@@ -377,5 +347,3 @@ class TestTempCatalogue:
             ]
 
             del_env.assert_has_calls(calls)
-
-        mock_save.assert_called_once()

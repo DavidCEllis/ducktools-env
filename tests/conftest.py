@@ -57,7 +57,7 @@ def catalogue_path():
     """
     Provide a test folder path for python environments, delete after tests in a class have run.
     """
-    base_folder = os.path.join(os.path.dirname(__file__), "test_envs")
+    base_folder = os.path.join(os.path.dirname(__file__), "testing_data")
     with tempfile.TemporaryDirectory(dir=base_folder) as folder:
         cache_file = os.path.join(folder, platform_paths.CATALOGUE_FILENAME)
         yield cache_file

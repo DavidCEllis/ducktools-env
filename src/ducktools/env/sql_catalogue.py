@@ -46,6 +46,21 @@ def _datetime_now_iso() -> str:
     return _datetime.now().isoformat()
 
 
+class SQLContext:
+    def __init__(self, db):
+        self.db = db
+        self.connection = None
+
+    def __enter__(self):
+        self.connection = _laz.sql.connect(self.db)
+        return self.connection
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.connection:
+            self.connection.close()
+        self.connection = None
+
+
 class BaseEnv(SQLClass):
     row_id: int = SQLAttribute(default=None, primary_key=True)
     name: str = SQLAttribute(unique=True)
@@ -53,7 +68,7 @@ class BaseEnv(SQLClass):
     python_version: str
     parent_python: str
     created_on: str = SQLAttribute(default_factory=_datetime_now_iso)
-    last_used: str = SQLAttribute(default_factory=_datetime_now_iso)
+    last_used: str = SQLAttribute(default_factory=_datetime_now_iso, compare=False)
 
     spec_hashes: list[str]
     lock_hash: str | None = None
@@ -105,16 +120,17 @@ class TemporaryEnvironment(BaseEnv):
     """
     This is for temporary environments that expire after a certain period
     """
-    name: str = SQLAttribute(
+    name: str | None = SQLAttribute(
+        default=None,
         computed="'env_' || CAST(row_id AS STRING)",
         unique=True,
     )
-    base_path: str
+    root_path: str
 
     path: str | None = SQLAttribute(
         default=None,
         unique=True,
-        computed="base_path || '/env_' || CAST(row_id AS STRING)"
+        computed=f"root_path || '{os.sep}' || name"
     )
 
 
@@ -151,36 +167,40 @@ class BaseCatalogue:
     def __init__(self, path):
         raise RuntimeError("BaseCatalogue should not be initialized")
 
-    def __prefab_post_init__(self):
-        # Make sure the database and table exist
-        self.ENV_TYPE.create_table(self.connection)
-
     @property
     def catalogue_folder(self):
         return os.path.dirname(self.path)
 
     @property
     def connection(self):
-        return _laz.sql.connect(self.path)
+        # Create the database if it does not exist
+        if not os.path.exists(self.path):
+            os.makedirs(os.path.dirname(self.path), exist_ok=True)
+            with _laz.sql.connect(self.path) as con:
+                self.ENV_TYPE.create_table(con)
+
+        return SQLContext(self.path)
 
     @property
     def environments(self) -> dict[str, ENV_TYPE]:
-        return {
-            env.name: env
-            for env in self.ENV_TYPE.select_rows(self.connection)
-        }
+        with self.connection as con:
+            return {
+                env.name: env
+                for env in self.ENV_TYPE.select_rows(con)
+            }
 
     def env_by_name(self, envname: str) -> ENV_TYPE:
-        return self.ENV_TYPE.select_row(
-            self.connection,
-            filters={"name": envname}
-        )
+        with self.connection as con:
+            return self.ENV_TYPE.select_row(
+                con,
+                filters={"name": envname}
+            )
 
     def delete_env(self, envname: str) -> None:
         if env := self.env_by_name(envname):
-            _laz.shutil.rmtree(env.base_path)
-            with self.connection:
-                env.delete_row(self.connection)
+            _laz.shutil.rmtree(env.path)
+            with self.connection as con:
+                env.delete_row(con)
         else:
             raise FileNotFoundError(f"Cache {envname!r} not found")
 
@@ -209,26 +229,27 @@ class BaseCatalogue:
         filters = {
             "spec_hashes": f"%{spec.spec_hash}%"
         }
-        caches = self.ENV_TYPE.select_like(self.connection, filters)
+        with self.connection as con:
+            caches = self.ENV_TYPE.select_like(con, filters)
 
-        for cache in caches:
-            if spec.lock_hash and (spec.lock_hash != cache.lock_hash):
-                log(f"Input spec matched {cache.name}, but lockfile did not match.")
-                continue
+            for cache in caches:
+                if spec.lock_hash and (spec.lock_hash != cache.lock_hash):
+                    log(f"Input spec matched {cache.name}, but lockfile did not match.")
+                    continue
 
-            log(f"Hash {spec.spec_hash!r} matched environment {cache.name}")
+                log(f"Hash {spec.spec_hash!r} matched environment {cache.name}")
 
-            if not cache.is_valid:
-                log(f"Cache {cache.name!r} does not point to a valid python, removing.")
-                self.delete_env(cache.name)
-                continue
+                if not cache.is_valid:
+                    log(f"Cache {cache.name!r} does not point to a valid python, removing.")
+                    self.delete_env(cache.name)
+                    continue
 
-            cache.last_used = _datetime_now_iso()
-            cache.update_row(self.connection, ["last_used"])
+                cache.last_used = _datetime_now_iso()
+                cache.update_row(con, ["last_used"])
 
-            return cache
-        else:
-            return None
+                return cache
+            else:
+                return None
 
     def _create_venv(
         self,
@@ -356,7 +377,8 @@ class BaseCatalogue:
 
             env.installed_modules.extend(installed_modules)
 
-        env.update_row(self.connection, ["installed_modules"])
+        with self.connection as con:
+            env.update_row(con, ["installed_modules"])
 
 
 @prefab(kw_only=True)
@@ -365,8 +387,6 @@ class TemporaryCatalogue(BaseCatalogue):
     Catalogue for temporary environments
     """
     ENV_TYPE = TemporaryEnvironment
-
-    env_counter: int = 0
 
     # In theory some of the datetime work could now be done in sqlite
     # But just keep the same logic as for JSON for now
@@ -378,7 +398,10 @@ class TemporaryCatalogue(BaseCatalogue):
         """
 
         old_cache = None
-        for cache in self.ENV_TYPE.select_rows(self.connection):
+        with self.connection as con:
+            caches = self.ENV_TYPE.select_rows(con)
+
+        for cache in caches:
             if old_cache:
                 if cache.last_used_date < old_cache.last_used_date:
                     old_cache = cache
@@ -417,7 +440,8 @@ class TemporaryCatalogue(BaseCatalogue):
         """
         # Get lock data hash
         filters = {"lock_hash": spec.lock_hash}
-        lock_caches = self.ENV_TYPE.select_rows(self.connection, filters)
+        with self.connection as con:
+            lock_caches = self.ENV_TYPE.select_rows(con, filters)
 
         for cache in lock_caches:
             if cache.python_version in spec.details.requires_python_spec:
@@ -482,7 +506,8 @@ class TemporaryCatalogue(BaseCatalogue):
                 cache.last_used = _datetime_now_iso()
                 cache.spec_hashes.append(spec.spec_hash)
 
-                cache.update_row(self.connection, ["last_used", "spec_hashes"])
+                with self.connection as con:
+                    cache.update_row(con, ["last_used", "spec_hashes"])
 
                 return cache
 
@@ -522,19 +547,19 @@ class TemporaryCatalogue(BaseCatalogue):
             log(f"Deleting {del_cache}")
             self.delete_env(del_cache)
 
-        with self.connection:
+        with self.connection as con:
 
             # Construct the Env
             # noinspection PyArgumentList
             new_env = self.ENV_TYPE(
-                base_path=self.catalogue_folder,
+                root_path=self.catalogue_folder,
                 python_version=base_python.version_str,
                 parent_python=base_python.executable,
                 spec_hashes=[spec.spec_hash],
                 lock_hash=spec.lock_hash,
             )
 
-            new_env.insert_row(self.connection)
+            new_env.insert_row(con)
 
         try:
             self._create_venv(
@@ -544,7 +569,8 @@ class TemporaryCatalogue(BaseCatalogue):
                 env=new_env,
             )
         except Exception:
-            new_env.delete_row(self.connection)
+            with self.connection as con:
+                new_env.delete_row(con)
             raise
 
         return new_env
@@ -601,10 +627,11 @@ class ApplicationCatalogue(BaseCatalogue):
                     cache.spec_hashes.append(spec.spec_hash)
                     env = cache
 
-                    cache.update_row(
-                        self.connection,
-                        ["last_used", "spec_hashes"]
-                    )
+                    with self.connection as con:
+                        cache.update_row(
+                            con,
+                            ["last_used", "spec_hashes"]
+                        )
                 elif details.app.version_spec >= cache.version_spec:
                     # Allow for the version spec to be equal
                     cache.last_used = _datetime_now_iso()
@@ -615,10 +642,11 @@ class ApplicationCatalogue(BaseCatalogue):
                     else:
                         cache.spec_hashes = [spec.spec_hash]
 
-                    cache.update_row(
-                        self.connection,
-                        ["last_used", "spec_hashes", "version"]
-                    )
+                    with self.connection as con:
+                        cache.update_row(
+                            con,
+                            ["last_used", "spec_hashes", "version"]
+                        )
                     env = cache
                 else:
                     raise ApplicationError(
@@ -703,7 +731,8 @@ class ApplicationCatalogue(BaseCatalogue):
             version=details.app.version,
         )
 
-        new_env.insert_row(self.connection)
+        with self.connection as con:
+            new_env.insert_row(con)
 
         try:
             self._create_venv(
@@ -713,7 +742,8 @@ class ApplicationCatalogue(BaseCatalogue):
                 env=new_env,
             )
         except Exception:
-            new_env.delete_row(self.connection)
+            with self.connection as con:
+                new_env.delete_row(con)
             raise
 
         return new_env

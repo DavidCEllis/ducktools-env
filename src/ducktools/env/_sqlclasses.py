@@ -48,6 +48,7 @@ TYPE_MAP = {
     int: "INTEGER",
     float: "REAL",
     str: "TEXT",
+    str | None: "TEXT",
     bytes: "BLOB",
     list[str]: "TEXT"  # lists of strings are converted to delimited strings
 }
