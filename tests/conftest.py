@@ -17,6 +17,7 @@
 import sys
 import os.path
 import shutil
+import tempfile
 
 from ducktools.pythonfinder import get_python_installs
 from ducktools.pythonfinder.shared import get_install_details
@@ -56,13 +57,10 @@ def catalogue_path():
     """
     Provide a test folder path for python environments, delete after tests in a class have run.
     """
-    folder = os.path.join(os.path.dirname(__file__), "test_envs")
-    cache_file = os.path.join(folder, platform_paths.CATALOGUE_FILENAME)
-    yield cache_file
-    try:
-        shutil.rmtree(folder)
-    except FileNotFoundError:
-        pass
+    base_folder = os.path.join(os.path.dirname(__file__), "test_envs")
+    with tempfile.TemporaryDirectory(dir=base_folder) as folder:
+        cache_file = os.path.join(folder, platform_paths.CATALOGUE_FILENAME)
+        yield cache_file
 
 
 @pytest.fixture(scope="session")

@@ -24,11 +24,12 @@
 # This is a minimal object/database wrapper for ducktools.classbuilder
 # Execute the class to see examples of the methods that will be generated
 
+import itertools
+
 from ducktools.classbuilder import (
-    GeneratedCode,
-    MethodMaker,
+    SlotMakerMeta,
     builder,
-    make_annotation_gatherer,
+    make_unified_gatherer,
 )
 
 from ducktools.classbuilder.prefab import (
@@ -51,6 +52,8 @@ TYPE_MAP = {
     list[str]: "TEXT"  # lists of strings are converted to delimited strings
 }
 
+MAPPED_TYPES = None | int | float | str | bytes | list[str]
+
 
 class SQLAttribute(Attribute):
     """
@@ -62,6 +65,7 @@ class SQLAttribute(Attribute):
     primary_key: bool = False
     unique: bool = False
     internal: bool = False
+    computed: str | None = None
 
     def validate_field(self):
         super().validate_field()
@@ -69,11 +73,11 @@ class SQLAttribute(Attribute):
             raise AttributeError("Primary key fields are already unique")
 
 
-def get_sql_fields(cls) -> dict[str, SQLAttribute]:
-    return get_attributes(cls)  # type: ignore
+def get_sql_fields(cls: "SQLMeta") -> dict[str, SQLAttribute]:
+    return get_attributes(cls)  # noqa
 
 
-annotation_gatherer = make_annotation_gatherer(SQLAttribute)
+gatherer = make_unified_gatherer(SQLAttribute)
 
 
 def flatten_list(strings: list[str], *, delimiter=";") -> str:
@@ -81,171 +85,61 @@ def flatten_list(strings: list[str], *, delimiter=";") -> str:
 
 
 def separate_list(string: str, *, delimiter=";") -> list[str]:
-    return string.split(delimiter)
+    return string.split(delimiter) if string else []
 
 
-def create_table_generator(cls: type, funcname: str = "create_table") -> GeneratedCode:
-    table_name = getattr(cls, "TABLE_NAME")
-    fields = get_sql_fields(cls)
-
-    sql_field_list = []
-    for name, field in fields.items():
-        # skip internal fields
-        if getattr(field, "internal", False):
-            continue
-
-        field_type = TYPE_MAP[field.type]
-        if field.primary_key:
-            constraint = " PRIMARY KEY"
-        elif field.unique:
-            constraint = " UNIQUE"
-        else:
-            constraint = ""
-
-        sql_field_list.append(f"{name} {field_type}{constraint}")
-
-    field_info = ", ".join(sql_field_list)
-    sql_template = f"\"CREATE TABLE {table_name}({field_info})\""
-
-    code = (
-        f"@staticmethod\n"
-        f"def {funcname}(con):\n"
-        f"    con.execute({sql_template})\n"
-    )
-    globs = {}
-
-    return GeneratedCode(code, globs)
+def caps_to_snake(name: str):
+    letters = [name[0].lower()]
+    for previous, current in itertools.pairwise(name):
+        if current.isupper() and not previous.isupper():
+            letters.append("_")
+        letters.append(current.lower())
+    return "".join(letters)
 
 
-def insert_row_generator(cls: type, funcname: str = "insert_row") -> GeneratedCode:
-    table_name = getattr(cls, "TABLE_NAME")
-    fields = get_sql_fields(cls)
-
-    columns = ", ".join(
-        f":{name}" for name, field in fields.items()
-        if not field.internal
-    )
-
-    valid_fields = {name for name, field in fields.items() if not field.internal}
-    pk = cls.PRIMARY_KEY
-
-    sql_statement = f"INSERT INTO {table_name} VALUES({columns})"
-
-    globs = {
-        "flatten_list": flatten_list,
-        "as_dict": as_dict,
-        "valid_fields": valid_fields,
-    }
-
-    code = (
-        f"def {funcname}(self, con):\n"
-        f"    raw_values = as_dict(self)\n"
-        f"    processed_values = {{\n"
-        f"        name: flatten_list(value) if isinstance(value, list) else value\n"
-        f"        for name, value in raw_values.items()\n"
-        f"        if name in valid_fields\n"
-        f"    }}\n"
-        f"    result = con.execute(\"{sql_statement}\", processed_values)\n"
-        f"    if self.{pk} is None:\n"
-        f"        self.{pk} = result.lastrowid\n"
-    )
-
-    return GeneratedCode(code, globs)
+class SQLMeta(SlotMakerMeta):
+    TABLE_NAME: str
+    VALID_FIELDS: dict[str, SQLAttribute]
+    COMPUTED_FIELDS: set[str]
+    PRIMARY_KEY: str
+    SPLIT_ROWS: set[str]
 
 
-def update_row_generator(cls: type, funcname: str = "from_row"):
-    table_name = getattr(cls, "TABLE_NAME")
-    fields = get_sql_fields(cls)
-
-    valid_fields = {name for name, field in fields.items() if not field.internal}
-
-    globs = {
-        "flatten_list": flatten_list,
-        "as_dict": as_dict,
-        "valid_fields": valid_fields,
-    }
-
-    sql_statement = f"UPDATE {table_name} SET {{set_columns}} WHERE {{search_condition}}"
-
-    code = (
-        f"def {funcname}(self, con, columns):\n"
-        f"    if invalid_columns := (set(columns) - valid_fields):\n"
-        f"        raise ValueError(f'Invalid fields: {{invalid_columns}}')\n"
-        f"    raw_values = as_dict(self)\n"
-        f"    processed_values = {{\n"
-        f"        name: flatten_list(value) if isinstance(value, list) else value\n"
-        f"        for name, value in raw_values.items()\n"
-        f"        if name in valid_fields\n"
-        f"    }}\n"
-        f"    set_columns = ', '.join(f\"{{name}} = :{{name}}\" for name in columns)\n"
-        f"    search_condition = f\"{cls.PRIMARY_KEY} = :{cls.PRIMARY_KEY}\"\n"
-        f"    con.execute(f\"{sql_statement}\", processed_values)\n"
-    )
-
-    return GeneratedCode(code, globs)
+default_methods = frozenset({init_maker, repr_maker, eq_maker})
 
 
-def delete_row_generator(cls: type, funcname: str = "delete_row") -> GeneratedCode:
-    pk = cls.PRIMARY_KEY
-    sql_statement = f"DELETE FROM {cls.TABLE_NAME} WHERE {pk} = :{pk}"
-    code = (
-        f"def {funcname}(self, con):\n"
-        f"    values = {{\"{pk}\": self.{pk}}}\n"
-        f"    con.execute(\"{sql_statement}\", values)\n"
-    )
-    globs = {}
-    return GeneratedCode(code, globs)
+class SQLClass(metaclass=SQLMeta):
+    _meta_gatherer = gatherer
+    __slots__ = {}
 
+    def __init_subclass__(
+        cls,
+        *,
+        methods=default_methods,
+        gatherer=gatherer,
+        **kwargs,
+    ):
+        slots = "__slots__" in cls.__dict__
+        builder(cls, gatherer=gatherer, methods=methods, flags={"slotted": slots, "kw_only": True})
 
-def row_factory_generator(cls: type, funcname: str = "row_factory") -> GeneratedCode:
-    split_rows = {
-        name
-        for name, field in get_sql_fields(cls).items()
-        if field.type == list[str]
-    }
-
-    code = (
-        f"@classmethod\n"
-        f"def {funcname}(cls, cursor, row):\n"
-        f"    fields = [column[0] for column in cursor.description]\n"
-        f"    kwargs = {{\n"
-        f"        key: separate_list(value) if key in split_rows else value\n"
-        f"        for key, value in zip(fields, row)\n"
-        f"    }}\n"
-        f"    return cls(**kwargs)\n"
-    )
-    globs = {
-        "split_rows": split_rows,
-        "separate_list": separate_list,
-    }
-    return GeneratedCode(code, globs)
-
-
-create_table_maker = MethodMaker("create_table", create_table_generator)
-insert_row_maker = MethodMaker("insert_row", insert_row_generator)
-update_row_maker = MethodMaker("update_row", update_row_generator)
-delete_row_maker = MethodMaker("delete_row", delete_row_generator)
-row_factory_maker = MethodMaker("row_factory", row_factory_generator)
-
-methods = {
-    init_maker,
-    repr_maker,
-    eq_maker,
-    create_table_maker,
-    insert_row_maker,
-    update_row_maker,
-    delete_row_maker,
-    row_factory_maker,
-}
-
-
-def sqlclass(table_name: str):
-    def class_maker(cls):
-        setattr(cls, "TABLE_NAME", table_name)
-        builder(cls, gatherer=annotation_gatherer, methods=methods, flags={"kw_only": True})
-
-        # Need to set PREFAB_FIELDS for as_dict to recognise the class
         fields = get_sql_fields(cls)
+        valid_fields = {}
+        split_rows = set()
+        computed_fields = set()
+
+        for name, value in fields.items():
+            if value.computed:
+                computed_fields.add(name)
+            if not value.internal:
+                valid_fields[name] = value
+
+            if value.type == list[str]:
+                split_rows.add(name)
+
+        cls.VALID_FIELDS = valid_fields
+        cls.COMPUTED_FIELDS = computed_fields
+        cls.SPLIT_ROWS = split_rows
+
         setattr(cls, PREFAB_FIELDS, list(fields.keys()))
 
         primary_key = None
@@ -260,26 +154,188 @@ def sqlclass(table_name: str):
         if sum(1 for f in fields.values() if f.primary_key) > 1:
             raise AttributeError("sqlclass *must* have **only** one primary key")
 
-        setattr(cls, "PRIMARY_KEY", primary_key)
+        cls.PRIMARY_KEY = primary_key
+        cls.TABLE_NAME = caps_to_snake(cls.__name__)
 
-        return cls
+        super().__init_subclass__(**kwargs)
 
-    return class_maker
+    @classmethod
+    def create_table(cls, con):
+        sql_field_list = []
 
+        for name, field in cls.VALID_FIELDS.items():
+            field_type = TYPE_MAP[field.type]
+            if field.primary_key:
+                constraint = " PRIMARY KEY"
+            elif field.unique:
+                constraint = " UNIQUE"
+            else:
+                constraint = ""
 
-def demoing():
-    @sqlclass("demo_table")
-    class Demo:
-        id: int = SQLAttribute(primary_key=True)
-        path: str = SQLAttribute(unique=True)
-        spec_hashes: list[str]
+            if field.computed:
+                field_str = f"{name} {field_type}{constraint} GENERATED ALWAYS AS ({field.computed})"
+            else:
+                field_str = f"{name} {field_type}{constraint}"
 
-    print(create_table_generator(Demo).source_code)
-    print(insert_row_generator(Demo).source_code)
-    print(update_row_generator(Demo).source_code)
-    print(delete_row_generator(Demo).source_code)
-    print(row_factory_generator(Demo).source_code)
+            sql_field_list.append(field_str)
 
+        field_info = ", ".join(sql_field_list)
+        sql_command = f"CREATE TABLE IF NOT EXISTS {cls.TABLE_NAME}({field_info})"
 
-if __name__ == "__main__":
-    demoing()
+        con.execute(sql_command)
+
+    @classmethod
+    def drop_table(cls, con):
+        con.execute(f"DROP TABLE IF EXISTS {cls.TABLE_NAME}")
+
+    @classmethod
+    def row_factory(cls, cursor, row):
+        fields = [column[0] for column in cursor.description]
+        kwargs = {
+            key: separate_list(value) if key in cls.SPLIT_ROWS else value
+            for key, value in zip(fields, row)
+        }
+
+        return cls(**kwargs)  # noqa
+
+    @classmethod
+    def _select_query(cls, cursor, filters: dict[str, MAPPED_TYPES] | None = None):
+        filters = {} if filters is None else filters
+
+        if filters:
+            keyfilter = []
+            for key in filters.keys():
+                if key not in cls.VALID_FIELDS:
+                    raise KeyError(f"{key} is not a valid column for table {cls.TABLE_NAME}")
+
+                keyfilter.append(f"{key} = :{key}")
+
+            filter_str = ", ".join(keyfilter)
+            search_condition = f" WHERE {filter_str}"
+        else:
+            search_condition = ""
+
+        cursor.row_factory = cls.row_factory
+        result = cursor.execute(f"SELECT * FROM {cls.TABLE_NAME} {search_condition}", filters)
+        return result
+
+    @classmethod
+    def select_rows(cls, con, filters: dict[str, MAPPED_TYPES] | None = None):
+        cursor = con.cursor()
+        try:
+            result = cls._select_query(cursor, filters=filters)
+            rows = result.fetchall()
+        finally:
+            cursor.close()
+
+        return rows
+
+    @classmethod
+    def select_row(cls, con, filters: dict[str, MAPPED_TYPES] | None = None):
+        cursor = con.cursor()
+        try:
+            result = cls._select_query(cursor, filters=filters)
+            row = result.fetchone()
+        finally:
+            cursor.close()
+
+        return row
+
+    @classmethod
+    def select_like(cls, con, filters: dict[str, MAPPED_TYPES] | None = None):
+        filters = {} if filters is None else filters
+
+        if filters:
+            keyfilter = []
+            for key in filters.keys():
+                if key not in cls.VALID_FIELDS:
+                    raise KeyError(f"{key} is not a valid column for table {cls.TABLE_NAME}")
+
+                keyfilter.append(f"{key} LIKE :{key}")
+
+            filter_str = ", ".join(keyfilter)
+            search_condition = f" WHERE {filter_str}"
+        else:
+            search_condition = ""
+
+        cursor = con.cursor()
+        try:
+            cursor.row_factory = cls.row_factory
+            result = cursor.execute(
+                f"SELECT * FROM {cls.TABLE_NAME} {search_condition}",
+                filters
+            )
+            rows = result.fetchall()
+        finally:
+            cursor.close()
+
+        return rows
+
+    @classmethod
+    def max_pk(cls, con):
+        statement = f"SELECT MAX({cls.PRIMARY_KEY}) from {cls.TABLE_NAME}"
+        result = con.execute(statement)
+        return result.fetchone()[0]
+
+    @classmethod
+    def row_from_pk(cls, con, pk_value):
+        return cls.select_row(con, filters={cls.PRIMARY_KEY: pk_value})
+
+    def insert_row(self, con):
+        columns = ", ".join(
+            f":{name}"
+            for name in self.VALID_FIELDS.keys()
+            if name not in self.COMPUTED_FIELDS
+        )
+        sql_statement = f"INSERT INTO {self.TABLE_NAME} VALUES({columns})"
+
+        processed_values = {
+            name: flatten_list(value) if isinstance(value, list) else value
+            for name, value in as_dict(self).items()
+            if name in self.VALID_FIELDS and name not in self.COMPUTED_FIELDS
+        }
+
+        with con:
+            result = con.execute(sql_statement, processed_values)
+
+            if getattr(self, self.PRIMARY_KEY) is None:
+                setattr(self, self.PRIMARY_KEY, result.lastrowid)
+
+            if self.COMPUTED_FIELDS:
+                row = self.row_from_pk(con, result.lastrowid)
+                for field in self.COMPUTED_FIELDS:
+                    setattr(self, field, getattr(row, field))
+
+    def update_row(self, con, columns: list[str]):
+        if self.PRIMARY_KEY is None:
+            raise AttributeError("Primary key has not yet been set")
+
+        if invalid_columns := (set(columns) - self.VALID_FIELDS.keys()):
+            raise ValueError(f"Invalid fields: {invalid_columns}")
+
+        processed_values = {
+            name: flatten_list(value) if isinstance(value, list) else value
+            for name, value in as_dict(self).items()
+            if name in self.VALID_FIELDS and name not in self.COMPUTED_FIELDS
+        }
+
+        set_columns = ", ".join(f"{name} = :{name}" for name in columns)
+        search_condition = f"{self.PRIMARY_KEY} = :{self.PRIMARY_KEY}"
+
+        with con:
+            con.execute(
+                f"UPDATE {self.TABLE_NAME} SET {set_columns} WHERE {search_condition}",
+                processed_values,
+            )
+
+    def delete_row(self, con):
+        if self.PRIMARY_KEY is None:
+            raise AttributeError("Primary key has not yet been set")
+
+        pk_filter = {self.PRIMARY_KEY: getattr(self, self.PRIMARY_KEY)}
+
+        with con:
+            con.execute(
+                f"DELETE FROM {self.TABLE_NAME} WHERE {self.PRIMARY_KEY} = :{self.PRIMARY_KEY}",
+                pk_filter,
+            )
