@@ -16,7 +16,6 @@
 
 import sys
 import os.path
-import shutil
 import tempfile
 
 from ducktools.pythonfinder import get_python_installs
