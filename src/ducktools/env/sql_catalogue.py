@@ -56,9 +56,10 @@ class SQLContext:
         return self.connection
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.connection:
+        if self.connection is not None:
             self.connection.close()
-        self.connection = None
+            sys.stderr.write("Connection closed\n")
+            self.connection = None
 
 
 class BaseEnv(SQLClass):
@@ -176,7 +177,7 @@ class BaseCatalogue:
         # Create the database if it does not exist
         if not os.path.exists(self.path):
             os.makedirs(os.path.dirname(self.path), exist_ok=True)
-            with _laz.sql.connect(self.path) as con:
+            with SQLContext(self.path) as con:
                 self.ENV_TYPE.create_table(con)
 
         return SQLContext(self.path)
