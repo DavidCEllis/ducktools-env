@@ -70,6 +70,11 @@ class BaseEnv(SQLClass):
     parent_python: str
     created_on: str = SQLAttribute(default_factory=_datetime_now_iso)
     last_used: str = SQLAttribute(default_factory=_datetime_now_iso, compare=False)
+    
+    # This field is used to indicate that the venv is usable in case another process
+    # Attempts to run a script from the venv before it has finished construction
+    # This is False initially and set to True after dependencies are installed
+    completed: bool = False  # Actually stored as INT
 
     spec_hashes: list[str]
     lock_hash: str | None = None
@@ -234,6 +239,10 @@ class BaseCatalogue:
             caches = self.ENV_TYPE.select_like(con, filters)
 
             for cache in caches:
+                if not cache.completed:
+                    # Ignore venvs that are still being built
+                    continue
+
                 if spec.lock_hash and (spec.lock_hash != cache.lock_hash):
                     log(f"Input spec matched {cache.name}, but lockfile did not match.")
                     continue
@@ -378,8 +387,10 @@ class BaseCatalogue:
 
             env.installed_modules.extend(installed_modules)
 
+        env.completed = True
+
         with self.connection as con:
-            env.update_row(con, ["installed_modules"])
+            env.update_row(con, ["installed_modules", "completed"])
 
 
 @prefab(kw_only=True)
@@ -445,6 +456,10 @@ class TemporaryCatalogue(BaseCatalogue):
             lock_caches = self.ENV_TYPE.select_rows(con, filters)
 
         for cache in lock_caches:
+            if not cache.completed:
+                # Ignore environments that are still being built
+                continue
+
             if cache.python_version in spec.details.requires_python_spec:
 
                 if not cache.is_valid:
@@ -469,6 +484,10 @@ class TemporaryCatalogue(BaseCatalogue):
         """
 
         for cache in self.environments.values():
+            if not cache.completed:
+                # Ignore environments that are still being built
+                continue
+
             # If no python version listed ignore it
             # If python version is listed, make sure it matches
             if spec.details.requires_python:
@@ -612,6 +631,15 @@ class ApplicationCatalogue(BaseCatalogue):
         env = None
 
         if cache := self.environments.get(details.app.appkey):
+            if not cache.completed:
+                # Perhaps it should check the age of the env to decide if it should wait
+                # and see if the env has been created?
+                raise RuntimeError(
+                    f"Environment \"{cache.name}\" has not been completed. "
+                    "Either it is currently being built by another process "
+                    "or the build has failed and the environment needs to be deleted."
+                )
+
             # Logic is a bit long here because if the versions match we want to
             # avoid generating the packaging.version. Otherwise we would check
             # for the outdated version first.

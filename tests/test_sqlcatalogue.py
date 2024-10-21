@@ -102,6 +102,7 @@ def fake_temp_envs(fake_temp_catalogue):
         parent_python=python_path,
         created_on="2024-09-02T14:55:53.102038",
         last_used="2024-09-02T14:55:53.102038",
+        completed=True,
         spec_hashes=["6986c6ae4a2965a4456333b8c60c5ac923ddca0d7edaa70b36b50f545ed8b24b"],
         installed_modules=[
             "certifi==2024.8.30",
@@ -123,6 +124,7 @@ def fake_temp_envs(fake_temp_catalogue):
         parent_python=python_path,
         created_on="2024-09-02T14:55:58.827666",
         last_used="2024-09-02T14:55:58.827666",
+        completed=True,
         spec_hashes=["85cdf5c0f9b109ba70cd936b153fd175307406eb802e05df453d5ccf5a19383f"],
         installed_modules=["cowsay==6.1"],
     )
@@ -134,6 +136,7 @@ def fake_temp_envs(fake_temp_catalogue):
         parent_python=python_path,
         created_on="2024-09-25T17:55:23.254577",
         last_used="2024-09-26T11:29:12.233691",
+        completed=True,
         spec_hashes=["85cdf5c0f9b109ba70cd936b153fd175307406eb802e05df453d5ccf5a19383f"],
         lock_hash="840760dd5d911f145b94c72e670754391bf19c33d5272da7362b629c484fd1f6",
         installed_modules=["cowsay==6.1"],
@@ -168,6 +171,7 @@ def fake_app_env(sql_catalogue_path):
         parent_python=python_path,
         created_on="2024-09-25T17:55:23.254577",
         last_used="2024-09-26T11:29:12.233691",
+        completed=True,
         spec_hashes=[
             "226500066700d7910b3a57470f12f97ed402fe68b8b31fb592f0a76f7f0bd682"
         ],

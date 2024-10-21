@@ -46,6 +46,7 @@ from ducktools.classbuilder.prefab import (
 TYPE_MAP = {
     None: "NULL",
     int: "INTEGER",
+    bool: "INTEGER",
     float: "REAL",
     str: "TEXT",
     str | None: "TEXT",
@@ -103,7 +104,8 @@ class SQLMeta(SlotMakerMeta):
     VALID_FIELDS: dict[str, SQLAttribute]
     COMPUTED_FIELDS: set[str]
     PRIMARY_KEY: str
-    SPLIT_ROWS: set[str]
+    STR_LIST_COLUMNS: set[str]
+    BOOL_COLUMNS: set[str]
 
 
 default_methods = frozenset({init_maker, repr_maker, eq_maker})
@@ -125,7 +127,8 @@ class SQLClass(metaclass=SQLMeta):
 
         fields = get_sql_fields(cls)
         valid_fields = {}
-        split_rows = set()
+        split_columns = set()
+        bools = set()
         computed_fields = set()
 
         for name, value in fields.items():
@@ -135,11 +138,14 @@ class SQLClass(metaclass=SQLMeta):
                 valid_fields[name] = value
 
             if value.type == list[str]:
-                split_rows.add(name)
+                split_columns.add(name)
+            elif value.type is bool:
+                bools.add(name)
 
         cls.VALID_FIELDS = valid_fields
         cls.COMPUTED_FIELDS = computed_fields
-        cls.SPLIT_ROWS = split_rows
+        cls.STR_LIST_COLUMNS = split_columns
+        cls.BOOL_COLUMNS = bools
 
         setattr(cls, PREFAB_FIELDS, list(fields.keys()))
 
@@ -192,10 +198,14 @@ class SQLClass(metaclass=SQLMeta):
     @classmethod
     def row_factory(cls, cursor, row):
         fields = [column[0] for column in cursor.description]
-        kwargs = {
-            key: separate_list(value) if key in cls.SPLIT_ROWS else value
-            for key, value in zip(fields, row)
-        }
+        kwargs = {}
+        for key, value in zip(fields, row, strict=True):
+            if key in cls.STR_LIST_COLUMNS:
+                kwargs[key] = separate_list(value)
+            elif key in cls.BOOL_COLUMNS:
+                kwargs[key] = bool(value)
+            else:
+                kwargs[key] = value
 
         return cls(**kwargs)  # noqa
 
