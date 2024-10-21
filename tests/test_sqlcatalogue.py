@@ -124,13 +124,25 @@ def fake_temp_envs(fake_temp_catalogue):
         parent_python=python_path,
         created_on="2024-09-02T14:55:58.827666",
         last_used="2024-09-02T14:55:58.827666",
-        completed=True,
+        completed=False,
         spec_hashes=["85cdf5c0f9b109ba70cd936b153fd175307406eb802e05df453d5ccf5a19383f"],
         installed_modules=["cowsay==6.1"],
     )
 
     env_2 = TemporaryEnvironment(
         row_id=2,
+        root_path=fake_temp_catalogue.catalogue_folder,
+        python_version=python_version,
+        parent_python=python_path,
+        created_on="2024-09-02T14:55:59.827666",
+        last_used="2024-09-02T14:55:59.827666",
+        completed=True,
+        spec_hashes=["85cdf5c0f9b109ba70cd936b153fd175307406eb802e05df453d5ccf5a19383f"],
+        installed_modules=["cowsay==6.1"],
+    )
+
+    env_3 = TemporaryEnvironment(
+        row_id=3,
         root_path=fake_temp_catalogue.catalogue_folder,
         python_version=python_version,
         parent_python=python_path,
@@ -147,8 +159,9 @@ def fake_temp_envs(fake_temp_catalogue):
         env_0.insert_row(con)
         env_1.insert_row(con)
         env_2.insert_row(con)
+        env_3.insert_row(con)
 
-    return {"env_0": env_0, "env_1": env_1, "env_2": env_2}
+    return {"env_0": env_0, "env_1": env_1, "env_2": env_2, "env_3": env_3}
 
 
 @pytest.fixture(scope="function")
@@ -190,7 +203,7 @@ def fake_app_env(sql_catalogue_path):
 # ENVIRONMENT TESTS
 
 class TestTempEnv:
-    @pytest.mark.parametrize("envname", ["env_0", "env_1", "env_2"])
+    @pytest.mark.parametrize("envname", ["env_0", "env_1", "env_2", "env_3"])
     def test_python_path(self, fake_temp_envs, envname, sql_catalogue_path):
         env = fake_temp_envs[envname]
         base_path = Path(sql_catalogue_path).parent
@@ -201,7 +214,7 @@ class TestTempEnv:
             assert env.python_path == str(base_path / envname / "bin" / "python")
 
     @pytest.mark.skipif(sys.platform != "win32", reason="Windows only test")
-    @pytest.mark.parametrize("envname", ["env_0", "env_1", "env_2"])
+    @pytest.mark.parametrize("envname", ["env_0", "env_1", "env_2", "env_3"])
     def test_python_path_windowed(self, fake_temp_envs, envname, sql_catalogue_path):
         # If there is no stdout on windows assume windowed executable
         with mock.patch("sys.stdout", new=None):
@@ -214,8 +227,8 @@ class TestTempEnv:
         env_0 = fake_temp_envs["env_0"]
         assert env_0.last_used_simple == "2024-09-02 14:55:53"
 
-        env_1 = fake_temp_envs["env_1"]
-        assert env_1.last_used_simple == "2024-09-02 14:55:58"
+        env_2 = fake_temp_envs["env_2"]
+        assert env_2.last_used_simple == "2024-09-02 14:55:59"
 
     def test_exists(self, fake_temp_envs):
         env_0 = fake_temp_envs["env_0"]
@@ -291,21 +304,23 @@ class TestTempCatalogue:
             env_0_recover = fake_temp_catalogue.find_env_hash(spec=env_0_spec)
 
             # This should find the env without the lockfile
-            env_1_spec = EnvironmentSpec.from_script(
+            env_1_and_2_spec = EnvironmentSpec.from_script(
                 str(example_paths / "cowsay_ex_nolock.py")
             )
-            env_1_recover = fake_temp_catalogue.find_env_hash(spec=env_1_spec)
+            env_2_recover = fake_temp_catalogue.find_env_hash(spec=env_1_and_2_spec)
 
             # This should only find the env *with* the lockfile
             # Despite being the same original spec
-            env_2_spec = EnvironmentSpec.from_script(
+            env_3_spec = EnvironmentSpec.from_script(
                 str(example_paths / "cowsay_ex.py")
             )
-            env_2_recover = fake_temp_catalogue.find_env_hash(spec=env_2_spec)
+            env_3_recover = fake_temp_catalogue.find_env_hash(spec=env_3_spec)
 
+        # env_1 should not be recovered even though it matches the spec
+        # As it is marked as incomplete
         assert env_0_recover == fake_temp_envs["env_0"]
-        assert env_1_recover == fake_temp_envs["env_1"]
         assert env_2_recover == fake_temp_envs["env_2"]
+        assert env_3_recover == fake_temp_envs["env_3"]
 
     def test_find_env_hash_fail(self, fake_full_catalogue):
         with (
@@ -348,6 +363,8 @@ class TestTempCatalogue:
             calls = [
                 mock.call("env_0"),
                 mock.call("env_1"),
+                mock.call("env_2"),
+                mock.call("env_3"),
             ]
 
-            del_env.assert_has_calls(calls)
+            assert del_env.mock_calls == calls
