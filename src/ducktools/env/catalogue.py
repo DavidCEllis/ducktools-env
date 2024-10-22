@@ -61,7 +61,7 @@ class SQLContext:
             self.connection = None
 
 
-class BaseEnv(SQLClass):
+class BaseEnvironment(SQLClass):
     row_id: int = SQLAttribute(default=None, primary_key=True)
     name: str = SQLAttribute(unique=True)
     path: str
@@ -121,7 +121,7 @@ class BaseEnv(SQLClass):
         return self.path
 
 
-class TemporaryEnvironment(BaseEnv):
+class TemporaryEnvironment(BaseEnvironment):
     """
     This is for temporary environments that expire after a certain period
     """
@@ -139,7 +139,7 @@ class TemporaryEnvironment(BaseEnv):
     )
 
 
-class ApplicationEnvironment(BaseEnv):
+class ApplicationEnvironment(BaseEnvironment):
     """
     Environment for permanent applications that do not get outdated
     """
@@ -166,7 +166,7 @@ class ApplicationEnvironment(BaseEnv):
 
 @prefab(kw_only=True)
 class BaseCatalogue:
-    ENV_TYPE = BaseEnv
+    ENV_TYPE = BaseEnvironment
     path: str
 
     def __init__(self, *, path: str):
