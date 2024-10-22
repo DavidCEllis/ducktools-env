@@ -42,10 +42,8 @@ MANAGER_FOLDERNAME = "lib"
 
 # Filenames for configuration and catalogue
 CONFIG_FILENAME = "config.json"
-CATALOGUE_FILENAME = "catalogue.json"
-APPCATALOGUE_FILENAME = "app_catalogue.json"
-SQL_CATALOGUE_FILENAME = "catalogue.db"
-SQL_APPCATALOGUE_FILENAME = "app_catalogue.db"
+CATALOGUE_FILENAME = "catalogue.db"
+APPCATALOGUE_FILENAME = "app_catalogue.db"
 
 
 # Store in LOCALAPPDATA for windows, User folder for other operating systems
@@ -97,11 +95,9 @@ class ManagedPaths:
 
     application_folder: str
     application_db: str
-    application_db_sql: str
 
     cache_folder: str
     cache_db: str
-    cache_db_sql: str
 
     build_base: str
 
@@ -123,11 +119,9 @@ class ManagedPaths:
 
         self.application_folder = os.path.join(self.project_folder, APPLICATION_FOLDERNAME)
         self.application_db = os.path.join(self.application_folder, APPCATALOGUE_FILENAME)
-        self.application_db_sql = os.path.join(self.application_folder, SQL_APPCATALOGUE_FILENAME)
 
         self.cache_folder = os.path.join(self.project_folder, CACHEDENV_FOLDERNAME)
         self.cache_db = os.path.join(self.cache_folder, CATALOGUE_FILENAME)
-        self.cache_db_sql = os.path.join(self.cache_folder, SQL_CATALOGUE_FILENAME)
 
         self.build_base = os.path.join(self.project_folder, "build")
 

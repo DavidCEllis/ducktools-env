@@ -61,7 +61,7 @@ class Manager(Prefab):
     @property
     def temp_catalogue(self) -> TemporaryCatalogue:
         if self._temp_catalogue is None:
-            self._temp_catalogue = TemporaryCatalogue.load(self.paths.cache_db)
+            self._temp_catalogue = TemporaryCatalogue(self.paths.cache_db)
 
             # Clear expired caches on load
             self._temp_catalogue.expire_caches(self.config.cache_lifetime_delta)
@@ -70,7 +70,7 @@ class Manager(Prefab):
     @property
     def app_catalogue(self) -> ApplicationCatalogue:
         if self._app_catalogue is None:
-            self._app_catalogue = ApplicationCatalogue.load(self.paths.application_db)
+            self._app_catalogue = ApplicationCatalogue(self.paths.application_db)
         return self._app_catalogue
 
     @property
