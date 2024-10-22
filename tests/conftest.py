@@ -39,6 +39,10 @@ def available_pythons():
 def this_python():
     py = sys.executable
     details = get_install_details(py)
+    # Pretend PyPy is CPython for tests
+    if details.implementation == "pypy":
+        details.implementation = "cpython"
+
     # Remove pre-release number from version!
     details.version = *details.version[:3], "release", 0
     return details
