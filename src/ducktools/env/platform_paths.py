@@ -42,8 +42,8 @@ MANAGER_FOLDERNAME = "lib"
 
 # Filenames for configuration and catalogue
 CONFIG_FILENAME = "config.json"
-CATALOGUE_FILENAME = "catalogue.json"
-APPCATALOGUE_FILENAME = "app_catalogue.json"
+CATALOGUE_FILENAME = "catalogue.db"
+APPCATALOGUE_FILENAME = "app_catalogue.db"
 
 
 # Store in LOCALAPPDATA for windows, User folder for other operating systems

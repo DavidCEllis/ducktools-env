@@ -32,11 +32,14 @@ class TestBuildRetrieve:
         # Test the env does not exist yet
         assert testing_catalogue.find_env(spec=spec) is None
 
+        python_install = manager._get_python_install(spec=spec)
+
         real_env = testing_catalogue.create_env(
             spec=spec,
             config=test_config,
             uv_path=manager.retrieve_uv(),
             installer_command=manager.install_base_command(),
+            base_python=python_install,
         )
 
         assert real_env is not None

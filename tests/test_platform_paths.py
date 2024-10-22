@@ -59,16 +59,15 @@ class TestManagedPaths:
         assert self.paths.pip_zipapp == str(project_folder / "lib" / "pip.pyz")
         assert self.paths.env_folder == str(project_folder / "lib" / "ducktools-env")
         assert self.paths.application_folder == str(project_folder / "applications")
-        assert self.paths.application_db == str(project_folder / "applications" / "app_catalogue.json")
+        assert self.paths.application_db == str(project_folder / "applications" / "app_catalogue.db")
         assert self.paths.cache_folder == str(project_folder / "caches")
-        assert self.paths.cache_db == str(project_folder / "caches" / "catalogue.json")
+        assert self.paths.cache_db == str(project_folder / "caches" / "catalogue.db")
         assert self.paths.build_base == str(project_folder / "build")
 
         if sys.platform == "win32":
             assert self.paths.uv_executable == str(project_folder / "lib" / "uv.exe")
         else:
             assert self.paths.uv_executable == str(project_folder / "lib" / "uv")
-
 
     def test_get_versions(self):
         with mock.patch.object(self.paths, "get_app_version") as gav_mock:
