@@ -524,7 +524,11 @@ class TemporaryCatalogue(BaseCatalogue):
                 log(f"Adding {spec.spec_hash!r} to {cache.name!r} hash list")
 
                 cache.last_used = _datetime_now_iso()
-                cache.spec_hashes.append(spec.spec_hash)
+
+                if spec.spec_hash not in cache.spec_hashes:
+                    # If for whatever reason this has been called when hash matches
+                    # Don't add the same hash multiple times.
+                    cache.spec_hashes.append(spec.spec_hash)
 
                 with self.connection as con:
                     cache.update_row(con, ["last_used", "spec_hashes"])

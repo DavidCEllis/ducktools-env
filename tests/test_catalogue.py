@@ -66,7 +66,7 @@ def fake_temp_envs(catalogue_path):
         parent_python=python_path,
         created_on="2024-09-02T14:55:53.102038",
         last_used="2024-09-02T14:55:53.102038",
-        spec_hashes=["6986c6ae4a2965a4456333b8c60c5ac923ddca0d7edaa70b36b50f545ed8b24b"],
+        spec_hashes=["0caeabf94f2a523db4bb52752ef95067dd7e5c1e8f5b1e249dc37abdd1e60e1f"],
         installed_modules=[
             "certifi==2024.8.30",
             "charset-normalizer==3.3.2",

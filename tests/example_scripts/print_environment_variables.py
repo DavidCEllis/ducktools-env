@@ -22,7 +22,7 @@
 # SOFTWARE.
 
 # /// script
-# requires-python = ">=3.11"
+# requires-python = ">=3.10"
 #
 # [tool.ducktools.env]
 # include.data = ["./"]

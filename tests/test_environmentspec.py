@@ -92,7 +92,7 @@ class TestExampleSpecs:
 
         spec = EnvironmentSpec.from_script(envvar_script_path)
 
-        assert spec.details.requires_python == ">=3.11"
+        assert spec.details.requires_python == ">=3.10"
         assert spec.details.dependencies == []
 
         assert spec.details.data_sources == ["./"]

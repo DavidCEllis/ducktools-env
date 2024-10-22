@@ -81,7 +81,7 @@ def fake_temp_envs(fake_temp_catalogue):
         created_on="2024-09-02T14:55:53.102038",
         last_used="2024-09-02T14:55:53.102038",
         completed=True,
-        spec_hashes=["6986c6ae4a2965a4456333b8c60c5ac923ddca0d7edaa70b36b50f545ed8b24b"],
+        spec_hashes=["0caeabf94f2a523db4bb52752ef95067dd7e5c1e8f5b1e249dc37abdd1e60e1f"],
         installed_modules=[
             "certifi==2024.8.30",
             "charset-normalizer==3.3.2",
@@ -315,6 +315,62 @@ class TestTempCatalogue:
             assert empty_recover is None
 
             mock_delete.assert_called_with("env_0")
+
+    def test_find_env_sufficient(self, fake_full_catalogue, fake_temp_envs):
+        example_paths = Path(__file__).parent / "example_scripts"
+        spec = EnvironmentSpec.from_script(
+            example_paths / "pep_723_example_subset.py"
+        )
+
+        with mock.patch.object(TemporaryEnvironment, "is_valid", new=True):
+            env_0_recover = fake_full_catalogue.find_sufficient_env(spec=spec)
+
+        original_env = fake_temp_envs["env_0"]
+        
+        # env_0 has been updated
+        assert env_0_recover.name == original_env.name
+        assert env_0_recover.last_used_date > original_env.last_used_date
+
+        # New spec has been added to the hashes
+        assert env_0_recover.spec_hashes == [*original_env.spec_hashes, spec.spec_hash]
+
+    def test_correct_find_env_called(self, fake_full_catalogue, fake_temp_envs):
+        with (
+            mock.patch.object(TemporaryEnvironment, "is_valid", new=True),
+            mock.patch.object(
+                TemporaryCatalogue, 
+                "find_locked_env",
+                wraps=fake_full_catalogue.find_locked_env,
+            ) as mock_locked,
+            mock.patch.object(
+                TemporaryCatalogue, 
+                "find_sufficient_env",
+                wraps=fake_full_catalogue.find_sufficient_env,
+            ) as mock_sufficient,
+        ):
+            example_paths = Path(__file__).parent / "example_scripts"
+            
+            # env_0 does not have a lock file, should look for sufficient
+            env_0_spec = EnvironmentSpec.from_script(
+                str(example_paths / "pep_723_example.py")
+            )
+            env_0_recover = fake_full_catalogue.find_env(spec=env_0_spec)
+            assert fake_temp_envs["env_0"].name == env_0_recover.name
+            mock_sufficient.assert_called_once_with(spec=env_0_spec)
+            mock_locked.assert_not_called()
+            mock_sufficient.reset_mock()
+            mock_locked.reset_mock()
+
+            # env_3 has a lockfile, should look for the matching lock env
+            env_3_spec = EnvironmentSpec.from_script(
+                str(example_paths / "cowsay_ex.py")
+            )
+            env_3_recover = fake_full_catalogue.find_env(spec=env_3_spec)
+            assert fake_temp_envs["env_3"].name == env_3_recover.name
+            mock_sufficient.assert_not_called()
+            mock_locked.assert_called_once_with(spec=env_3_spec)
+            mock_sufficient.reset_mock()
+            mock_locked.reset_mock()
 
     # Temp catalogue specific tests
     def test_oldest_cache(self, fake_full_catalogue):
