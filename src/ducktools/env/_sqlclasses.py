@@ -54,7 +54,7 @@ TYPE_MAP = {
     list[str]: "TEXT"  # lists of strings are converted to delimited strings
 }
 
-MAPPED_TYPES = None | int | float | str | bytes | list[str]
+MAPPED_TYPES = None | int | bool | float | str | bytes | list[str]
 
 
 class SQLAttribute(Attribute):
@@ -79,7 +79,7 @@ def get_sql_fields(cls: "SQLMeta") -> dict[str, SQLAttribute]:
     return get_attributes(cls)  # noqa
 
 
-gatherer = make_unified_gatherer(SQLAttribute)
+unified_gatherer = make_unified_gatherer(SQLAttribute)
 
 
 def flatten_list(strings: list[str], *, delimiter=";") -> str:
@@ -112,14 +112,14 @@ default_methods = frozenset({init_maker, repr_maker, eq_maker})
 
 
 class SQLClass(metaclass=SQLMeta):
-    _meta_gatherer = gatherer
+    _meta_gatherer = unified_gatherer
     __slots__ = {}
 
     def __init_subclass__(
         cls,
         *,
         methods=default_methods,
-        gatherer=gatherer,
+        gatherer=unified_gatherer,
         **kwargs,
     ):
         slots = "__slots__" in cls.__dict__
