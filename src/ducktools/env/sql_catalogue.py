@@ -170,7 +170,7 @@ class BaseCatalogue:
     ENV_TYPE = BaseEnv
     path: str
 
-    def __init__(self, path):
+    def __init__(self, *, path):
         raise RuntimeError("BaseCatalogue should not be initialized")
 
     @property

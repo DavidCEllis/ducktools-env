@@ -246,6 +246,11 @@ class TestAppEnv:
 
 
 # CATALOGUE TESTS
+def test_base_catalogue_noinit():
+    # Base catalogue should not be created
+    with pytest.raises(RuntimeError):
+        _ = BaseCatalogue(path="cant/create/basecatalogue")
+
 class TestTempCatalogue:
     # Shared tests for any catalogue
     def test_delete_env(self, fake_temp_catalogue, fake_temp_envs):
