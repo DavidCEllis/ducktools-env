@@ -58,7 +58,6 @@ class SQLContext:
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.connection is not None:
             self.connection.close()
-            sys.stderr.write("Connection closed\n")
             self.connection = None
 
 
@@ -610,8 +609,6 @@ class TemporaryCatalogue(BaseCatalogue):
 @prefab(kw_only=True)
 class ApplicationCatalogue(BaseCatalogue):
     ENV_TYPE = ApplicationEnvironment
-
-    environments: dict[str, ENV_TYPE] = attribute(default_factory=dict)
 
     def find_env_hash(self, *, spec: EnvironmentSpec) -> ENV_TYPE | None:
         env: ApplicationEnvironment | None = super().find_env_hash(spec=spec)
