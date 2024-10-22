@@ -51,9 +51,14 @@ def is_outdated(installed_version: str | None, bundled_version: str) -> bool:
     if installed_version is None:
         return True
 
-    # Always consider dev versions outdated
+    # Installed pre-releases should be replaced by equal version pre-releases
+    # But not older releases
     if "dev" in installed_version:
-        return True
+        from _vendor.packaging.version import Version  # type: ignore
+        installed_info = Version(installed_version)
+        bundled_info = Version(bundled_version)
+
+        return installed_info.release <= bundled_info.release
 
     # Shortcut for identical version string
     if installed_version == bundled_version:
