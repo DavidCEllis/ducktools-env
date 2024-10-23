@@ -37,6 +37,7 @@ laz = LazyImporter(
         ModuleImport("json"),
         ModuleImport("re"),
         ModuleImport("shutil"),
+        ModuleImport("sqlite3", asname="sql"),
         ModuleImport("subprocess"),
         ModuleImport("tempfile"),
         ModuleImport("warnings"),
