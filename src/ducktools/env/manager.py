@@ -307,6 +307,7 @@ class Manager(Prefab):
             zipapp_path=zipapp_path,
         )
 
+    # Higher level commands - take plain inputs
     def run_bundle(
         self,
         *,
@@ -388,7 +389,6 @@ class Manager(Prefab):
             env_vars=env_vars,
         )
 
-    # Higher level commands - take plain inputs
     def create_bundle(
         self,
         *,
