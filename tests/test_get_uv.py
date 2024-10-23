@@ -223,7 +223,7 @@ class TestRetrieveUV:
             mock.patch("subprocess.run") as run_mock,
             mock.patch.object(ManagedPaths, "get_uv_version") as uv_ver_mock
         ):
-            uv_ver_mock.return_value = "0.4.6"
+            uv_ver_mock.return_value = "0.4.25"
             exists_mock.return_value = True
             uv_path = get_uv.retrieve_uv(paths=self.paths, reinstall=False)
 
