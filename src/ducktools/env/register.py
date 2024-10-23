@@ -26,7 +26,6 @@ from ducktools.classbuilder.prefab import Prefab
 
 from ._lazy_imports import laz as _laz
 from ._sqlclasses import SQLAttribute, SQLClass, SQLContext
-from ._logger import log
 
 
 class RegisteredScript(SQLClass):
@@ -79,13 +78,14 @@ class RegisterManager(Prefab, kw_only=True):
         if row is None:
             raise RuntimeError(
                 f"'{script_name}' is not a registered script. "
-                f"Use `python -m ducktools-env list --scripts` to show registered scripts."
+                f"Use `python -m ducktools.env list --scripts` to show registered scripts."
             )
 
         if not os.path.exists(row.path):
-            self.remove_script(script_name)
+            with self.connection as con:
+                row.delete_row(con)
 
-            raise RuntimeError(
+            raise FileNotFoundError(
                 f"'{script_name}' file at '{row.path} does not exist, removed from registry."
             )
 
