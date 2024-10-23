@@ -350,8 +350,8 @@ class Manager(Prefab):
         *,
         script_path: str,
         script_args: list[str],
-        lock_path: str | None,
         generate_lock: bool = False,
+        lock_path: str | None,
     ):
         """
         Run script specs from regular .py files
@@ -464,28 +464,19 @@ class Manager(Prefab):
         self,
         *,
         script_name: str,
-        script_args: list[str] | None,
+        script_args: list[str],
         generate_lock: bool = False,
-        with_lock: str | None = None,
+        lock_path: str | None = None,
     ) -> None:
         row = self.script_registry.retrieve_script(script_name=script_name)
         script_path = row.path
 
-        spec = EnvironmentSpec.from_script(script_path)
-
-        if generate_lock:
-            lockdata = spec.generate_lockdata(uv_path=self.retrieve_uv(required=True))
-            lock_path = f"{script_path}.lock"
-            with open(lock_path, "w") as f:
-                f.write(lockdata)
-        elif lock_path := with_lock:
-            with open(lock_path, 'r') as f:
-                spec.lockdata = f.read()
-
-        if script_args is None:
-            script_args = []
-
-        self.run_script(spec=spec, script_args=script_args)
+        self.run_script(
+            script_path=script_path,
+            script_args=script_args,
+            generate_lock=generate_lock,
+            lock_path=lock_path,
+        )
 
     def clear_temporary_cache(self):
         # Clear the temporary environment cache

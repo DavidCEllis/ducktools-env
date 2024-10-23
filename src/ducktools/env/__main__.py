@@ -306,16 +306,16 @@ def main():
         if os.path.exists(args.script_filename):
             manager.run_script(
                 script_path=args.script_filename,
-                lock_path=args.with_lock,
-                generate_lock=args.generate_lock,
                 script_args=args.script_args,
+                generate_lock=args.generate_lock,
+                lock_path=args.with_lock,
             )
         else:
             manager.run_registered_script(
                 script_name=args.script_filename,
                 script_args=args.script_args,
                 generate_lock=args.generate_lock,
-                with_lock=args.with_lock,
+                lock_path=args.with_lock,
             )
 
     elif args.command == "bundle":
