@@ -28,11 +28,11 @@ specific script running tool installed.
 
 To aid this, `ducktools.env` provides the `bundle` and `run` commands.
 
-`python ducktools.pyz run my_script.py`
+`ducktools.pyz run my_script.py`
 
 Will run your script much like some of the other script runners.
 
-`python ducktools.pyz bundle my_script.py`
+`ducktools.pyz bundle my_script.py`
 
 Will then generate a zipapp bundle of your script and the required tools to extract and
 execute it in the same way as it is executed via the `run` command.
@@ -64,31 +64,49 @@ Environment data and the application itself will be stored in the following loca
 
 ## Usage ##
 
-Either install the tool from PyPI or simply download the zipapp from github.
+The tool can be used in multiple ways:
 
-If using the tool from PyPI the commands are `python -m ducktools.env <command>` 
-with the zipapp they are `python ducktools.pyz <command>` 
+* Executed from the zipapp
+  * Download from: https://github.com/DavidCEllis/ducktools-env/releases/latest
+  * Run with: `ducktools.pyz <command>`
+* Installed in an environment
+  * Download with `pip` or `uv` in a virtual environment: `pip install ducktools-env`
+  * Run with: `python -m ducktools.env <command>`
+* Accessed via UV tools with `uv tool install`
+  * `uvx ducktools-env <command>`
+
+These examples will use the zipapp command as the base.
 
 Run a script that uses inline script metadata:
 
-`python ducktools.pyz run my_script.py`
+`ducktools.pyz run my_script.py`
 
 Bundle the script into a zipapp:
 
-`python ducktools.pyz bundle my_script.py`
+`ducktools.pyz bundle my_script.py`
 
 Clear the temporary environment cache:
 
-`python ducktools.pyz clear_cache`
+`ducktools.pyz clear_cache`
 
 Clear the full `ducktools/env` install directory:
 
-`python ducktools.pyz clear_cache --full`
+`ducktools.pyz clear_cache --full`
 
 Build the env folder from the installed package 
 (**Generally you should not need to do this from the zipapp**)
 
 `python -m ducktools.env rebuild_env`
+
+### Registering scripts ###
+
+It is also now possible to register scripts with `ducktools-env`.
+
+`ducktools.pyz register path/to/my_script.py`
+
+which can then be run by using the script name without the extension:
+
+`ducktools.pyz run my_script`
 
 ## Locking environments ##
 
