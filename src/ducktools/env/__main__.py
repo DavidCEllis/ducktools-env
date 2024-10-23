@@ -334,7 +334,7 @@ def main():
                 script_name=args.script_name,
             )
         else:
-            manager.run_registered_script(
+            manager.register_script(
                 script_path=args.script_name,
             )
 
