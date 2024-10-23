@@ -28,7 +28,7 @@ from datetime import datetime as _datetime, timedelta as _timedelta
 
 from ducktools.classbuilder.prefab import prefab, attribute
 
-from ._sqlclasses import SQLAttribute, SQLClass
+from ._sqlclasses import SQLAttribute, SQLClass, SQLContext
 from .exceptions import InvalidEnvironmentSpec, VenvBuildError, ApplicationError
 from .environment_specs import EnvironmentSpec
 from .config import Config
@@ -44,21 +44,6 @@ def _datetime_now_iso() -> str:
     as a default factory
     """
     return _datetime.now().isoformat()
-
-
-class SQLContext:
-    def __init__(self, db):
-        self.db = db
-        self.connection = None
-
-    def __enter__(self):
-        self.connection = _laz.sql.connect(self.db)
-        return self.connection
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.connection is not None:
-            self.connection.close()
-            self.connection = None
 
 
 class BaseEnvironment(SQLClass):
