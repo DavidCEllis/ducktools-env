@@ -72,7 +72,7 @@ The tool can be used in multiple ways:
 * Installed in an environment
   * Download with `pip` or `uv` in a virtual environment: `pip install ducktools-env`
   * Run with: `python -m ducktools.env <command>`
-* Accessed via UV tools with `uv tool install`
+* Accessed via UV
   * `uvx ducktools-env <command>`
 
 These examples will use the zipapp command as the base.
