@@ -45,6 +45,9 @@ CONFIG_FILENAME = "config.json"
 CATALOGUE_FILENAME = "catalogue.db"
 APPCATALOGUE_FILENAME = "app_catalogue.db"
 
+# Filename for the script register
+REGISTER_FILENAME = "scripts.db"
+
 
 # Store in LOCALAPPDATA for windows, User folder for other operating systems
 if sys.platform == "win32":
@@ -99,6 +102,8 @@ class ManagedPaths:
     cache_folder: str
     cache_db: str
 
+    register_db: str
+
     build_base: str
 
     def __init__(self, project_name="ducktools"):
@@ -122,6 +127,8 @@ class ManagedPaths:
 
         self.cache_folder = os.path.join(self.project_folder, CACHEDENV_FOLDERNAME)
         self.cache_db = os.path.join(self.cache_folder, CATALOGUE_FILENAME)
+
+        self.register_db = os.path.join(self.project_folder, REGISTER_FILENAME)
 
         self.build_base = os.path.join(self.project_folder, "build")
 

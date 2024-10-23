@@ -29,7 +29,7 @@ from .._lazy_imports import laz as _laz
 from ..platform_paths import ManagedPaths
 
 
-uv_versionspec = "~=0.4.0"
+uv_versionspec = ">=0.4.25"
 
 uv_download = "bin/uv.exe" if sys.platform == "win32" else "bin/uv"
 

@@ -133,6 +133,22 @@ def get_parser(exit_on_error=True) -> FixedArgumentParser:
         action="store_true"
     )
 
+    # 'register' command and args
+    register_parser = subparsers.add_parser(
+        "register",
+        help="Register scripts to be run by name",
+    )
+    register_parser.add_argument(
+        "script_name",
+        action="store",
+        help="Path to the script to register or name of the script to unregister",
+    )
+    register_parser.add_argument(
+        "--remove",
+        action="store_true",
+        help="Uninstall registered script",
+    )
+
     # 'generate_lock' command and args
     generate_lock_parser = subparsers.add_parser(
         "generate_lock",
@@ -175,7 +191,7 @@ def get_parser(exit_on_error=True) -> FixedArgumentParser:
 
     list_parser = subparsers.add_parser(
         "list",
-        help="List the Python virtual environments managed by ducktools-env",
+        help="List the Python virtual environments and scripts managed by ducktools-env",
     )
 
     list_type_group = list_parser.add_mutually_exclusive_group()
@@ -188,6 +204,11 @@ def get_parser(exit_on_error=True) -> FixedArgumentParser:
         "--app",
         action="store_true",
         help="Only list application environments",
+    )
+    list_type_group.add_argument(
+        "--scripts",
+        action="store_true",
+        help="Only list registered scripts"
     )
 
     delete_parser = subparsers.add_parser(
@@ -280,91 +301,114 @@ def main():
     manager = _laz.Manager(PROJECT_NAME)
 
     if args.command == "run":
-        spec = _laz.EnvironmentSpec.from_script(
-            script_path=args.script_filename
-        )
-        if args.generate_lock:
-            uv_path = manager.retrieve_uv(required=True)
-            lockdata = spec.generate_lockdata(uv_path=uv_path)
-            lock_path = f"{args.script_filename}.lock"
-            with open(lock_path, 'w') as f:
-                f.write(lockdata)
-        elif lock_path := args.with_lock:
-            with open(lock_path, 'r') as f:
-                lockdata = f.read()
-            spec.lockdata = lockdata
+        # Split on existence of the command as a file, if the file exists run it
+        # Otherwise look for it in the registered scripts database
+        if os.path.exists(args.script_filename):
+            manager.run_script(
+                script_path=args.script_filename,
+                script_args=args.script_args,
+                generate_lock=args.generate_lock,
+                lock_path=args.with_lock,
+            )
+        else:
+            manager.run_registered_script(
+                script_name=args.script_filename,
+                script_args=args.script_args,
+                generate_lock=args.generate_lock,
+                lock_path=args.with_lock,
+            )
 
-        manager.run_direct_script(
-            spec=spec,
-            args=args.script_args,
-        )
     elif args.command == "bundle":
-        spec = _laz.EnvironmentSpec.from_script(
-            script_path=args.script_filename
-        )
-        
-        if args.generate_lock:
-            uv_path = manager.retrieve_uv(required=True)
-            spec.generate_lockdata(uv_path=uv_path)
-        elif lock_path := args.with_lock:
-            with open(lock_path, 'r') as f:
-                lockdata = f.read()
-            spec.lockdata = lockdata
-
-        manager.create_bundle(
-            spec=spec,
+        bundle_path = manager.create_bundle(
+            script_path=args.script_filename,
+            with_lock=args.with_lock,
+            generate_lock=args.generate_lock,
             output_file=args.output,
-            compressed=args.compress,
+            compressed=args.compressed,
         )
-    elif args.command == "generate_lock":
-        uv_path = manager.retrieve_uv(required=True)
-        spec = _laz.EnvironmentSpec.from_script(
-            script_path=args.script_filename
-        )
-        lockdata = spec.generate_lockdata(uv_path=uv_path)
+        print(f"Bundle created at '{bundle_path}'")
 
-        out_path = args.output if args.output else f"{args.script_filename}.lock"
-        with open(out_path, "w") as f:
-            f.write(lockdata)
+    elif args.command == "register":
+        if args.remove:
+            manager.remove_registered_script(
+                script_name=args.script_name,
+            )
+        else:
+            manager.register_script(
+                script_path=args.script_name,
+            )
+
+    elif args.command == "generate_lock":
+        lock_path = manager.generate_lockfile(
+            script_path=args.script_filename,
+            lockfile_path=args.output,
+        )
+        print(f"Lockfile generated at '{lock_path}'")
+
     elif args.command == "clear_cache":
         if args.full:
             manager.clear_project_folder()
         else:
             manager.clear_temporary_cache()
+
     elif args.command == "rebuild_env":
         manager.build_env_folder()
         if args.zipapp:
             manager.build_zipapp()
+
     elif args.command == "list":
-        has_envs = False
-        if manager.temp_catalogue.environments and not args.app:
-            has_envs = True
+        has_data = False
+        show_temp = args.temp or not (args.app or args.scripts)
+        show_app = args.app or not (args.scripts or args.temp)
+        show_scripts = args.scripts or not (args.app or args.temp)
+
+        if (envs := manager.temp_catalogue.environments) and show_temp:
+            has_data = True
             print("Temporary Environments")
             print("======================")
             formatted = get_columns(
-                data=manager.temp_catalogue.environments.values(),
+                data=envs.values(),
                 headings=["Name", "Last Used"],
-                attributes=["name", "last_used_simple"]
+                attributes=["name", "last_used_simple"],
             )
             for line in formatted:
                 print(line)
             if not args.temp:
+                # newline if not exclusive
                 print()
 
-        if manager.app_catalogue.environments and not args.temp:
-            has_envs = True
-            print("Application environments")
+        if (envs := manager.app_catalogue.environments) and show_app:
+            has_data = True
+            print("Application Environments")
             print("========================")
             formatted = get_columns(
-                data=manager.app_catalogue.environments.values(),
+                data=envs.values(),
                 headings=["Owner / Name", "Last Used"],
-                attributes=["name", "last_used_simple"]
+                attributes=["name", "last_used_simple"],
             )
             for line in formatted:
                 print(line)
+            if not args.app:
+                # newline if not exclusive
+                print()
 
-        if has_envs is False:
-            print("No environments managed by ducktools-env")
+        if (scripts := manager.script_registry.list_registered_scripts()) and show_scripts:
+            has_data = True
+            print("Registered Scripts")
+            print("==================")
+
+            formatted = get_columns(
+                data=scripts,
+                headings=["Script Name", "Path"],
+                attributes=["name", "path"],
+            )
+            for line in formatted:
+                print(line)
+            print()
+
+        if has_data is False:
+            print("No environments or scripts managed by ducktools-env")
+
     elif args.command == "delete_env":
         envname = args.environment_name
         if envname in manager.temp_catalogue.environments:

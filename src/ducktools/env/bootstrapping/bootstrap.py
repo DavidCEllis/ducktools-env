@@ -105,15 +105,11 @@ def launch_script(script_file, zipapp_path, args, lockdata=None):
         from ducktools.env.manager import Manager
         from ducktools.env.environment_specs import EnvironmentSpec
         manager = Manager(PROJECT_NAME)
-        spec = EnvironmentSpec.from_script(
+        manager.run_bundle(
             script_path=script_file,
+            script_args=args,
             lockdata=lockdata,
-        )
-
-        manager.run_bundled_script(
-            spec=spec,
             zipapp_path=zipapp_path,
-            args=args,
         )
     finally:
         sys.path.pop(0)

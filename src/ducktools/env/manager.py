@@ -41,6 +41,7 @@ from .platform_paths import ManagedPaths
 from .catalogue import TemporaryCatalogue, ApplicationCatalogue
 from .environment_specs import EnvironmentSpec
 from .exceptions import UVUnavailableError, InvalidEnvironmentSpec, PythonVersionNotFound
+from .register import RegisterManager, RegisteredScript
 
 from ._lazy_imports import laz as _laz
 from ._logger import log
@@ -53,9 +54,10 @@ class Manager(Prefab):
     paths: ManagedPaths = attribute(init=False, repr=False)
     _temp_catalogue: TemporaryCatalogue | None = attribute(default=None, private=True)
     _app_catalogue: ApplicationCatalogue | None = attribute(default=None, private=True)
+    _script_registry: RegisterManager | None = attribute(default=None, private=True)
 
     def __prefab_post_init__(self, config):
-        self.paths = ManagedPaths(PROJECT_NAME)
+        self.paths = ManagedPaths(self.project_name)
         self.config = Config.load(self.paths.config_path) if config is None else config
 
     @property
@@ -72,6 +74,12 @@ class Manager(Prefab):
         if self._app_catalogue is None:
             self._app_catalogue = ApplicationCatalogue(path=self.paths.application_db)
         return self._app_catalogue
+
+    @property
+    def script_registry(self) -> RegisterManager:
+        if self._script_registry is None:
+            self._script_registry = RegisterManager(path=self.paths.register_db)
+        return self._script_registry
 
     @property
     def is_installed(self):
@@ -187,16 +195,30 @@ class Manager(Prefab):
         # Install the ducktools package
         self.build_env_folder(clear_old_builds=True)
 
-    def clear_temporary_cache(self):
-        # Clear the temporary environment cache
-        log(f"Deleting temporary caches at \"{self.paths.cache_folder}\"")
-        self.temp_catalogue.purge_folder()
+    def _spec_from_script(
+        self,
+        *,
+        script_path: str,
+        lock_path: str | None = None,
+        generate_lock: bool = False,
+    ) -> EnvironmentSpec:
+        """
+        Create a 'spec' file from a script path with lockfile arguments
 
-    def clear_project_folder(self):
-        # Clear the entire ducktools folder
-        root_path = self.paths.project_folder
-        log(f"Deleting full cache at {root_path!r}")
-        _laz.shutil.rmtree(root_path, ignore_errors=True)
+        :param script_path: Path to the original script
+        :param lock_path: Path to either existing lockfile or output path for lockfile
+        :param generate_lock: Generate a new lockfile
+        :return: EnvironmentSpec for the given script with required lock details
+        """
+
+        spec = EnvironmentSpec.from_script(script_path)
+        if generate_lock:
+            spec.generate_lockdata(uv_path=self.retrieve_uv(required=True))
+        elif lock_path:
+            with open(lock_path, 'r') as f:
+                spec.lockdata = f.read()
+
+        return spec
 
     # Script running and bundling commands
     def get_script_env(self, spec: EnvironmentSpec):
@@ -243,62 +265,18 @@ class Manager(Prefab):
                     )
         return env
 
-    def run_bundled_script(
-        self,
-        *,
-        spec: EnvironmentSpec,
-        zipapp_path: str,
-        args: list[str],
-    ):
-        env_vars = {
-            LAUNCH_TYPE_ENVVAR: "BUNDLE",
-            LAUNCH_PATH_ENVVAR: zipapp_path,
-        }
-
-        # If the spec indicates there should be data
-        # include the bundle data folder in the archive
-        if spec.details.data_sources:
-            env_vars[DATA_BUNDLE_ENVVAR] = f"{DATA_BUNDLE_FOLDER}/"
-
-        self.run_script(
-            spec=spec,
-            args=args,
-            env_vars=env_vars,
-        )
-
-    def run_direct_script(
-        self,
-        *,
-        spec: EnvironmentSpec,
-        args: list[str],
-    ):
-        env_vars = {
-            LAUNCH_TYPE_ENVVAR: "SCRIPT",
-            LAUNCH_PATH_ENVVAR: spec.script_path,
-        }
-
-        # Add sources to env variable
-        if sources := spec.details.data_sources:
-            split_char = ";" if sys.platform == "win32" else ":"
-            env_vars[DATA_BUNDLE_ENVVAR] = split_char.join(sources)
-
-        self.run_script(
-            spec=spec,
-            args=args,
-            env_vars=env_vars,
-        )
-
-    def run_script(
+    def _launch_script(
         self,
         *,
         spec: EnvironmentSpec,
         args: list[str],
         env_vars: dict[str, str] | None = None,
     ) -> None:
-        """Execute the provided script file with the given arguments
+        """
+        Execute the provided spec with the given arguments
 
-        :param spec: EnvironmentSpec
-        :param args: arguments to be provided to the script file
+        :param spec: Spec generated from script file
+        :param args: Arguments to pass to the script
         :param env_vars: Environment variables to set
         """
         env = self.get_script_env(spec)
@@ -310,21 +288,134 @@ class Manager(Prefab):
         os.environ.update(env_vars)
         _laz.subprocess.run([env.python_path, spec.script_path, *args])
 
-    def create_bundle(
+    # DO NOT REMOVE #
+    def run_bundled_script(
         self,
         *,
         spec: EnvironmentSpec,
+        zipapp_path: str,
+        args: list[str],
+    ):
+        """
+        OLD BUNDLE SCRIPT - Used directly by bundles made prior to v0.2.1
+        This delegates to the new method but is kept for compatibility.
+        """
+        self.run_bundle(
+            script_path=spec.script_path,
+            script_args=args,
+            lockdata=spec.lockdata,
+            zipapp_path=zipapp_path,
+        )
+
+    # Higher level commands - take plain inputs
+    def run_bundle(
+        self,
+        *,
+        script_path: str,
+        script_args: list[str],
+        lockdata: str | None,
+        zipapp_path: str,
+    ):
+        """
+        Run a script from a path that has been extracted from a bundle
+
+        :param script_path: Path to the .py script extracted from the bundle
+        :param script_args: Arguments to pass to the script
+        :param lockdata: lockfile data from the bundle if it exists or None
+        :param zipapp_path: Path to the original zipapp
+        """
+        spec = EnvironmentSpec.from_script(
+            script_path=script_path,
+            lockdata=lockdata,
+        )
+
+        env_vars = {
+            LAUNCH_TYPE_ENVVAR: "BUNDLE",
+            LAUNCH_PATH_ENVVAR: zipapp_path,
+        }
+
+        # If the spec indicates there should be data
+        # include the bundle data folder in the archive
+        if spec.details.data_sources:
+            env_vars[DATA_BUNDLE_ENVVAR] = f"{DATA_BUNDLE_FOLDER}/"
+
+        self._launch_script(
+            spec=spec,
+            args=script_args,
+            env_vars=env_vars,
+        )
+
+    def run_script(
+        self,
+        *,
+        script_path: str,
+        script_args: list[str],
+        generate_lock: bool = False,
+        lock_path: str | None,
+    ):
+        """
+        Run script specs from regular .py files
+
+        :param script_path: Path to the script to execute
+        :param script_args: Other arguments to pass to the script
+        :param lock_path: Path to either existing lockfile or output path for lockfile
+        :param generate_lock: Generate a new lockfile
+        """
+        spec = self._spec_from_script(
+            script_path=script_path,
+            lock_path=lock_path,
+            generate_lock=generate_lock,
+        )
+
+        if generate_lock:
+            spec.generate_lockdata(uv_path=self.retrieve_uv(required=True))
+            lock_path = lock_path if lock_path else f"{script_path}.lock"
+            with open(lock_path, 'w') as f:
+                f.write(spec.lockdata)
+
+        env_vars = {
+            LAUNCH_TYPE_ENVVAR: "SCRIPT",
+            LAUNCH_PATH_ENVVAR: spec.script_path,
+        }
+
+        # Add sources to env variable
+        if sources := spec.details.data_sources:
+            split_char = ";" if sys.platform == "win32" else ":"
+            env_vars[DATA_BUNDLE_ENVVAR] = split_char.join(sources)
+
+        self._launch_script(
+            spec=spec,
+            args=script_args,
+            env_vars=env_vars,
+        )
+
+    def create_bundle(
+        self,
+        *,
+        script_path: str,
+        with_lock: str | None = None,
+        generate_lock: bool = False,
         output_file: str | None = None,
         compressed: bool = False,
-    ) -> None:
-        """Create a zipapp bundle for the provided script file
+    ) -> str:
+        """
+        Create a zipapp bundle for the provided spec
 
-        :param spec: EnvironmentSpec
+        :param script_path: Script file to bundle
+        :param with_lock: Path to lockfile to use in bundle
+        :param generate_lock: Generate a lockfile when bundling
         :param output_file: output path to zipapp bundle (script_file.pyz default)
         :param compressed: Compress the resulting zipapp
+        :return: Path to the output bundle
         """
         if not self.is_installed or self.install_outdated:
             self.install()
+
+        spec = self._spec_from_script(
+            script_path=script_path,
+            lock_path=with_lock,
+            generate_lock=generate_lock,
+        )
 
         _laz.create_bundle(
             spec=spec,
@@ -333,3 +424,67 @@ class Manager(Prefab):
             installer_command=self.install_base_command(use_uv=False),
             compressed=compressed,
         )
+
+        return output_file
+
+    def generate_lockfile(
+        self,
+        script_path: str,
+        lockfile_path: str | None = None
+    ) -> str:
+        """
+        Generate lockfile data and write the output to a file
+        
+        :param script_path: Path to the source script 
+        :param lockfile_path: Path to the output lockfile
+        :return: Path to the output lockfile
+        """""
+        spec = EnvironmentSpec.from_script(script_path=script_path)
+        spec.generate_lockdata(uv_path=self.retrieve_uv(required=True))
+
+        lockfile_path = lockfile_path if lockfile_path else f"{script_path}.lock"
+
+        with open(lockfile_path, 'w') as f:
+            f.write(spec.lockdata)
+
+        return lockfile_path
+
+    def register_script(self, *, script_path: str):
+        reg = self.script_registry.add_script(script_path)
+        log(f"Registered '{reg.path}' as '{reg.name}'")
+
+    def remove_registered_script(self, *, script_name: str):
+        self.script_registry.remove_script(script_name=script_name)
+        log(f"'{script_name}' is no longer registered.")
+
+    def list_registered_scripts(self) -> list[RegisteredScript]:
+        return self.script_registry.list_registered_scripts()
+
+    def run_registered_script(
+        self,
+        *,
+        script_name: str,
+        script_args: list[str],
+        generate_lock: bool = False,
+        lock_path: str | None = None,
+    ) -> None:
+        row = self.script_registry.retrieve_script(script_name=script_name)
+        script_path = row.path
+
+        self.run_script(
+            script_path=script_path,
+            script_args=script_args,
+            generate_lock=generate_lock,
+            lock_path=lock_path,
+        )
+
+    def clear_temporary_cache(self):
+        # Clear the temporary environment cache
+        log(f"Deleting temporary caches at \"{self.paths.cache_folder}\"")
+        self.temp_catalogue.purge_folder()
+
+    def clear_project_folder(self):
+        # Clear the entire ducktools folder
+        root_path = self.paths.project_folder
+        log(f"Deleting full cache at {root_path!r}")
+        _laz.shutil.rmtree(root_path, ignore_errors=True)

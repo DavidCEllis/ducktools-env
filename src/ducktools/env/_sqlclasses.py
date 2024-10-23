@@ -26,6 +26,8 @@
 
 import itertools
 
+from ducktools.lazyimporter import LazyImporter, ModuleImport
+
 from ducktools.classbuilder import (
     SlotMakerMeta,
     builder,
@@ -43,6 +45,15 @@ from ducktools.classbuilder.prefab import (
 )
 
 
+# Unlike the other modules this has its own lazy importer
+# As it might be spun off as a separate package
+_laz = LazyImporter(
+    [
+        ModuleImport("sqlite3", asname="sql")
+    ]
+)
+
+
 TYPE_MAP = {
     None: "NULL",
     int: "INTEGER",
@@ -55,6 +66,24 @@ TYPE_MAP = {
 }
 
 MAPPED_TYPES = None | int | bool | float | str | bytes | list[str]
+
+
+class SQLContext:
+    """
+    A simple context manager to handle SQLite database connections
+    """
+    def __init__(self, db):
+        self.db = db
+        self.connection = None
+
+    def __enter__(self):
+        self.connection = _laz.sql.connect(self.db)
+        return self.connection
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.connection is not None:
+            self.connection.close()
+            self.connection = None
 
 
 class SQLAttribute(Attribute):
