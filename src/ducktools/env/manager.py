@@ -351,7 +351,7 @@ class Manager(Prefab):
         script_path: str,
         script_args: list[str],
         generate_lock: bool = False,
-        lock_path: str | None,
+        lock_path: str | None = None,
     ):
         """
         Run script specs from regular .py files
