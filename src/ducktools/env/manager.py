@@ -449,8 +449,13 @@ class Manager(Prefab):
 
         return lockfile_path
 
-    def register_script(self, *, script_path: str):
-        reg = self.script_registry.add_script(script_path)
+    def register_script(
+        self,
+        *,
+        script_path: str,
+        script_name: str | None = None,
+    ) -> None:
+        reg = self.script_registry.add_script(script_path, script_name=script_name)
         log(f"Registered '{reg.path}' as '{reg.name}'")
 
     def remove_registered_script(self, *, script_name: str):

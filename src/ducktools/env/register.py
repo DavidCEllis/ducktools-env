@@ -34,8 +34,11 @@ class RegisteredScript(SQLClass):
     path: str = SQLAttribute(unique=True)
 
     @classmethod
-    def from_script(cls, relpath):
-        name = os.path.splitext(os.path.basename(relpath))[0]
+    def from_script(cls, relpath: str, script_name: str | None = None):
+        if script_name is None:
+            name = os.path.splitext(os.path.basename(relpath))[0]
+        else:
+            name = script_name
         path = os.path.abspath(relpath)
         return cls(name=name, path=path)
 
@@ -52,11 +55,15 @@ class RegisterManager(Prefab, kw_only=True):
 
         return SQLContext(self.path)
 
-    def add_script(self, script_path: str) -> RegisteredScript:
+    def add_script(
+        self,
+        script_path: str,
+        script_name: str | None = None
+    ) -> RegisteredScript:
         if not os.path.exists(script_path):
             raise FileNotFoundError(f"'{script_path}' not found")
 
-        new_row = RegisteredScript.from_script(script_path)
+        new_row = RegisteredScript.from_script(script_path, script_name=script_name)
 
         with self.connection as con:
             try:
