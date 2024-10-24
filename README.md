@@ -66,47 +66,56 @@ Environment data and the application itself will be stored in the following loca
 
 The tool can be used in multiple ways:
 
+* Installed via `uv tool` (or `pipx`)
+  * `uv tool install ducktools-env`
+  * `ducktools-env <command>`
+  * This adds the `dtrun` shortcut for `ducktools-env run`
 * Executed from the zipapp
   * Download from: https://github.com/DavidCEllis/ducktools-env/releases/latest
   * Run with: `ducktools.pyz <command>`
 * Installed in an environment
   * Download with `pip` or `uv` in a virtual environment: `pip install ducktools-env`
-  * Run with: `python -m ducktools.env <command>`
-* Accessed via UV
+  * Run with: `ducktools-env <command>`
+* Accessed directly via `uvx` with uv
   * `uvx ducktools-env <command>`
 
-These examples will use the zipapp command as the base.
+These examples will use the ducktools-env as the base as if installed via `uv tool` or a similar tool.
 
 Run a script that uses inline script metadata:
 
-`ducktools.pyz run my_script.py`
+`ducktools-env run my_script.py`
+
+If installed via `uv`, `pipx` or `pip` there is an alias `dtrun` for this command. 
+Unlike the full command it does not accept optional arguments and all arguments are passed
+on to the script.
+
+`dtrun my_script.py`
 
 Bundle the script into a zipapp:
 
-`ducktools.pyz bundle my_script.py`
+`ducktools-env bundle my_script.py`
 
 Clear the temporary environment cache:
 
-`ducktools.pyz clear_cache`
+`ducktools-env clear_cache`
 
 Clear the full `ducktools/env` install directory:
 
-`ducktools.pyz clear_cache --full`
+`ducktools-env clear_cache --full`
 
-Build the env folder from the installed package 
-(**Generally you should not need to do this from the zipapp**)
+Build the env folder from the installed package:
 
-`python -m ducktools.env rebuild_env`
+`ducktools-env rebuild_env`
 
 ### Registering scripts ###
 
 It is also now possible to register scripts with `ducktools-env`.
 
-`ducktools.pyz register path/to/my_script.py`
+`ducktools-env register path/to/my_script.py`
 
 which can then be run by using the script name without the extension:
 
-`ducktools.pyz run my_script`
+`ducktools-env run my_script` or `dtrun my_script`
 
 ## Locking environments ##
 
@@ -120,23 +129,26 @@ This generation feature uses `uv` which will be automatically installed.
 
 Create a lockfile without running a script:
 
-`python ducktools.pyz generate_lock my_script.py`
+`ducktools-env generate_lock my_script.py`
 
 Run a script and output the generated lockfile (output as my_script.py.lock):
 
-`python ducktools.pyz run --generate-lock my_script.py`
+`ducktools-env run --generate-lock my_script.py` (--generate-lock does not work with `dtrun`)
 
 Run a script using a pre-generated lockfile:
 
-`python ducktools.pyz run --with-lock my_script.py.lock my_script.py`
+`ducktools-env run --with-lock my_script.py.lock my_script.py`
+
+**If a `my_script.py.lock` file is found for a script it will automatically be used without
+needing to be specified**
 
 Bundle a script and generate a lockfile (that will be bundled):
 
-`python ducktools.pyz bundle --generate-lock my_script.py`
+`ducktools-env bundle --generate-lock my_script.py`
 
 Bundle a script with a pre-generated lockfile:
 
-`python ducktools.pyz bundle --with-lock my_script.py.lock my_script.py`
+`ducktools-env bundle --with-lock my_script.py.lock my_script.py`
 
 **If a `my_script.py.lock` file exists it will automatically be used.**
 
@@ -218,11 +230,11 @@ if __name__ == "__main__":
 
 Existing environments can be listed with the command
 
-`python ducktools.pyz list`
+`ducktools-env list`
 
 and deleted with 
 
-`python ducktools.pyz delete_env <envname>`
+`ducktools-env delete_env <envname>`
 
 where `<envname>` is the `name` of a temporary environment or the combination 
 `owner/name` of an application environment as shown in the list.
