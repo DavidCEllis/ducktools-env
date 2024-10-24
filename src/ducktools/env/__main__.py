@@ -139,7 +139,7 @@ def get_parser(exit_on_error=True) -> FixedArgumentParser:
         help="Register scripts to be run by name",
     )
     register_parser.add_argument(
-        "script_name",
+        "script_filename",
         action="store",
         help="Path to the script to register or name of the script to unregister",
     )
@@ -147,6 +147,11 @@ def get_parser(exit_on_error=True) -> FixedArgumentParser:
         "--remove",
         action="store_true",
         help="Uninstall registered script",
+    )
+    register_parser.add_argument(
+        "-n", "--name",
+        action="store",
+        help="Register the script with a different name to the filename"
     )
 
     # 'generate_lock' command and args
@@ -330,12 +335,14 @@ def main():
 
     elif args.command == "register":
         if args.remove:
+            # filename should just be the script name, but it's awkward to change this
             manager.remove_registered_script(
-                script_name=args.script_name,
+                script_name=args.script_filename,
             )
         else:
             manager.register_script(
-                script_path=args.script_name,
+                script_path=args.script_filename,
+                script_name=args.name,
             )
 
     elif args.command == "generate_lock":

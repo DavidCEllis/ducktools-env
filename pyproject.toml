@@ -38,6 +38,7 @@ testing = ["pytest", "pytest-cov", "coverage-conditional-plugin"]
 
 [project.scripts]
 "ducktools-env" = "ducktools.env.__main__:main"
+"dtrun" = "ducktools.env._run:run"
 
 [tool.setuptools.packages.find]
 where = ["src"]
