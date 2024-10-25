@@ -20,19 +20,19 @@ can define its own requirements.
 However, using this format requires the use of an extra package such as 'UV' or 'hatch'
 using a specific command such as `uv run my_script.py` or `hatch run my_script.py`.
 
-`ducktools.env` is designed to bundle your script into a Python 
+`ducktools-env` is designed to bundle your script into a Python 
 [zipapp](https://docs.python.org/3/library/zipapp.html) which can be run by any 
 Python 3.10+ install and will handle creating the virtualenv and launching the script
 with the appropriate dependencies *without* needing the other user to have any
 specific script running tool installed.
 
-To aid this, `ducktools.env` provides the `bundle` and `run` commands.
+To aid this, `ducktools-env` provides the `bundle` and `run` commands.
 
-`ducktools.pyz run my_script.py`
+`ducktools-env run my_script.py`
 
 Will run your script much like some of the other script runners.
 
-`ducktools.pyz bundle my_script.py`
+`ducktools-env bundle my_script.py`
 
 Will then generate a zipapp bundle of your script and the required tools to extract and
 execute it in the same way as it is executed via the `run` command.
@@ -79,7 +79,7 @@ The tool can be used in multiple ways:
 * Accessed directly via `uvx` with uv
   * `uvx ducktools-env <command>`
 
-These examples will use the ducktools-env as the base as if installed via `uv tool` or a similar tool.
+These examples will use the `ducktools-env` command as the base as if installed via `uv tool` or a similar tool.
 
 Run a script that uses inline script metadata:
 
