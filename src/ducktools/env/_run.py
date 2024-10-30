@@ -41,15 +41,29 @@ def run():
     # First argument is the path to this script
     _, app, *args = sys.argv
 
-    manager = Manager(PROJECT_NAME)
+    # This has been invoked by dtrun, but errors should show ducktools-env
+    command = "ducktools-env"
 
-    if os.path.isfile(app):
-        manager.run_script(
-            script_path=app,
-            script_args=args,
-        )
-    else:
-        manager.run_registered_script(
-            script_name=app,
-            script_args=args,
-        )
+    manager = Manager(
+        project_name=PROJECT_NAME,
+        command=command,
+    )
+
+    try:
+        if os.path.isfile(app):
+            manager.run_script(
+                script_path=app,
+                script_args=args,
+            )
+        else:
+            manager.run_registered_script(
+                script_name=app,
+                script_args=args,
+            )
+    except RuntimeError as e:
+        msg = "\n".join(e.args) + "\n"
+        if sys.stderr:
+            sys.stderr.write(msg)
+        sys.exit(1)
+
+    sys.exit(0)

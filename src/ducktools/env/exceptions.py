@@ -38,6 +38,12 @@ class InvalidBundleScript(EnvError):
     pass
 
 
+class ScriptNotFound(EnvError):
+    """
+    Error if a registered script is not found
+    """
+
+
 class ApplicationError(EnvError):
     """
     Error if an outdated application attempted to run
@@ -52,10 +58,4 @@ class InvalidPipDownload(EnvError):
     """
     Error if the hash value of the downloaded `pip` does not match
     the value this application has for that version.
-    """
-
-
-class UVUnavailableError(EnvError):
-    """
-    Error if UV is not available and can't be installed.
     """

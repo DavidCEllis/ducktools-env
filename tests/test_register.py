@@ -32,6 +32,7 @@ import pytest
 
 from ducktools.env._sqlclasses import SQLClass
 from ducktools.env.register import RegisteredScript, RegisterManager
+from ducktools.env.exceptions import ScriptNotFound
 
 
 @pytest.fixture(scope="function")
@@ -84,7 +85,7 @@ class TestRegisterManager:
 
             # Delete the row and confirm it is no longer retrievable
             test_register.remove_script(script_name)
-            with pytest.raises(RuntimeError):
+            with pytest.raises(ScriptNotFound):
                 test_register.retrieve_script(script_name)
 
     def test_add_script_not_found(self, test_register):

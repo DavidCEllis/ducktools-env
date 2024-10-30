@@ -104,7 +104,7 @@ def launch_script(script_file, zipapp_path, args, lockdata=None):
     try:
         from ducktools.env.manager import Manager
         from ducktools.env.environment_specs import EnvironmentSpec
-        manager = Manager(PROJECT_NAME)
+        manager = Manager(project_name=PROJECT_NAME)
         manager.run_bundle(
             script_path=script_file,
             script_args=args,

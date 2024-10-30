@@ -29,6 +29,7 @@ from ducktools.classbuilder.prefab import Prefab, attribute
 from . import (
     FOLDER_ENVVAR,
     PROJECT_NAME,
+    APP_COMMAND,
     DATA_BUNDLE_ENVVAR,
     DATA_BUNDLE_FOLDER,
     LAUNCH_ENVIRONMENT_ENVVAR,
@@ -40,7 +41,11 @@ from .config import Config
 from .platform_paths import ManagedPaths
 from .catalogue import TemporaryCatalogue, ApplicationCatalogue
 from .environment_specs import EnvironmentSpec
-from .exceptions import UVUnavailableError, InvalidEnvironmentSpec, PythonVersionNotFound
+from .exceptions import (
+    InvalidEnvironmentSpec,
+    PythonVersionNotFound,
+    ScriptNotFound,
+)
 from .register import RegisterManager, RegisteredScript
 
 from ._lazy_imports import laz as _laz
@@ -50,15 +55,17 @@ from ._logger import log
 class Manager(Prefab):
     project_name: str = PROJECT_NAME
     config: Config = None
+    command: str | None = None
 
     paths: ManagedPaths = attribute(init=False, repr=False)
     _temp_catalogue: TemporaryCatalogue | None = attribute(default=None, private=True)
     _app_catalogue: ApplicationCatalogue | None = attribute(default=None, private=True)
     _script_registry: RegisterManager | None = attribute(default=None, private=True)
 
-    def __prefab_post_init__(self, config):
+    def __prefab_post_init__(self, config, command):
         self.paths = ManagedPaths(self.project_name)
         self.config = Config.load(self.paths.config_path) if config is None else config
+        self.command = command if command else APP_COMMAND
 
     @property
     def temp_catalogue(self) -> TemporaryCatalogue:
@@ -112,8 +119,8 @@ class Manager(Prefab):
             uv_path = None
 
         if uv_path is None and required:
-            raise UVUnavailableError(
-                "UV is required for this process but is unavailable"
+            raise RuntimeError(
+                "UV is required for this process but is unavailable."
             )
 
         return uv_path
@@ -473,7 +480,16 @@ class Manager(Prefab):
         generate_lock: bool = False,
         lock_path: str | None = None,
     ) -> None:
-        row = self.script_registry.retrieve_script(script_name=script_name)
+        try:
+            row = self.script_registry.retrieve_script(script_name=script_name)
+        except ScriptNotFound as e:
+            raise RuntimeError(
+                "\n".join(e.args),
+                f"Use '{self.command} list --scripts' to show registered scripts",
+            )
+        except FileNotFoundError as e:
+            raise RuntimeError(e.args)
+
         script_path = row.path
 
         self.run_script(

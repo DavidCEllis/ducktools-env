@@ -64,9 +64,9 @@ class FixedArgumentParser(argparse.ArgumentParser):
         return self.formatter_class(prog=self.prog, width=columns-2)
 
 
-def get_parser(exit_on_error=True) -> FixedArgumentParser:
+def get_parser(prog, exit_on_error=True) -> FixedArgumentParser:
     parser = FixedArgumentParser(
-        prog="ducktools-env",
+        prog=prog,
         description="Script runner and bundler for scripts with inline dependencies",
         exit_on_error=exit_on_error,
     )
@@ -285,7 +285,12 @@ def get_columns(
 
 
 def main():
-    parser = get_parser()
+    if __name__ == "__main__":
+        command = f"{os.path.basename(sys.executable)} -m ducktools.env"
+    else:
+        command = os.path.basename(sys.argv[0])
+
+    parser = get_parser(prog=command)
     args, unknown = parser.parse_known_args()
 
     if unknown:
@@ -303,7 +308,10 @@ def main():
             parser.error(f"unrecognised arguments: {unknown_s}")
 
     # Create a manager
-    manager = _laz.Manager(PROJECT_NAME)
+    manager = _laz.Manager(
+        project_name=PROJECT_NAME,
+        command=command,
+    )
 
     if args.command == "run":
         # Split on existence of the command as a file, if the file exists run it
@@ -432,4 +440,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except RuntimeError as e:
+        errors = "\n".join(e.args) + "\n"
+        if sys.stderr:
+            sys.stderr.write(errors)
+        sys.exit(1)
+
+    sys.exit(0)
