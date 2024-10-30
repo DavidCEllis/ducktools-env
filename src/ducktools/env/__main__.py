@@ -308,7 +308,7 @@ def main():
     if args.command == "run":
         # Split on existence of the command as a file, if the file exists run it
         # Otherwise look for it in the registered scripts database
-        if os.path.exists(args.script_filename):
+        if os.path.isfile(args.script_filename):
             manager.run_script(
                 script_path=args.script_filename,
                 script_args=args.script_args,

@@ -43,7 +43,7 @@ def run():
 
     manager = Manager(PROJECT_NAME)
 
-    if os.path.exists(app):
+    if os.path.isfile(app):
         manager.run_script(
             script_path=app,
             script_args=args,
