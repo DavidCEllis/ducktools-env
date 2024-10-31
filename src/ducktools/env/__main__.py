@@ -337,7 +337,7 @@ def main():
             with_lock=args.with_lock,
             generate_lock=args.generate_lock,
             output_file=args.output,
-            compressed=args.compressed,
+            compressed=args.compress,
         )
         print(f"Bundle created at '{bundle_path}'")
 
