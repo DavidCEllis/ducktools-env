@@ -21,7 +21,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ._version import __version__, __version_tuple__
+from ._version import (
+    __version__ as __version__,
+    __version_tuple__ as __version_tuple__
+)
 
 
 MINIMUM_PYTHON = (3, 10)
@@ -29,6 +32,7 @@ MINIMUM_PYTHON_STR = ".".join(str(v) for v in MINIMUM_PYTHON)
 
 
 PROJECT_NAME = "ducktools"
+APP_COMMAND = "ducktools-env"
 
 FOLDER_ENVVAR = "DUCKTOOLS_ENV_FOLDER"
 LAUNCH_TYPE_ENVVAR = "DUCKTOOLS_ENV_LAUNCH_TYPE"

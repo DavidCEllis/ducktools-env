@@ -76,7 +76,7 @@ def retrieve_uv(paths: ManagedPaths, reinstall: bool = False) -> str | None:
                     check=True,
                 )
             except _laz.subprocess.CalledProcessError as e:
-                log("UV download failed: {e}")
+                log(f"UV download failed: {e}")
                 uv_path = None
             else:
                 # Copy the executable out of the pip install
