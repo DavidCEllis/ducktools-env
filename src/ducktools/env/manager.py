@@ -25,6 +25,7 @@ import os
 import os.path
 
 from ducktools.classbuilder.prefab import Prefab, attribute
+from ducktools.lazyimporter import LazyImporter, FromImport, MultiFromImport
 
 from . import (
     FOLDER_ENVVAR,
@@ -50,6 +51,23 @@ from .register import RegisterManager, RegisteredScript
 
 from ._lazy_imports import laz as _laz
 from ._logger import log
+
+
+_laz_internal = LazyImporter(
+    [
+        FromImport(".bundle", "create_bundle"),
+        FromImport(".scripts.get_pip", "retrieve_pip"),
+        MultiFromImport(
+            ".scripts.get_uv",
+            ["retrieve_uv", "get_available_pythons", "install_uv_python"]
+        ),
+        MultiFromImport(
+            ".scripts.create_zipapp",
+            ["build_env_folder", "build_zipapp"]
+        ),
+    ],
+    globs=globals(),
+)
 
 
 class Manager(Prefab):
@@ -110,11 +128,11 @@ class Manager(Prefab):
 
     # Ducktools build commands
     def retrieve_pip(self) -> str:
-        return _laz.retrieve_pip(paths=self.paths)
+        return _laz_internal.retrieve_pip(paths=self.paths)
 
     def retrieve_uv(self, required=False) -> str | None:
         if self.config.use_uv or required:
-            uv_path = _laz.retrieve_uv(paths=self.paths)
+            uv_path = _laz_internal.retrieve_uv(paths=self.paths)
         else:
             uv_path = None
 
@@ -142,12 +160,12 @@ class Manager(Prefab):
         else:
             # If no Python was matched try to install a matching python from UV
             if (uv_path := self.retrieve_uv()) and self.config.uv_install_python:
-                uv_pythons = _laz.get_available_pythons(uv_path)
+                uv_pythons = _laz_internal.get_available_pythons(uv_path)
                 matched_python = False
                 for ver in uv_pythons:
                     if spec.details.requires_python_spec.contains(ver):
                         # Install matching python
-                        _laz.install_uv_python(
+                        _laz_internal.install_uv_python(
                             uv_path=uv_path,
                             version_str=ver,
                         )
@@ -182,7 +200,7 @@ class Manager(Prefab):
         # build-env-folder installs into a target directory
         # instead of using a venv
         base_command = [sys.executable, self.retrieve_pip(), "--disable-pip-version-check"]
-        _laz.build_env_folder(
+        _laz_internal.build_env_folder(
             paths=self.paths,
             install_base_command=base_command,
             clear_old_builds=clear_old_builds,
@@ -191,7 +209,7 @@ class Manager(Prefab):
     def build_zipapp(self, clear_old_builds=True) -> None:
         """Build the ducktools.pyz zipapp"""
         base_command = [sys.executable, self.retrieve_pip(), "--disable-pip-version-check"]
-        _laz.build_zipapp(
+        _laz_internal.build_zipapp(
             paths=self.paths,
             install_base_command=base_command,
             clear_old_builds=clear_old_builds,
@@ -423,7 +441,7 @@ class Manager(Prefab):
             generate_lock=generate_lock,
         )
 
-        _laz.create_bundle(
+        _laz_internal.create_bundle(
             spec=spec,
             output_file=output_file,
             paths=self.paths,
