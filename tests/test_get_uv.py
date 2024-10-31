@@ -188,7 +188,7 @@ class TestRetrieveUV:
             exists_mock.return_value = False
 
             run_mock.side_effect = subprocess.CalledProcessError(
-                returncode=1, 
+                returncode=1,
                 cmd=sys.executable,
                 stderr="Could not run PIP"
             )

@@ -21,6 +21,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# Suppress ruff error for imports not at the top of the file,
+# version check needs to come first.
+# ruff: noqa: E402
+
 # This becomes the bundler bootstrap python script
 import sys
 

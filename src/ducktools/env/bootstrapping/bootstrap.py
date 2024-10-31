@@ -103,7 +103,6 @@ def launch_script(script_file, zipapp_path, args, lockdata=None):
     sys.path.insert(0, default_paths.env_folder)
     try:
         from ducktools.env.manager import Manager
-        from ducktools.env.environment_specs import EnvironmentSpec
         manager = Manager(project_name=PROJECT_NAME)
         manager.run_bundle(
             script_path=script_file,

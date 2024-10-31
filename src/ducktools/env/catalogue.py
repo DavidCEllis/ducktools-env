@@ -26,7 +26,7 @@ import sys
 import os.path
 from datetime import datetime as _datetime, timedelta as _timedelta
 
-from ducktools.classbuilder.prefab import prefab, attribute
+from ducktools.classbuilder.prefab import prefab
 
 from ._sqlclasses import SQLAttribute, SQLClass, SQLContext
 from .exceptions import InvalidEnvironmentSpec, VenvBuildError, ApplicationError

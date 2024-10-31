@@ -21,7 +21,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ._version import __version__, __version_tuple__
+from ._version import (
+    __version__ as __version__,
+    __version_tuple__ as __version_tuple__
+)
 
 
 MINIMUM_PYTHON = (3, 10)
