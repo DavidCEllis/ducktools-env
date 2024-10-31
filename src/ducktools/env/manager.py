@@ -404,7 +404,7 @@ class Manager(Prefab):
         generate_lock: bool = False,
         output_file: str | None = None,
         compressed: bool = False,
-    ) -> str:
+    ) -> None:
         """
         Create a zipapp bundle for the provided spec
 
@@ -413,7 +413,6 @@ class Manager(Prefab):
         :param generate_lock: Generate a lockfile when bundling
         :param output_file: output path to zipapp bundle (script_file.pyz default)
         :param compressed: Compress the resulting zipapp
-        :return: Path to the output bundle
         """
         if not self.is_installed or self.install_outdated:
             self.install()
@@ -431,8 +430,6 @@ class Manager(Prefab):
             installer_command=self.install_base_command(use_uv=False),
             compressed=compressed,
         )
-
-        return output_file
 
     def generate_lockfile(
         self,

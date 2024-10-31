@@ -332,14 +332,13 @@ def main():
             )
 
     elif args.command == "bundle":
-        bundle_path = manager.create_bundle(
+        manager.create_bundle(
             script_path=args.script_filename,
             with_lock=args.with_lock,
             generate_lock=args.generate_lock,
             output_file=args.output,
             compressed=args.compress,
         )
-        print(f"Bundle created at '{bundle_path}'")
 
     elif args.command == "register":
         if args.remove:
