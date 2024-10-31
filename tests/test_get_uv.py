@@ -188,7 +188,9 @@ class TestRetrieveUV:
             exists_mock.return_value = False
 
             run_mock.side_effect = subprocess.CalledProcessError(
-                sys.executable, "Could not run PIP"
+                returncode=1, 
+                cmd=sys.executable,
+                stderr="Could not run PIP"
             )
 
             uv_path = get_uv.retrieve_uv(paths=self.paths, reinstall=False)
