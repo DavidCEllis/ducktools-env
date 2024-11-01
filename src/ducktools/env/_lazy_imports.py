@@ -83,24 +83,5 @@ laz = LazyImporter(
             "tomli",
             "tomllib",
         ),
-
-        # Internal Imports
-        FromImport(
-            ".bundle",
-            "create_bundle"
-        ),
-        FromImport(
-            ".scripts.get_pip",
-            "retrieve_pip"
-        ),
-        MultiFromImport(
-            ".scripts.get_uv",
-            ["retrieve_uv", "get_available_pythons", "install_uv_python"]
-        ),
-        MultiFromImport(
-            ".scripts.create_zipapp",
-            ["build_env_folder", "build_zipapp"]
-        ),
     ],
-    globs=globals(),
 )
