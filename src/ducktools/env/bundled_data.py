@@ -39,7 +39,7 @@ from . import (
 
 from ducktools.classbuilder.prefab import Prefab, attribute
 
-from ._lazy_imports import laz as _laz
+from . import _lazy_imports as _laz
 
 
 class BundledDataError(Exception):

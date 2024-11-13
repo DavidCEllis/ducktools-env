@@ -35,7 +35,7 @@ from .config import Config
 from ._logger import log
 
 
-from ._lazy_imports import laz as _laz
+from . import _lazy_imports as _laz
 
 
 def _datetime_now_iso() -> str:

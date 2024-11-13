@@ -36,7 +36,7 @@ from ducktools.classbuilder.prefab import prefab
 from ..platform_paths import ManagedPaths
 from .._logger import log
 from ..exceptions import InvalidPipDownload
-from .._lazy_imports import laz as _laz
+from .. import _lazy_imports as _laz
 
 BASE_URL = "https://bootstrap.pypa.io/pip"
 

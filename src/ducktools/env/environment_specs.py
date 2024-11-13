@@ -28,7 +28,7 @@ import ducktools.scriptmetadata as scriptmetadata
 from .exceptions import ApplicationError
 from ._logger import log
 
-from ._lazy_imports import laz as _laz
+from . import _lazy_imports as _laz
 
 
 class AppDetails(Prefab, kw_only=True):

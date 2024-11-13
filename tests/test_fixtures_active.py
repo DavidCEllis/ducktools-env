@@ -16,5 +16,5 @@
 
 
 def test_python_install_fixture(this_python):
-    from ducktools.env._lazy_imports import laz
+    import ducktools.env._lazy_imports as laz
     assert laz.list_python_installs() == [this_python]

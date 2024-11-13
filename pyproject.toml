@@ -15,7 +15,7 @@ readme="README.md"
 requires-python = ">=3.10"
 dependencies = [
     "ducktools-classbuilder>=0.7.1",
-    "ducktools-lazyimporter>=0.5.1",
+    "ducktools-lazyimporter>=0.7.0",
     "ducktools-scriptmetadata",
     "ducktools-pythonfinder>=0.6.0",
     "tomli; python_version < '3.11'",

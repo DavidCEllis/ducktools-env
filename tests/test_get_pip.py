@@ -28,7 +28,7 @@ import pytest
 from packaging.version import Version
 
 import ducktools.env.scripts.get_pip as get_pip
-from ducktools.env._lazy_imports import laz
+import ducktools.env._lazy_imports as laz
 from ducktools.env.exceptions import InvalidPipDownload
 from ducktools.env.platform_paths import ManagedPaths
 

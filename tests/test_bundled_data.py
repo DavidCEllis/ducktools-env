@@ -32,7 +32,7 @@ from ducktools.env import (
     LAUNCH_TYPE_ENVVAR
 )
 from ducktools.env.bundled_data import BundledDataError, ScriptData, get_data_folder
-from ducktools.env._lazy_imports import laz
+import ducktools.env._lazy_imports as laz
 
 import pytest
 
@@ -50,6 +50,7 @@ def temp_env_vars(monkeypatch):
 
     yield launch_path, data_dest_base, data_bundle
 
+
 @pytest.fixture
 def temp_script_env_vars(monkeypatch, temp_env_vars):
     launch_type = "SCRIPT"
@@ -62,7 +63,6 @@ def temp_bundle_env_vars(monkeypatch, temp_env_vars):
     launch_type = "BUNDLE"
     monkeypatch.setenv(LAUNCH_TYPE_ENVVAR, launch_type)
     yield launch_type, *temp_env_vars
-
 
 
 class TestGetDataFolder:

@@ -49,7 +49,7 @@ from .exceptions import (
 )
 from .register import RegisterManager, RegisteredScript
 
-from ._lazy_imports import laz as _laz
+from . import _lazy_imports as _laz
 from ._logger import log
 
 

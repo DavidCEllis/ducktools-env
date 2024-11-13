@@ -20,68 +20,68 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import sys
+
+from ducktools.lazyimporter import LazyImporter
+from ducktools.lazyimporter.capture import capture_imports
+
+__all__ = [
+    # stdlib
+    "hashlib",
+    "json",
+    "metadata",  # importlib.metadata
+    "re",
+    "shutil",
+    "sql",
+    "subprocess",
+    "tempfile",
+    "tomllib",
+    "warnings",
+    "zipfile",
+
+    "TemporaryDirectory",
+    "urlopen",
+
+    # Packaging
+    "Requirement",
+    "InvalidRequirement",
+    "SpecifierSet",
+    "InvalidSpecifier",
+    "Version",
+    "InvalidVersion",
+
+    # ducktools-pythonfinder
+    "list_python_installs",
+    "PythonInstall",
+    "get_installed_uv_pythons",
+]
+
+laz = LazyImporter()
 
 
-from ducktools.lazyimporter import (
-    LazyImporter,
-    FromImport,
-    ModuleImport,
-    MultiFromImport,
-    TryExceptImport,
-)
+with capture_imports(laz):
+    import hashlib
+    import importlib.metadata as metadata
+    import json
+    import re
+    import shutil
+    import sqlite3 as sql
+    import subprocess
+    import tempfile
+    import warnings
+    import zipfile
 
-laz = LazyImporter(
-    [
-        # Stdlib and dependency imports
-        ModuleImport("hashlib"),
-        ModuleImport("json"),
-        ModuleImport("re"),
-        ModuleImport("shutil"),
-        ModuleImport("sqlite3", asname="sql"),
-        ModuleImport("subprocess"),
-        ModuleImport("tempfile"),
-        ModuleImport("warnings"),
-        ModuleImport("zipfile"),
+    if sys.version_info >= (3, 11):
+        import tomllib as tomllib
+    else:
+        import tomli as tomllib
 
-        MultiFromImport(
-            "ducktools.pythonfinder",
-            ["list_python_installs", "PythonInstall"],
-        ),
-        FromImport(
-            "ducktools.pythonfinder.shared",
-            "get_uv_pythons",
-            "get_installed_uv_pythons"
-        ),
-        FromImport(
-            "importlib",
-            "metadata"
-        ),
-        FromImport(
-            "tempfile",
-            "TemporaryDirectory"
-        ),
-        FromImport(
-            "urllib.request",
-            "urlopen"
-        ),
+    from tempfile import TemporaryDirectory
+    from urllib.request import urlopen
 
-        MultiFromImport(
-            "packaging.requirements",
-            ["Requirement", "InvalidRequirement"],
-        ),
-        MultiFromImport(
-            "packaging.specifiers",
-            ["SpecifierSet", "InvalidSpecifier"],
-        ),
-        MultiFromImport(
-            "packaging.version",
-            ["Version", "InvalidVersion"]
-        ),
+    from packaging.requirements import Requirement, InvalidRequirement
+    from packaging.specifiers import SpecifierSet, InvalidSpecifier
+    from packaging.version import Version, InvalidVersion
 
-        TryExceptImport(
-            "tomllib",
-            "tomli",
-            "tomllib",
-        ),
-    ],
-)
+    from ducktools.pythonfinder import list_python_installs, PythonInstall
+    from ducktools.pythonfinder.shared import get_uv_pythons as get_installed_uv_pythons
