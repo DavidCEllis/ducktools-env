@@ -28,7 +28,7 @@ import os
 from datetime import timedelta as _timedelta
 
 from ducktools.classbuilder.prefab import Prefab, get_attributes, as_dict
-from ._lazy_imports import laz as _laz
+from . import _lazy_imports as _laz
 
 
 class Config(Prefab, kw_only=True):

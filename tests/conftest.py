@@ -50,7 +50,7 @@ def this_python():
 
 @pytest.fixture(scope="session", autouse=True)
 def use_this_python_install(this_python):
-    with patch("ducktools.env._lazy_imports.laz.list_python_installs") as get_installs:
+    with patch("ducktools.env._lazy_imports.list_python_installs") as get_installs:
         get_installs.return_value = [this_python]
         yield
 

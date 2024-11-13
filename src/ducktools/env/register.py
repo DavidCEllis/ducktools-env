@@ -24,7 +24,7 @@ import os.path
 
 from ducktools.classbuilder.prefab import Prefab
 
-from ._lazy_imports import laz as _laz
+from . import _lazy_imports as _laz
 from ._sqlclasses import SQLAttribute, SQLClass, SQLContext
 from .exceptions import ScriptNotFound
 
