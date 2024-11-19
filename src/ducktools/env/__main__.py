@@ -30,6 +30,7 @@ from collections.abc import Callable, Generator, Iterable
 from ducktools.lazyimporter import LazyImporter, FromImport
 
 from ducktools.env import __version__, PROJECT_NAME
+from ducktools.env.exceptions import EnvError
 
 _laz = LazyImporter(
     [
@@ -435,13 +436,13 @@ def main():
             print(f"Environment {envname!r} not found")
     else:
         # Should be unreachable
-        raise ValueError("Invalid command")
+        raise RuntimeError(f"Invalid command {args.command!r}")
 
 
 if __name__ == "__main__":
     try:
         main()
-    except RuntimeError as e:
+    except (RuntimeError, EnvError) as e:
         errors = "\n".join(e.args) + "\n"
         if sys.stderr:
             sys.stderr.write(errors)

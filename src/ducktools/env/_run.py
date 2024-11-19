@@ -35,6 +35,7 @@ import os.path
 
 from . import PROJECT_NAME
 from .manager import Manager
+from .exceptions import EnvError
 
 
 def run():
@@ -60,7 +61,7 @@ def run():
                 script_name=app,
                 script_args=args,
             )
-    except RuntimeError as e:
+    except (RuntimeError, EnvError) as e:
         msg = "\n".join(e.args) + "\n"
         if sys.stderr:
             sys.stderr.write(msg)
