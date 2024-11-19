@@ -159,7 +159,7 @@ class Manager(Prefab):
                 break
         else:
             # If no Python was matched try to install a matching python from UV
-            if (uv_path := self.retrieve_uv()) and self.config.uv_install_python:
+            if self.config.uv_install_python and (uv_path := self.retrieve_uv()):
                 uv_pythons = _laz_internal.get_available_pythons(uv_path)
                 matched_python = False
                 for ver in uv_pythons:
