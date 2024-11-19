@@ -285,7 +285,153 @@ def get_columns(
         )
 
 
-def main():
+def run_command(manager, args):
+    # Split on existence of the command as a file, if the file exists run it
+    # Otherwise look for it in the registered scripts database
+
+    if os.path.isfile(args.script_filename):
+        returncode = manager.run_script(
+            script_path=args.script_filename,
+            script_args=args.script_args,
+            generate_lock=args.generate_lock,
+            lock_path=args.with_lock,
+        )
+    else:
+        returncode = manager.run_registered_script(
+            script_name=args.script_filename,
+            script_args=args.script_args,
+            generate_lock=args.generate_lock,
+            lock_path=args.with_lock,
+        )
+
+    return returncode
+
+
+def bundle_command(manager, args):
+    manager.create_bundle(
+        script_path=args.script_filename,
+        with_lock=args.with_lock,
+        generate_lock=args.generate_lock,
+        output_file=args.output,
+        compressed=args.compress,
+    )
+
+    return 0
+
+
+def register_command(manager, args):
+    if args.remove:
+        # filename should just be the script name, but it's awkward to change this
+        manager.remove_registered_script(
+            script_name=args.script_filename,
+        )
+    else:
+        manager.register_script(
+            script_path=args.script_filename,
+            script_name=args.name,
+        )
+
+    return 0
+
+
+def generate_lock_command(manager, args):
+    lock_path = manager.generate_lockfile(
+        script_path=args.script_filename,
+        lockfile_path=args.output,
+    )
+    print(f"Lockfile generated at '{lock_path}'")
+
+    return 0
+
+
+def clear_cache_command(manager, args):
+    if args.full:
+        manager.clear_project_folder()
+    else:
+        manager.clear_temporary_cache()
+
+    return 0
+
+
+def rebuild_env_command(manager, args):
+    manager.build_env_folder()
+    if args.zipapp:
+        manager.build_zipapp()
+
+    return 0
+
+
+def list_command(manager, args):
+    has_data = False
+    show_temp = args.temp or not (args.app or args.scripts)
+    show_app = args.app or not (args.scripts or args.temp)
+    show_scripts = args.scripts or not (args.app or args.temp)
+
+    if (envs := manager.temp_catalogue.environments) and show_temp:
+        has_data = True
+        print("Temporary Environments")
+        print("======================")
+        formatted = get_columns(
+            data=envs.values(),
+            headings=["Name", "Last Used"],
+            attributes=["name", "last_used_simple"],
+        )
+        for line in formatted:
+            print(line)
+        if not args.temp:
+            # newline if not exclusive
+            print()
+
+    if (envs := manager.app_catalogue.environments) and show_app:
+        has_data = True
+        print("Application Environments")
+        print("========================")
+        formatted = get_columns(
+            data=envs.values(),
+            headings=["Owner / Name", "Last Used"],
+            attributes=["name", "last_used_simple"],
+        )
+        for line in formatted:
+            print(line)
+        if not args.app:
+            # newline if not exclusive
+            print()
+
+    if (scripts := manager.script_registry.list_registered_scripts()) and show_scripts:
+        has_data = True
+        print("Registered Scripts")
+        print("==================")
+
+        formatted = get_columns(
+            data=scripts,
+            headings=["Script Name", "Path"],
+            attributes=["name", "path"],
+        )
+        for line in formatted:
+            print(line)
+        print()
+
+    if has_data is False:
+        print("No environments or scripts managed by ducktools-env")
+
+    return 0
+
+
+def delete_env_command(manager, args):
+    envname = args.environment_name
+    if envname in manager.temp_catalogue.environments:
+        manager.temp_catalogue.delete_env(envname)
+        print(f"Temporary environment {envname!r} deleted")
+    elif envname in manager.app_catalogue.environments:
+        manager.app_catalogue.delete_env(envname)
+        print(f"Application environment {envname!r} deleted")
+    else:
+        print(f"Environment {envname!r} not found")
+
+    return 0
+
+
+def main() -> int:
     if __name__ == "__main__":
         command = f"{os.path.basename(sys.executable)} -m ducktools.env"
     else:
@@ -314,138 +460,34 @@ def main():
         command=command,
     )
 
-    if args.command == "run":
-        # Split on existence of the command as a file, if the file exists run it
-        # Otherwise look for it in the registered scripts database
-        if os.path.isfile(args.script_filename):
-            manager.run_script(
-                script_path=args.script_filename,
-                script_args=args.script_args,
-                generate_lock=args.generate_lock,
-                lock_path=args.with_lock,
-            )
-        else:
-            manager.run_registered_script(
-                script_name=args.script_filename,
-                script_args=args.script_args,
-                generate_lock=args.generate_lock,
-                lock_path=args.with_lock,
-            )
-
-    elif args.command == "bundle":
-        manager.create_bundle(
-            script_path=args.script_filename,
-            with_lock=args.with_lock,
-            generate_lock=args.generate_lock,
-            output_file=args.output,
-            compressed=args.compress,
-        )
-
-    elif args.command == "register":
-        if args.remove:
-            # filename should just be the script name, but it's awkward to change this
-            manager.remove_registered_script(
-                script_name=args.script_filename,
-            )
-        else:
-            manager.register_script(
-                script_path=args.script_filename,
-                script_name=args.name,
-            )
-
-    elif args.command == "generate_lock":
-        lock_path = manager.generate_lockfile(
-            script_path=args.script_filename,
-            lockfile_path=args.output,
-        )
-        print(f"Lockfile generated at '{lock_path}'")
-
-    elif args.command == "clear_cache":
-        if args.full:
-            manager.clear_project_folder()
-        else:
-            manager.clear_temporary_cache()
-
-    elif args.command == "rebuild_env":
-        manager.build_env_folder()
-        if args.zipapp:
-            manager.build_zipapp()
-
-    elif args.command == "list":
-        has_data = False
-        show_temp = args.temp or not (args.app or args.scripts)
-        show_app = args.app or not (args.scripts or args.temp)
-        show_scripts = args.scripts or not (args.app or args.temp)
-
-        if (envs := manager.temp_catalogue.environments) and show_temp:
-            has_data = True
-            print("Temporary Environments")
-            print("======================")
-            formatted = get_columns(
-                data=envs.values(),
-                headings=["Name", "Last Used"],
-                attributes=["name", "last_used_simple"],
-            )
-            for line in formatted:
-                print(line)
-            if not args.temp:
-                # newline if not exclusive
-                print()
-
-        if (envs := manager.app_catalogue.environments) and show_app:
-            has_data = True
-            print("Application Environments")
-            print("========================")
-            formatted = get_columns(
-                data=envs.values(),
-                headings=["Owner / Name", "Last Used"],
-                attributes=["name", "last_used_simple"],
-            )
-            for line in formatted:
-                print(line)
-            if not args.app:
-                # newline if not exclusive
-                print()
-
-        if (scripts := manager.script_registry.list_registered_scripts()) and show_scripts:
-            has_data = True
-            print("Registered Scripts")
-            print("==================")
-
-            formatted = get_columns(
-                data=scripts,
-                headings=["Script Name", "Path"],
-                attributes=["name", "path"],
-            )
-            for line in formatted:
-                print(line)
-            print()
-
-        if has_data is False:
-            print("No environments or scripts managed by ducktools-env")
-
-    elif args.command == "delete_env":
-        envname = args.environment_name
-        if envname in manager.temp_catalogue.environments:
-            manager.temp_catalogue.delete_env(envname)
-            print(f"Temporary environment {envname!r} deleted")
-        elif envname in manager.app_catalogue.environments:
-            manager.app_catalogue.delete_env(envname)
-            print(f"Application environment {envname!r} deleted")
-        else:
-            print(f"Environment {envname!r} not found")
-    else:
-        # Should be unreachable
-        raise RuntimeError(f"Invalid command {args.command!r}")
+    match args.command:
+        case "run":
+            return run_command(manager, args)
+        case "bundle":
+            return bundle_command(manager, args)
+        case "register":
+            return register_command(manager, args)
+        case "generate_lock":
+            return generate_lock_command(manager, args)
+        case "clear_cache":
+            return clear_cache_command(manager, args)
+        case "rebuild_env":
+            return rebuild_env_command(manager, args)
+        case "list":
+            return list_command(manager, args)
+        case "delete_env":
+            return delete_env_command(manager, args)
+        case _:
+            raise RuntimeError(f"Invalid Command {args.command!r}")
 
 
 if __name__ == "__main__":
     try:
-        main()
+        result = main()
     except (RuntimeError, EnvError) as e:
         errors = "\n".join(e.args) + "\n"
         if sys.stderr:
             sys.stderr.write(errors)
         sys.exit(1)
 
-    sys.exit(0)
+    sys.exit(result)

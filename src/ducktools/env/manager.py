@@ -296,13 +296,14 @@ class Manager(Prefab):
         spec: EnvironmentSpec,
         args: list[str],
         env_vars: dict[str, str] | None = None,
-    ) -> None:
+    ) -> int:
         """
         Execute the provided spec with the given arguments
 
         :param spec: Spec generated from script file
         :param args: Arguments to pass to the script
         :param env_vars: Environment variables to set
+        :return: returncode from executing the script specified
         """
         env = self.get_script_env(spec)
         env_vars[FOLDER_ENVVAR] = self.paths.project_folder
@@ -311,7 +312,8 @@ class Manager(Prefab):
 
         # Update environment variables for access from subprocess
         os.environ.update(env_vars)
-        _laz.subprocess.run([env.python_path, spec.script_path, *args])
+        result = _laz.subprocess.run([env.python_path, spec.script_path, *args])
+        return result.returncode
 
     # DO NOT REMOVE #
     def run_bundled_script(
@@ -320,17 +322,18 @@ class Manager(Prefab):
         spec: EnvironmentSpec,
         zipapp_path: str,
         args: list[str],
-    ):
+    ) -> int:
         """
         OLD BUNDLE SCRIPT - Used directly by bundles made prior to v0.2.1
         This delegates to the new method but is kept for compatibility.
         """
-        self.run_bundle(
+        returncode = self.run_bundle(
             script_path=spec.script_path,
             script_args=args,
             lockdata=spec.lockdata,
             zipapp_path=zipapp_path,
         )
+        return returncode
 
     # Higher level commands - take plain inputs
     def run_bundle(
@@ -348,6 +351,7 @@ class Manager(Prefab):
         :param script_args: Arguments to pass to the script
         :param lockdata: lockfile data from the bundle if it exists or None
         :param zipapp_path: Path to the original zipapp
+        :return: returncode from executing the script
         """
         spec = EnvironmentSpec.from_script(
             script_path=script_path,
@@ -364,11 +368,12 @@ class Manager(Prefab):
         if spec.details.data_sources:
             env_vars[DATA_BUNDLE_ENVVAR] = f"{DATA_BUNDLE_FOLDER}/"
 
-        self._launch_script(
+        returncode = self._launch_script(
             spec=spec,
             args=script_args,
             env_vars=env_vars,
         )
+        return returncode
 
     def run_script(
         self,
@@ -377,7 +382,7 @@ class Manager(Prefab):
         script_args: list[str],
         generate_lock: bool = False,
         lock_path: str | None = None,
-    ):
+    ) -> int:
         """
         Run script specs from regular .py files
 
@@ -385,6 +390,7 @@ class Manager(Prefab):
         :param script_args: Other arguments to pass to the script
         :param lock_path: Path to either existing lockfile or output path for lockfile
         :param generate_lock: Generate a new lockfile
+        :return: returncode from executing the script
         """
         spec = self._spec_from_script(
             script_path=script_path,
@@ -408,11 +414,12 @@ class Manager(Prefab):
             split_char = ";" if sys.platform == "win32" else ":"
             env_vars[DATA_BUNDLE_ENVVAR] = split_char.join(sources)
 
-        self._launch_script(
+        returncode = self._launch_script(
             spec=spec,
             args=script_args,
             env_vars=env_vars,
         )
+        return returncode
 
     def create_bundle(
         self,
