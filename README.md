@@ -72,7 +72,7 @@ The tool can be used in multiple ways:
   * This adds the `dtrun` shortcut for `ducktools-env run`
 * Executed from the zipapp
   * Download from: https://github.com/DavidCEllis/ducktools-env/releases/latest
-  * Run with: `ducktools.pyz <command>`
+  * Run with: `ducktools-env.pyz <command>`
 * Installed in an environment
   * Download with `pip` or `uv` in a virtual environment: `pip install ducktools-env`
   * Run with: `ducktools-env <command>`

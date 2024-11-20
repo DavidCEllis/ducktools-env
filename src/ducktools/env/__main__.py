@@ -192,7 +192,7 @@ def get_parser(prog, exit_on_error=True) -> FixedArgumentParser:
     create_zipapp_parser.add_argument(
         "--zipapp",
         action="store_true",
-        help="Also create the portable ducktools.pyz zipapp",
+        help="Also create the portable ducktools-env.pyz zipapp",
     )
 
     list_parser = subparsers.add_parser(
@@ -432,8 +432,12 @@ def delete_env_command(manager, args):
 
 
 def main() -> int:
-    if __name__ == "__main__":
-        command = f"{os.path.basename(sys.executable)} -m ducktools.env"
+    executable_name = os.path.splitext(os.path.basename(sys.executable))[0]
+
+    if zipapp_path := globals().get("zipapp_path"):
+        command = f"{executable_name} {zipapp_path}"
+    elif __name__ == "__main__":
+        command = f"{executable_name} -m ducktools.env"
     else:
         command = os.path.basename(sys.argv[0])
 

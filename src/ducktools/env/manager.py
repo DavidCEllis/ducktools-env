@@ -207,7 +207,7 @@ class Manager(Prefab):
         )
 
     def build_zipapp(self, clear_old_builds=True) -> None:
-        """Build the ducktools.pyz zipapp"""
+        """Build the ducktools-env.pyz zipapp"""
         base_command = [sys.executable, self.retrieve_pip(), "--disable-pip-version-check"]
         _laz_internal.build_zipapp(
             paths=self.paths,

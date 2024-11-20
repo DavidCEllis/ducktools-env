@@ -22,10 +22,11 @@
 # SOFTWARE.
 
 """
-This script becomes the __main__.py script inside the ducktools.pyz zipapp.
+This script handles shared launch requirements for zipapp bundles and the ducktools-env.pyz zipapp
 """
 from __future__ import annotations
 
+import os
 import os.path
 import sys
 import zipfile
@@ -104,7 +105,7 @@ def launch_script(script_file, zipapp_path, args, lockdata=None):
     try:
         from ducktools.env.manager import Manager
         manager = Manager(project_name=PROJECT_NAME)
-        manager.run_bundle(
+        returncode = manager.run_bundle(
             script_path=script_file,
             script_args=args,
             lockdata=lockdata,
@@ -113,7 +114,16 @@ def launch_script(script_file, zipapp_path, args, lockdata=None):
     finally:
         sys.path.pop(0)
 
+    return returncode
+
 
 def launch_ducktools():
+    zipapp_path = sys.argv[0]
+    init_globals = {"zipapp_path": zipapp_path}
+
     import runpy
-    runpy.run_path(default_paths.env_folder, run_name="__main__")
+    runpy.run_path(
+        default_paths.env_folder,
+        init_globals=init_globals,
+        run_name="__main__"
+    )

@@ -22,7 +22,7 @@
 # SOFTWARE.
 """
 This is the script that builds the inner ducktools-env folder
-and bundles ducktools-env into ducktools.pyz
+and bundles ducktools-env into ducktools-env.pyz
 """
 import sys
 import os
@@ -43,10 +43,10 @@ from ducktools.env.platform_paths import ManagedPaths
 
 
 def build_env_folder(
-        *,
-        paths: ManagedPaths,
-        install_base_command: list[str],
-        clear_old_builds=True
+    *,
+    paths: ManagedPaths,
+    install_base_command: list[str],
+    clear_old_builds=True
 ) -> None:
     # Get the full requirements for ducktools-env
     deps = []
@@ -138,12 +138,12 @@ def build_env_folder(
 
 
 def build_zipapp(
-        *,
-        paths: ManagedPaths,
-        install_base_command: list[str],
-        clear_old_builds=True
+    *,
+    paths: ManagedPaths,
+    install_base_command: list[str],
+    clear_old_builds=True
 ) -> None:
-    archive_name = "ducktools.pyz"
+    archive_name = "ducktools-env.pyz"
 
     with paths.build_folder() as build_folder:
 

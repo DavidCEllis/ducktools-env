@@ -76,7 +76,7 @@ def main(script_name):
             # Extract the script file to the existing folder
             zf.extract(script_info, path=working_dir)
 
-        launch_script(
+        returncode = launch_script(
             script_file=str(script_dest),
             zipapp_path=zip_path,
             args=sys.argv[1:],
@@ -84,5 +84,7 @@ def main(script_name):
         )
     finally:
         script_dest.unlink()
+
+    sys.exit(returncode)
 
 # BUNDLE CODE TO EXECUTE SCRIPT FOLLOWS

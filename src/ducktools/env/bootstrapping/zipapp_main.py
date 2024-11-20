@@ -22,8 +22,10 @@
 # SOFTWARE.
 
 """
-This is the bootstrapping script for the ducktools.pyz bundle itself
+This is the bootstrapping script for the ducktools-env.pyz bundle itself
 """
+import sys
+
 from _version_check import version_check  # type: ignore
 version_check()
 
@@ -31,4 +33,6 @@ version_check()
 if __name__ == "__main__":
     from _bootstrap import update_libraries, launch_ducktools  # type: ignore
     update_libraries()
-    launch_ducktools()
+    returncode = launch_ducktools()
+
+    sys.exit(returncode)
