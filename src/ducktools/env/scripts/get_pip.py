@@ -25,8 +25,8 @@
 This module handles downloading and installing the `pip.pyz` zipapp if it is outdated
 or not installed.
 
-The pip zipapp will be included in ducktools.pyz builds so this should only be needed
-when building ducktools.pyz or if ducktools-env has been installed via pip.
+The pip zipapp will be included in ducktools-env.pyz builds so this should only be needed
+when building ducktools-env.pyz or if ducktools-env has been installed via pip.
 """
 import os
 import os.path
