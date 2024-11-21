@@ -73,11 +73,14 @@ The tool can be used in multiple ways:
 * Executed from the zipapp
   * Download from: https://github.com/DavidCEllis/ducktools-env/releases/latest
   * Run with: `ducktools-env.pyz <command>`
+  * The `dtrun.pyz` zipapp is available as a shortcut for `ducktools-env.pyz run`
 * Installed in an environment
   * Download with `pip` or `uv` in a virtual environment: `pip install ducktools-env`
   * Run with: `ducktools-env <command>`
+  * The `dtrun` shortcut is also available
 * Accessed directly via `uvx` with uv
   * `uvx ducktools-env <command>`
+  * No access to the `dtrun` shortcut this way
 
 These examples will use the `ducktools-env` command as the base as if installed via `uv tool` or a similar tool.
 
