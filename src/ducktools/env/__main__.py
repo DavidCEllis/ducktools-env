@@ -431,7 +431,7 @@ def delete_env_command(manager, args):
     return 0
 
 
-def main() -> int:
+def main_command() -> int:
     executable_name = os.path.splitext(os.path.basename(sys.executable))[0]
 
     if zipapp_path := globals().get("zipapp_path"):
@@ -485,13 +485,16 @@ def main() -> int:
             raise RuntimeError(f"Invalid Command {args.command!r}")
 
 
-if __name__ == "__main__":
+def main() -> int:
     try:
-        result = main()
+        result = main_command()
     except (RuntimeError, EnvError) as e:
         errors = "\n".join(e.args) + "\n"
         if sys.stderr:
             sys.stderr.write(errors)
-        sys.exit(1)
+        return 1
+    return 0
 
-    sys.exit(result)
+
+if __name__ == "__main__":
+    sys.exit(main())

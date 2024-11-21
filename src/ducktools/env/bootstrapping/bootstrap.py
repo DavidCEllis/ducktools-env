@@ -102,28 +102,24 @@ def update_libraries():
 
 def launch_script(script_file, zipapp_path, args, lockdata=None):
     sys.path.insert(0, default_paths.env_folder)
-    try:
-        from ducktools.env.manager import Manager
-        manager = Manager(project_name=PROJECT_NAME)
-        returncode = manager.run_bundle(
-            script_path=script_file,
-            script_args=args,
-            lockdata=lockdata,
-            zipapp_path=zipapp_path,
-        )
-    finally:
-        sys.path.pop(0)
-
+    from ducktools.env.manager import Manager
+    manager = Manager(project_name=PROJECT_NAME)
+    returncode = manager.run_bundle(
+        script_path=script_file,
+        script_args=args,
+        lockdata=lockdata,
+        zipapp_path=zipapp_path,
+    )
     return returncode
 
 
 def launch_ducktools():
-    zipapp_path = sys.argv[0]
-    init_globals = {"zipapp_path": zipapp_path}
+    sys.path.insert(0, default_paths.env_folder)
+    from ducktools.env.__main__ import main
+    return main()
 
-    import runpy
-    runpy.run_path(
-        default_paths.env_folder,
-        init_globals=init_globals,
-        run_name="__main__"
-    )
+
+def launch_dtrun():
+    sys.path.insert(0, default_paths.env_folder)
+    from ducktools.env._run import run
+    return run()
