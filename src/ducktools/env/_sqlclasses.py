@@ -304,7 +304,7 @@ class SQLClass(metaclass=SQLMeta):
         try:
             cursor.row_factory = cls.row_factory
             result = cursor.execute(
-                f"SELECT * FROM {cls.TABLE_NAME} {search_condition}",
+                f"SELECT * FROM {cls.TABLE_NAME}{search_condition}",
                 filters
             )
             rows = result.fetchall()
