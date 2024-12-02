@@ -217,6 +217,27 @@ class TestWithExample:
         mock_con.cursor.assert_called_once()
         mock_cursor.close.assert_called_once()
 
+    def test_select_rows_like(self):
+        mock_con = mock.MagicMock()
+        mock_cursor = mock.MagicMock()
+        mock_rows = mock.MagicMock()
+        mock_fetchall = mock.MagicMock()
+
+        mock_con.cursor.return_value = mock_cursor
+        mock_cursor.execute.return_value = mock_rows
+        mock_rows.fetchall.return_value = mock_fetchall
+
+        row_out = self.example_class.select_like(mock_con, {"name": "John"})
+        assert row_out is mock_fetchall
+
+        mock_rows.fetchall.assert_called_once()
+        mock_cursor.execute.assert_called_once_with(
+            "SELECT * FROM example_class WHERE name LIKE :name",
+            {"name": "John"}
+        )
+        mock_con.cursor.assert_called_once()
+        mock_cursor.close.assert_called_once()
+
 
 def test_failed_class_pk():
     with pytest.raises(AttributeError):
