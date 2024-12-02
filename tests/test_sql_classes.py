@@ -169,13 +169,53 @@ class TestWithExample:
 
         mock_rows.fetchall.assert_called_once()
         mock_cursor.execute.assert_called_once_with(
-            "SELECT * FROM example_class ",
+            "SELECT * FROM example_class",
             {}
         )
         mock_con.cursor.assert_called_once()
         mock_cursor.close.assert_called_once()
 
+    def test_select_row_no_filters(self):
+        mock_con = mock.MagicMock()
+        mock_cursor = mock.MagicMock()
+        mock_rows = mock.MagicMock()
+        mock_fetchone = mock.MagicMock()
 
+        mock_con.cursor.return_value = mock_cursor
+        mock_cursor.execute.return_value = mock_rows
+        mock_rows.fetchone.return_value = mock_fetchone
+
+        row_out = self.example_class.select_row(mock_con)
+        assert row_out is mock_fetchone
+
+        mock_rows.fetchone.assert_called_once()
+        mock_cursor.execute.assert_called_once_with(
+            "SELECT * FROM example_class",
+            {}
+        )
+        mock_con.cursor.assert_called_once()
+        mock_cursor.close.assert_called_once()
+
+    def test_select_rows_filters(self):
+        mock_con = mock.MagicMock()
+        mock_cursor = mock.MagicMock()
+        mock_rows = mock.MagicMock()
+        mock_fetchall = mock.MagicMock()
+
+        mock_con.cursor.return_value = mock_cursor
+        mock_cursor.execute.return_value = mock_rows
+        mock_rows.fetchall.return_value = mock_fetchall
+
+        row_out = self.example_class.select_rows(mock_con, {"name": "John"})
+        assert row_out is mock_fetchall
+
+        mock_rows.fetchall.assert_called_once()
+        mock_cursor.execute.assert_called_once_with(
+            "SELECT * FROM example_class WHERE name = :name",
+            {"name": "John"}
+        )
+        mock_con.cursor.assert_called_once()
+        mock_cursor.close.assert_called_once()
 
 
 def test_failed_class_pk():

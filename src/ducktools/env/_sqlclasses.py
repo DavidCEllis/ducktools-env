@@ -23,6 +23,8 @@
 
 # This is a minimal object/database wrapper for ducktools.classbuilder
 # Execute the class to see examples of the methods that will be generated
+# There are a lot of features that would be needed for a *general* version of this
+# This only implements the required features for ducktools-env's use case
 
 import itertools
 
@@ -256,7 +258,7 @@ class SQLClass(metaclass=SQLMeta):
             search_condition = ""
 
         cursor.row_factory = cls.row_factory
-        result = cursor.execute(f"SELECT * FROM {cls.TABLE_NAME} {search_condition}", filters)
+        result = cursor.execute(f"SELECT * FROM {cls.TABLE_NAME}{search_condition}", filters)
         return result
 
     @classmethod
