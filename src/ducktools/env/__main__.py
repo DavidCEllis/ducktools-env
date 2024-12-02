@@ -434,9 +434,7 @@ def delete_env_command(manager, args):
 def main_command() -> int:
     executable_name = os.path.splitext(os.path.basename(sys.executable))[0]
 
-    if zipapp_path := globals().get("zipapp_path"):
-        command = f"{executable_name} {zipapp_path}"
-    elif __name__ == "__main__":
+    if __name__ == "__main__":
         command = f"{executable_name} -m ducktools.env"
     else:
         command = os.path.basename(sys.argv[0])
