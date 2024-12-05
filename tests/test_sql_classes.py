@@ -44,8 +44,11 @@ from ducktools.env._sqlclasses import (
 
 def test_type_map():
     # Check that the MAPPED_TYPES matches the union of types in TYPE_MAP
-    mapped_type_construct = typing.Union[*TYPE_MAP.keys()]
-    assert MAPPED_TYPES == mapped_type_construct
+    union = None
+    for t in TYPE_MAP.keys():
+        union = typing.Union[union, t]
+
+    assert MAPPED_TYPES == union
 
 
 class TestListFlattenSeparate:
