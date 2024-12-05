@@ -134,7 +134,7 @@ class SQLMeta(SlotMakerMeta):
     TABLE_NAME: str
     VALID_FIELDS: dict[str, SQLAttribute]
     COMPUTED_FIELDS: set[str]
-    PRIMARY_KEY: str
+    PK_NAME: str
     STR_LIST_COLUMNS: set[str]
     BOOL_COLUMNS: set[str]
 
@@ -183,19 +183,24 @@ class SQLClass(metaclass=SQLMeta):
         primary_key = None
         for name, field in fields.items():
             if field.primary_key:
+                if primary_key is not None:
+                    raise AttributeError("sqlclass *must* have **only** one primary key")
                 primary_key = name
-                break
 
         if primary_key is None:
             raise AttributeError("sqlclass *must* have one primary key")
 
-        if sum(1 for f in fields.values() if f.primary_key) > 1:
-            raise AttributeError("sqlclass *must* have **only** one primary key")
-
-        cls.PRIMARY_KEY = primary_key
+        cls.PK_NAME = primary_key
         cls.TABLE_NAME = caps_to_snake(cls.__name__)
 
         super().__init_subclass__(**kwargs)
+
+    @property
+    def primary_key(self):
+        """
+        Get the actual value of the primary key on an instance.
+        """
+        return getattr(self, self.PK_NAME)
 
     @classmethod
     def create_table(cls, con):
@@ -315,13 +320,13 @@ class SQLClass(metaclass=SQLMeta):
 
     @classmethod
     def max_pk(cls, con):
-        statement = f"SELECT MAX({cls.PRIMARY_KEY}) from {cls.TABLE_NAME}"
+        statement = f"SELECT MAX({cls.PK_NAME}) FROM {cls.TABLE_NAME}"
         result = con.execute(statement)
         return result.fetchone()[0]
 
     @classmethod
     def row_from_pk(cls, con, pk_value):
-        return cls.select_row(con, filters={cls.PRIMARY_KEY: pk_value})
+        return cls.select_row(con, filters={cls.PK_NAME: pk_value})
 
     def insert_row(self, con):
         columns = ", ".join(
@@ -340,8 +345,8 @@ class SQLClass(metaclass=SQLMeta):
         with con:
             result = con.execute(sql_statement, processed_values)
 
-            if getattr(self, self.PRIMARY_KEY) is None:
-                setattr(self, self.PRIMARY_KEY, result.lastrowid)
+            if getattr(self, self.PK_NAME) is None:
+                setattr(self, self.PK_NAME, result.lastrowid)
 
             if self.COMPUTED_FIELDS:
                 row = self.row_from_pk(con, result.lastrowid)
@@ -349,7 +354,13 @@ class SQLClass(metaclass=SQLMeta):
                     setattr(self, field, getattr(row, field))
 
     def update_row(self, con, columns: list[str]):
-        if self.PRIMARY_KEY is None:
+        """
+        Update the values in the database for this 'row'
+
+        :param con: SQLContext
+        :param columns: list of the columns to update from this class.
+        """
+        if self.primary_key is None:
             raise AttributeError("Primary key has not yet been set")
 
         if invalid_columns := (set(columns) - self.VALID_FIELDS.keys()):
@@ -362,22 +373,28 @@ class SQLClass(metaclass=SQLMeta):
         }
 
         set_columns = ", ".join(f"{name} = :{name}" for name in columns)
-        search_condition = f"{self.PRIMARY_KEY} = :{self.PRIMARY_KEY}"
+        search_condition = f"{self.PK_NAME} = :{self.PK_NAME}"
 
         with con:
-            con.execute(
+            result = con.execute(
                 f"UPDATE {self.TABLE_NAME} SET {set_columns} WHERE {search_condition}",
                 processed_values,
             )
 
+            # Computed rows may need to be updated
+            if self.COMPUTED_FIELDS:
+                row = self.row_from_pk(con, self.primary_key)
+                for field in self.COMPUTED_FIELDS:
+                    setattr(self, field, getattr(row, field))
+
     def delete_row(self, con):
-        if self.PRIMARY_KEY is None:
+        if self.primary_key is None:
             raise AttributeError("Primary key has not yet been set")
 
-        pk_filter = {self.PRIMARY_KEY: getattr(self, self.PRIMARY_KEY)}
+        pk_filter = {self.PK_NAME: self.primary_key}
 
         with con:
             con.execute(
-                f"DELETE FROM {self.TABLE_NAME} WHERE {self.PRIMARY_KEY} = :{self.PRIMARY_KEY}",
+                f"DELETE FROM {self.TABLE_NAME} WHERE {self.PK_NAME} = :{self.PK_NAME}",
                 pk_filter,
             )

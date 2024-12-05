@@ -22,9 +22,11 @@
 # SOFTWARE.
 from unittest import mock
 import typing
+import types
 
 import pytest
 
+# noinspection PyProtectedMember
 from ducktools.env._sqlclasses import (
     _laz,
     TYPE_MAP,
@@ -84,15 +86,15 @@ def test_sql_attribute():
         attrib = SQLAttribute(primary_key=True, unique=True)
 
 
-class TestWithExample:
+class SharedExample:
     @property
     def example_class(self):
         class ExampleClass(SQLClass):
-            uid: int = SQLAttribute(primary_key=True)
+            uid: int = SQLAttribute(default=None, primary_key=True)
             name: str = SQLAttribute(unique=True)
             age: int = SQLAttribute(internal=True)
             height_m: float
-            height_feet: float = SQLAttribute(computed="height_m * 3.28084")
+            height_feet: float = SQLAttribute(default=None, computed="height_m * 3.28084")
             friends: list[str] = SQLAttribute(default_factory=list)
             some_bool: bool
 
@@ -101,18 +103,24 @@ class TestWithExample:
     @property
     def field_dict(self):
         return {
-            "uid": SQLAttribute(primary_key=True, type=int),
+            "uid": SQLAttribute(default=None, primary_key=True, type=int),
             "name": SQLAttribute(unique=True, type=str),
             "age": SQLAttribute(internal=True, type=int),
             "height_m": SQLAttribute(type=float),
-            "height_feet": SQLAttribute(computed="height_m * 3.28084", type=float),
+            "height_feet": SQLAttribute(default=None, computed="height_m * 3.28084", type=float),
             "friends": SQLAttribute(default_factory=list, type=list[str]),
             "some_bool": SQLAttribute(type=bool),
         }
 
+
+class TestClassConstruction(SharedExample):
+    """
+    Test that the basic class features are built correctly
+    """
+
     def test_table_features(self):
         ex_cls = self.example_class
-        assert ex_cls.PRIMARY_KEY == "uid"
+        assert ex_cls.PK_NAME == "uid"
         assert ex_cls.TABLE_NAME == "example_class"
 
     def test_get_sql_fields(self):
@@ -133,6 +141,11 @@ class TestWithExample:
     def test_bool_columns(self):
         assert self.example_class.BOOL_COLUMNS == {"some_bool"}
 
+
+class TestSQLGeneration(SharedExample):
+    """
+    Test that the generated SQL looks correct
+    """
     def test_create_table(self):
         mock_con = mock.MagicMock()
         self.example_class.create_table(mock_con)
@@ -238,27 +251,162 @@ class TestWithExample:
         mock_con.cursor.assert_called_once()
         mock_cursor.close.assert_called_once()
 
+    def test_max_pk(self):
+        mock_con = mock.MagicMock()
+        mock_result = mock.MagicMock()
+        mock_con.execute.return_value = mock_result
 
-def test_failed_class_pk():
-    with pytest.raises(AttributeError):
-        class ExampleClass(SQLClass):
-            name: str = SQLAttribute(unique=True)
-            age: int = SQLAttribute(internal=True)
-            height_m: float
-            height_feet: float = SQLAttribute(computed="height_m * 3.28084")
-            friends: list[str] = SQLAttribute(default_factory=list)
-            some_bool: bool
+        max_pk = self.example_class.max_pk(mock_con)
+
+        mock_con.execute.assert_called_with("SELECT MAX(uid) FROM example_class")
+        mock_result.fetchone.assert_called()
+
+    def test_row_from_pk(self):
+        mock_con = mock.MagicMock()
+        mock_cursor = mock.MagicMock()
+        mock_con.cursor.return_value = mock_cursor
+
+        row = self.example_class.row_from_pk(mock_con, 42)
+
+        mock_cursor.execute.assert_called_once_with(
+            "SELECT * FROM example_class WHERE uid = :uid",
+            {"uid": 42},
+        )
+        mock_cursor.close.assert_called_once()
+
+    def test_insert_row(self):
+        mock_con = mock.MagicMock()
+
+        result_row = mock.MagicMock()
+        mock_con.execute.return_value = result_row
+        result_row.lastrowid = 100
+
+        ExampleClass = self.example_class
+        ex = ExampleClass(
+            name="John",
+            age=42,
+            height_m=1.0,
+            some_bool=False,
+        )
+
+        assert ex.uid is None
+        assert ex.height_feet is None
+
+        with mock.patch.object(ExampleClass, "row_from_pk") as computed_check:
+            return_row = types.SimpleNamespace(height_feet=6.0)
+            computed_check.return_value = return_row
+
+            ex.insert_row(mock_con)
+
+        # Check the values were correctly updated
+        assert ex.uid == ex.primary_key == 100
+        assert ex.height_feet == 6.0
+
+        # Check the call
+        mock_con.execute.assert_called_with(
+            "INSERT INTO example_class VALUES(:uid, :name, :height_m, :friends, :some_bool)",
+            {
+                "uid": None,
+                "name": "John",
+                "height_m": 1.0,
+                "friends": "",
+                "some_bool": False,
+            }
+        )
+
+    def test_update_row(self):
+        ExampleClass = self.example_class
+        ex = ExampleClass(
+            uid=1,
+            name="John",
+            age=42,
+            height_m=1.0,
+            some_bool=True,
+        )
+
+        mock_con = mock.MagicMock()
+
+        with mock.patch.object(ExampleClass, "row_from_pk") as computed_check:
+            return_row = types.SimpleNamespace(height_feet=6.0)
+            computed_check.return_value = return_row
+
+            ex.update_row(mock_con, ["some_bool"])
+
+        assert ex.height_feet == 6.0
+
+        mock_con.execute.assert_called_with(
+            "UPDATE example_class SET some_bool = :some_bool WHERE uid = :uid",
+            {
+                "uid": 1,
+                "name": "John",
+                "height_m": 1.0,
+                "friends": "",
+                "some_bool": True,
+            }
+        )
+
+    def test_update_row_fail_no_pk(self):
+        ExampleClass = self.example_class
+        ex = ExampleClass(
+            uid=None,
+            name="John",
+            age=42,
+            height_m=1.0,
+            some_bool=True,
+        )
+
+        mock_con = mock.MagicMock()
+
+        with pytest.raises(AttributeError):
+            ex.update_row(mock_con, ["some_bool"])
+
+    def test_delete_row(self):
+        ExampleClass = self.example_class
+        ex = ExampleClass(
+            uid=1,
+            name="John",
+            age=42,
+            height_m=1.0,
+            some_bool=True,
+        )
+
+        mock_con = mock.MagicMock()
+
+        ex.delete_row(mock_con)
+
+        mock_con.execute.assert_called_with(
+            "DELETE FROM example_class WHERE uid = :uid",
+            {"uid": 1},
+        )
 
 
-def test_failed_class_double_pk():
-    with pytest.raises(AttributeError):
-        class ExampleClass(SQLClass):
-            uid: int = SQLAttribute(primary_key=True)
-            ununiqueid: int = SQLAttribute(primary_key=True)
-            name: str = SQLAttribute(unique=True)
-            age: int = SQLAttribute(internal=True)
-            height_m: float
-            height_feet: float = SQLAttribute(computed="height_m * 3.28084")
-            friends: list[str] = SQLAttribute(default_factory=list)
-            some_bool: bool
+
+class TestSQLExecution:
+    """
+    Test that the generated SQL actually does what we expect.
+    """
+
+
+class TestIncorrectConstruction:
+    def test_failed_class_pk(self):
+        with pytest.raises(AttributeError):
+            class ExampleClass(SQLClass):
+                name: str = SQLAttribute(unique=True)
+                age: int = SQLAttribute(internal=True)
+                height_m: float
+                height_feet: float = SQLAttribute(computed="height_m * 3.28084")
+                friends: list[str] = SQLAttribute(default_factory=list)
+                some_bool: bool
+
+    def test_failed_class_double_pk(self):
+        with pytest.raises(AttributeError):
+            class ExampleClass(SQLClass):
+                uid: int = SQLAttribute(primary_key=True)
+                ununiqueid: int = SQLAttribute(primary_key=True)
+                name: str = SQLAttribute(unique=True)
+                age: int = SQLAttribute(internal=True)
+                height_m: float
+                height_feet: float = SQLAttribute(computed="height_m * 3.28084")
+                friends: list[str] = SQLAttribute(default_factory=list)
+                some_bool: bool
 
