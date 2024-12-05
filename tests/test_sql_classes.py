@@ -92,7 +92,7 @@ class SharedExample:
         class ExampleClass(SQLClass):
             uid: int = SQLAttribute(default=None, primary_key=True)
             name: str = SQLAttribute(unique=True)
-            age: int = SQLAttribute(internal=True)
+            age: int = SQLAttribute(default=20, internal=True)
             height_m: float
             height_feet: float = SQLAttribute(default=None, computed="height_m * 3.28084")
             friends: list[str] = SQLAttribute(default_factory=list)
@@ -105,7 +105,7 @@ class SharedExample:
         return {
             "uid": SQLAttribute(default=None, primary_key=True, type=int),
             "name": SQLAttribute(unique=True, type=str),
-            "age": SQLAttribute(internal=True, type=int),
+            "age": SQLAttribute(default=20, internal=True, type=int),
             "height_m": SQLAttribute(type=float),
             "height_feet": SQLAttribute(default=None, computed="height_m * 3.28084", type=float),
             "friends": SQLAttribute(default_factory=list, type=list[str]),
@@ -230,6 +230,12 @@ class TestSQLGeneration(SharedExample):
         mock_con.cursor.assert_called_once()
         mock_cursor.close.assert_called_once()
 
+    def test_select_row_invalid_filter(self):
+        mock_con = mock.MagicMock()
+
+        with pytest.raises(KeyError):
+            self.example_class.select_rows(mock_con, {"NotAField": 42})
+
     def test_select_rows_like(self):
         mock_con = mock.MagicMock()
         mock_cursor = mock.MagicMock()
@@ -250,6 +256,33 @@ class TestSQLGeneration(SharedExample):
         )
         mock_con.cursor.assert_called_once()
         mock_cursor.close.assert_called_once()
+
+    def test_select_rows_like_empty(self):
+        mock_con = mock.MagicMock()
+        mock_cursor = mock.MagicMock()
+        mock_rows = mock.MagicMock()
+        mock_fetchall = mock.MagicMock()
+
+        mock_con.cursor.return_value = mock_cursor
+        mock_cursor.execute.return_value = mock_rows
+        mock_rows.fetchall.return_value = mock_fetchall
+
+        row_out = self.example_class.select_like(mock_con, {})
+        assert row_out is mock_fetchall
+
+        mock_rows.fetchall.assert_called_once()
+        mock_cursor.execute.assert_called_once_with(
+            "SELECT * FROM example_class",
+            {}
+        )
+        mock_con.cursor.assert_called_once()
+        mock_cursor.close.assert_called_once()
+
+    def test_select_like_invalid_filter(self):
+        mock_con = mock.MagicMock()
+
+        with pytest.raises(KeyError):
+            self.example_class.select_like(mock_con, {"NotAField": "*John"})
 
     def test_max_pk(self):
         mock_con = mock.MagicMock()
@@ -345,6 +378,21 @@ class TestSQLGeneration(SharedExample):
             }
         )
 
+    def test_update_row_invalid(self):
+        ExampleClass = self.example_class
+        ex = ExampleClass(
+            uid=1,
+            name="John",
+            age=42,
+            height_m=1.0,
+            some_bool=True,
+        )
+
+        mock_con = mock.MagicMock()
+
+        with pytest.raises(ValueError):
+            ex.update_row(mock_con, ["NotAField"])
+
     def test_update_row_fail_no_pk(self):
         ExampleClass = self.example_class
         ex = ExampleClass(
@@ -379,12 +427,124 @@ class TestSQLGeneration(SharedExample):
             {"uid": 1},
         )
 
+    def test_delete_row_before_set(self):
+        ExampleClass = self.example_class
+        ex = ExampleClass(
+            uid=None,
+            name="John",
+            age=42,
+            height_m=1.0,
+            some_bool=True,
+        )
+
+        mock_con = mock.MagicMock()
+
+        with pytest.raises(AttributeError):
+            ex.delete_row(mock_con)
 
 
-class TestSQLExecution:
+class TestSQLExecution(SharedExample):
     """
     Test that the generated SQL actually does what we expect.
     """
+    def test_table_create_drop(self):
+        ExampleClass = self.example_class
+        context = SQLContext(":memory:")
+        with context as con:
+            # Table doesn't exist
+            cursor = con.cursor()
+            try:
+                result = con.execute(
+                    "SELECT name FROM sqlite_schema WHERE type = 'table' AND name = :name",
+                    {"name": ExampleClass.TABLE_NAME},
+                )
+                row = result.fetchone()
+            finally:
+                cursor.close()
+
+            assert row is None
+
+            # Create the Table
+            ExampleClass.create_table(con)
+
+            # Now it should be in the schema
+            cursor = con.cursor()
+            try:
+                result = con.execute(
+                    "SELECT name FROM sqlite_schema WHERE type = 'table' AND name = :name",
+                    {"name": ExampleClass.TABLE_NAME},
+                )
+                row = result.fetchone()
+            finally:
+                cursor.close()
+
+            assert row[0] == "example_class"
+
+            # Drop the table
+            ExampleClass.drop_table(con)
+
+            cursor = con.cursor()
+            try:
+                result = con.execute(
+                    "SELECT name FROM sqlite_schema WHERE type = 'table' AND name = :name",
+                    {"name": ExampleClass.TABLE_NAME},
+                )
+                row = result.fetchone()
+            finally:
+                cursor.close()
+
+            assert row is None
+
+    def test_create_table_row_retrieve(self):
+        ExampleClass = self.example_class
+        context = SQLContext(":memory:")
+        with context as con:
+            ExampleClass.create_table(con)
+
+            ex = ExampleClass(
+                name="John",
+                height_m=1.0,
+                some_bool=True,
+            )
+
+            ex.insert_row(con)
+
+            ex_retrieved = ExampleClass.row_from_pk(con, ex.primary_key)
+
+            assert ex == ex_retrieved
+
+            ex.delete_row(con)
+
+            ex_retrieved = ExampleClass.row_from_pk(con, ex.primary_key)
+            assert ex_retrieved is None
+
+    def test_select_row_rows(self):
+        ExampleClass = self.example_class
+        context = SQLContext(":memory:")
+        with context as con:
+            ExampleClass.create_table(con)
+
+            ex = ExampleClass(
+                name="John",
+                height_m=1.0,
+                some_bool=True,
+            )
+
+            ex.insert_row(con)
+
+            ex_retrieved = ExampleClass.select_row(con, {"name": "John"})
+
+            assert ex_retrieved == ex
+
+            ex_retrieved = ExampleClass.select_rows(con, {"name": "John"})[0]
+
+            assert ex_retrieved == ex
+
+    def test_select_missing_row_rows(self):
+        ExampleClass = self.example_class
+        context = SQLContext(":memory:")
+        with context as con:
+            ExampleClass.create_table(con)
 
 
 class TestIncorrectConstruction:
