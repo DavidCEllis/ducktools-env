@@ -70,6 +70,32 @@ _laz_internal = LazyImporter(
 )
 
 
+class _IgnoreSignals:
+    @staticmethod
+    def null_handler(signum, frame):
+        # This just ignores signals, used to ignore in the parent process temporarily
+        pass
+
+    def __init__(self, signums: list[int]):
+        self.old_signals = {}
+        self.signums = signums
+
+    def __enter__(self):
+        if self.old_signals:
+            raise RuntimeError(f"{self.__class__.__name__!r} is not reentrant")
+
+        for signum in self.signums:
+            self.old_signals[signum] = _laz.signal.signal(signum, self.null_handler)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for signum, handler in self.old_signals.items():
+            _laz.signal.signal(signum, handler)
+
+
+def _ignore_keyboardinterrupt():
+    return _IgnoreSignals([_laz.signal.SIGINT])
+
+
 class Manager(Prefab):
     project_name: str = PROJECT_NAME
     config: Config = None
@@ -312,7 +338,17 @@ class Manager(Prefab):
 
         # Update environment variables for access from subprocess
         os.environ.update(env_vars)
-        result = _laz.subprocess.run([env.python_path, spec.script_path, *args])
+
+        def sigint_handler(signum, frame):
+            # Parent process should *not* terminate on keyboard interrupt
+            pass
+
+        # Ignore the keyboard interrupt signal in parent process while subprocess is running.
+        with _ignore_keyboardinterrupt():
+            result = _laz.subprocess.run(
+                [env.python_path, spec.script_path, *args],
+            )
+
         return result.returncode
 
     # DO NOT REMOVE #

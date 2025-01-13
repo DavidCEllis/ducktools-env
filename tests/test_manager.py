@@ -21,6 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 # Get python install has so many branches I wanted a separate test
+import signal
 import sys
 
 from pathlib import Path
@@ -30,7 +31,33 @@ import pytest
 from ducktools.env.environment_specs import EnvironmentSpec
 from ducktools.env.exceptions import PythonVersionNotFound
 from ducktools.env.config import Config
-from ducktools.env.manager import Manager
+from ducktools.env.manager import Manager, _ignore_keyboardinterrupt
+
+
+class TestSignalHandler:
+    def test_ignore_keyboardinterrupt(self):
+        # Test KeyboardInterrupt works before and after the context manager,
+        # but not while it is in use.
+
+        with pytest.raises(KeyboardInterrupt):
+            signal.raise_signal(signal.SIGINT)
+
+        with _ignore_keyboardinterrupt():
+            signal.raise_signal(signal.SIGINT)
+
+        with pytest.raises(KeyboardInterrupt):
+            signal.raise_signal(signal.SIGINT)
+
+    def test_fails_reentry(self):
+        handler = _ignore_keyboardinterrupt()
+        with pytest.raises(RuntimeError):
+            with handler:
+                with handler:
+                    pass
+
+        # Check the handler is still correctly replaced
+        with pytest.raises(KeyboardInterrupt):
+            signal.raise_signal(signal.SIGINT)
 
 
 class TestGetPythonInstall:
