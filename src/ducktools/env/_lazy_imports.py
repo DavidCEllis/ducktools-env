@@ -32,6 +32,7 @@ __all__ = [
     "metadata",  # importlib.metadata
     "re",
     "shutil",
+    "signal",
     "sql",
     "subprocess",
     "tempfile",
@@ -66,6 +67,7 @@ with capture_imports(laz):
     import re
     import shutil
     import sqlite3 as sql
+    import signal
     import subprocess
     import tempfile
     import warnings
