@@ -29,7 +29,7 @@ from pathlib import Path
 
 import importlib.resources
 
-from . import DATA_BUNDLE_FOLDER, MINIMUM_PYTHON_STR, bootstrap_requires
+from . import DATA_BUNDLE_FOLDER, LOCKFILE_EXTENSION, MINIMUM_PYTHON_STR, bootstrap_requires
 from .platform_paths import ManagedPaths
 from .exceptions import InvalidEnvironmentSpec, InvalidBundleScript
 from .environment_specs import EnvironmentSpec
@@ -145,7 +145,7 @@ def create_bundle(
 
         if spec.lockdata:
             # Copy the lockfile to the lock folder
-            lock_path = Path(build_path) / f"{script_path.name}.lock"
+            lock_path = Path(build_path) / f"{script_path.name}.{LOCKFILE_EXTENSION}"
             lock_path.write_text(spec.lockdata)
 
         print("Copying script to build folder and bundling")

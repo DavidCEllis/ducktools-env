@@ -37,6 +37,7 @@ from _logger import log  # type: ignore
 
 # This bootstrap script exists without ducktools.env and so needs a copy of project_name
 PROJECT_NAME = "ducktools"
+LOCKFILE_EXTENSION = "dtenv.lock"
 
 default_paths = ManagedPaths(PROJECT_NAME)
 

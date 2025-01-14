@@ -24,6 +24,7 @@ from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 
+from ducktools.env import LOCKFILE_EXTENSION
 import ducktools.env.environment_specs as env_specs
 from ducktools.classbuilder.prefab import attribute, prefab
 from ducktools.env.environment_specs import EnvironmentSpec
@@ -58,12 +59,14 @@ envs = [
         raw_spec="",
     ),
     DataSet(
-        raw_spec=("requires-python = '>=3.10'\n" "dependencies = []\n"),
+        raw_spec=("requires-python = '>=3.10'\n" 
+                  "dependencies = []\n"),
         requires_python=">=3.10",
     ),
     DataSet(
         raw_spec=(
-            "requires-python = '>=3.11'\n" "dependencies = ['ducktools-env>=0.1.0']\n"
+            "requires-python = '>=3.11'\n" 
+            "dependencies = ['ducktools-env>=0.1.0']\n"
         ),
         requires_python=">=3.11",
         dependencies=["ducktools-env>=0.1.0"],
@@ -74,7 +77,7 @@ envs = [
 class TestExampleSpecs:
     def test_cowsay_script(self):
         cowsay_script_path = EXAMPLES_FOLDER / "cowsay_ex.py"
-        cowsay_lock_path = EXAMPLES_FOLDER / "cowsay_ex.py.lock"
+        cowsay_lock_path = EXAMPLES_FOLDER / f"cowsay_ex.py.{LOCKFILE_EXTENSION}"
         
         spec = EnvironmentSpec.from_script(cowsay_script_path)
 
@@ -113,7 +116,7 @@ class TestExampleSpecs:
 
     def test_cowsay_app(self):
         cowsay_app_path = EXAMPLES_FOLDER / "cowsay_app.py"
-        cowsay_lock_path = EXAMPLES_FOLDER / "cowsay_app.py.lock"
+        cowsay_lock_path = EXAMPLES_FOLDER / f"cowsay_app.py.{LOCKFILE_EXTENSION}"
 
         spec = EnvironmentSpec.from_script(cowsay_app_path)
 
@@ -162,7 +165,6 @@ class TestSpecText:
         assert env.details.requires_python == test_data.requires_python
         assert env.details.dependencies == test_data.dependencies
 
-
     @pytest.mark.parametrize("test_data", envs)
     def test_generate_lockdata(self, test_data, subprocess_run_mock):
         env = EnvironmentSpec(
@@ -202,7 +204,6 @@ class TestSpecText:
 
             assert lock_data == "# No Dependencies Declared"
 
-
     @pytest.mark.parametrize("test_data", envs)
     def test_requires_python_spec(self, test_data):
         # Test that the requires_python_spec function returns the correct specifierset
@@ -218,7 +219,6 @@ class TestSpecText:
         else:
             assert env.details.requires_python_spec is None
 
-
     @pytest.mark.parametrize("test_data", envs)
     def test_dependencies_spec(self, test_data):
         env = EnvironmentSpec(
@@ -229,7 +229,6 @@ class TestSpecText:
         assert env.details.dependencies_spec == [
             Requirement(s) for s in test_data.dependencies
         ]
-
 
     def test_spec_errors(self, ):
         fake_spec = (
@@ -248,7 +247,6 @@ class TestSpecText:
             "Invalid python version specifier: '!!>=3.10'",
             "Invalid dependency specification: 'invalid_spec!'",
         ]
-
 
     @pytest.mark.parametrize("test_data", envs)
     def test_asdict(self, test_data):

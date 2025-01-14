@@ -25,6 +25,8 @@
 from ducktools.classbuilder.prefab import Prefab, as_dict, attribute
 import ducktools.scriptmetadata as scriptmetadata
 
+from . import LOCKFILE_EXTENSION
+
 from .exceptions import ApplicationError
 from ._logger import log
 
@@ -176,7 +178,7 @@ class EnvironmentSpec:
     def lockdata(self) -> str:
         # If lockdata is None, see if there is a .lock file available
         if self._lockdata is None:
-            lock_path = f"{self.script_path}.lock"
+            lock_path = f"{self.script_path}.{LOCKFILE_EXTENSION}"
             try:
                 with open(lock_path, 'r') as lockfile:
                     self._lockdata = lockfile.read()
