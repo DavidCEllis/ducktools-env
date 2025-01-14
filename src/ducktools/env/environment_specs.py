@@ -222,42 +222,41 @@ class EnvironmentSpec:
         :param uv_path: Path to the UV executable
         :return: lockfile data as a text string or None if there are no dependencies
         """
-        if not self.lockdata:
-            # Only go through the process if there is anything to lock
-            if deps := "\n".join(self.details.dependencies):
-                python_version = []
-                if python_spec := self.details.requires_python_spec:
-                    # Try to find the minimum python version that satisfies the spec
-                    for s in python_spec:
-                        if s.operator in {"==", ">=", "~="}:
-                            python_version = ["--python-version", s.version]
-                            break
+        # Only go through the process if there is anything to lock
+        if deps := "\n".join(self.details.dependencies):
+            python_version = []
+            if python_spec := self.details.requires_python_spec:
+                # Try to find the minimum python version that satisfies the spec
+                for s in python_spec:
+                    if s.operator in {"==", ">=", "~="}:
+                        python_version = ["--python-version", s.version]
+                        break
 
-                lock_cmd = [
-                    uv_path,
-                    "pip",
-                    "compile",
-                    "--universal",
-                    "--generate-hashes",
-                    "--no-annotate",
-                    *python_version,
-                    "-",
-                ]
+            lock_cmd = [
+                uv_path,
+                "pip",
+                "compile",
+                "--universal",
+                "--generate-hashes",
+                "--no-annotate",
+                *python_version,
+                "-",
+            ]
 
-                log("Locking dependency tree")
-                lock_output = _laz.subprocess.run(
-                    lock_cmd,
-                    input=deps,
-                    capture_output=True,
-                    text=True,
-                )
+            log("Locking dependency tree")
+            lock_output = _laz.subprocess.run(
+                lock_cmd,
+                input=deps,
+                capture_output=True,
+                text=True,
+            )
 
-                self.lockdata = lock_output.stdout
+            self.lockdata = lock_output.stdout
 
-            else:
-                # There are no dependencies - Make a note of this
-                # This makes lockdata Truthy
-                self.lockdata = "# No Dependencies Declared"
+        else:
+            # There are no dependencies - Make a note of this
+            # This makes lockdata Truthy
+            self.lockdata = "# No Dependencies Declared"
 
         return self.lockdata
 

@@ -255,7 +255,7 @@ class Manager(Prefab):
         generate_lock: bool = False,
     ) -> EnvironmentSpec:
         """
-        Create a 'spec' file from a script path with lockfile arguments
+        Create a 'spec' object from a script path with lockfile arguments
 
         :param script_path: Path to the original script
         :param lock_path: Path to either existing lockfile or output path for lockfile
@@ -435,8 +435,8 @@ class Manager(Prefab):
             generate_lock=generate_lock,
         )
 
+        # Generaated in _spec_from_script, write it to a file here.
         if generate_lock:
-            spec.generate_lockdata(uv_path=self.retrieve_uv(required=True))
             lock_path = lock_path if lock_path else f"{script_path}.{LOCKFILE_EXTENSION}"
             with open(lock_path, 'w') as f:
                 f.write(spec.lockdata)
