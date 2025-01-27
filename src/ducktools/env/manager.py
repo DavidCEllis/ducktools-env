@@ -340,10 +340,6 @@ class Manager(Prefab):
         # Update environment variables for access from subprocess
         os.environ.update(env_vars)
 
-        def sigint_handler(signum, frame):
-            # Parent process should *not* terminate on keyboard interrupt
-            pass
-
         # Ignore the keyboard interrupt signal in parent process while subprocess is running.
         with _ignore_keyboardinterrupt():
             result = _laz.subprocess.run(
