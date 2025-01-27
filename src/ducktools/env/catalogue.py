@@ -301,6 +301,7 @@ class BaseCatalogue:
                                 "install",
                                 "--python",
                                 env.python_path,
+                                "--no-deps",
                                 "-r",
                                 requirements_path,
                             ]
@@ -310,6 +311,7 @@ class BaseCatalogue:
                                 "--python",
                                 env.python_path,
                                 "install",
+                                "--no-deps",
                                 "-r",
                                 requirements_path,
                             ]
