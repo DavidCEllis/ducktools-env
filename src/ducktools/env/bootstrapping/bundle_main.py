@@ -36,7 +36,9 @@ import zipfile
 from pathlib import Path
 
 # Included in bundle
-from _bootstrap import update_libraries, launch_script  # type: ignore
+from _bootstrap import LOCKFILE_EXTENSION, update_libraries, launch_script  # type: ignore
+
+
 
 
 def main(script_name):
@@ -66,7 +68,7 @@ def main(script_name):
             script_info.filename = script_dest.name
 
             # Get lockfile if it exists
-            lock_name = f"{script_name}.lock"
+            lock_name = f"{script_name}.{LOCKFILE_EXTENSION}"
             try:
                 lockdata = zipfile.Path(zf, lock_name).read_text()
             except FileNotFoundError:
