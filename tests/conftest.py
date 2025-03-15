@@ -19,7 +19,7 @@ import os.path
 import tempfile
 
 from ducktools.pythonfinder import get_python_installs
-from ducktools.pythonfinder.shared import get_install_details
+from ducktools.pythonfinder.shared import DetailFinder
 
 from ducktools.env.catalogue import TemporaryCatalogue
 from ducktools.env.config import Config
@@ -38,7 +38,8 @@ def available_pythons():
 @pytest.fixture(scope="session")
 def this_python():
     py = sys.executable
-    details = get_install_details(py)
+    finder = DetailFinder()
+    details = finder.get_install_details(py)
     # Pretend PyPy is CPython for tests
     if details.implementation == "pypy":
         details.implementation = "cpython"
