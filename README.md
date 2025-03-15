@@ -308,5 +308,10 @@ into a zipapp that will work on the other end with only Python as the requiremen
 ### pipx ###
 
 `pipx` is another tool that allows you to install packages from PyPI and run them as applications
-based on their `[project.scripts]` and `[project.gui-scripts]`. This is different from `ducktools-env`
-which specifically builds scripts into bundles based on inline dependencies.
+based on their `[project.scripts]` and `[project.gui-scripts]`. It also allows you to run inline scripts
+with more recent versions.
+
+### uv ###
+
+`uv` itself can run PEP-723 scripts. `ducktools-env` mostly still exists for the extra zipapp bundling
+and script registry tools.
