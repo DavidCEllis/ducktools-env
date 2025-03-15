@@ -128,21 +128,22 @@ generation and execution without having to over specify in the original
 script.
 
 This generation feature uses `uv` which will be automatically installed.
-`uv` is **not** required to use the generated lockfile (but will usually be installed).
+The lockfile generated is actually a 'universal' `requirements.txt` file with file hashes.
+As such `uv` is **not** required to use the generated lockfile (but will usually be installed).
 
 Create a lockfile without running a script:
 
 `ducktools-env generate_lock my_script.py`
 
-Run a script and output the generated lockfile (output as my_script.py.lock):
+Run a script and output the generated lockfile (output as my_script.py.dtenv.lock):
 
 `ducktools-env run --generate-lock my_script.py` (--generate-lock does not work with `dtrun`)
 
 Run a script using a pre-generated lockfile:
 
-`ducktools-env run --with-lock my_script.py.lock my_script.py`
+`ducktools-env run --with-lock my_script.py.dtenv.lock my_script.py`
 
-**If a `my_script.py.lock` file is found for a script it will automatically be used without
+**If a `my_script.py.dtenv.lock` file is found for a script it will automatically be used without
 needing to be specified**
 
 Bundle a script and generate a lockfile (that will be bundled):
@@ -151,9 +152,12 @@ Bundle a script and generate a lockfile (that will be bundled):
 
 Bundle a script with a pre-generated lockfile:
 
-`ducktools-env bundle --with-lock my_script.py.lock my_script.py`
+`ducktools-env bundle --with-lock my_script.py.dtenv.lock my_script.py`
 
-**If a `my_script.py.lock` file exists it will automatically be used.**
+**If a `my_script.py.dtenv.lock` file exists it will automatically be used in the bundle also.**
+
+The lockfile extension is now `.dtenv.lock` as `uv` will try to use a `.lock` file if it exists
+and uses its own tool-specific lockfile format. To avoid a clash with `uv` this was renamed.
 
 ## Including data files with script bundles ##
 
