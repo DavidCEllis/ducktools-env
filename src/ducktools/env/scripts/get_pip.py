@@ -62,15 +62,15 @@ class PipZipapp:
 
 # This is mostly kept for testing.
 PREVIOUS_PIP = PipZipapp(
-    version_str="24.2",
-    sha3_256="8dc4860613c47cb2e5e55c7e1ecf4046abe18edca083073d51f1720011bed6ea",
-    source_url="zipapp/pip-24.2.pyz",
-)
-
-LATEST_PIP = PipZipapp(
     version_str="24.3.1",
     sha3_256="6dd95ab685d00abada578f2744f2b235faf5876d3f3468f0756e2b78bce050f1",
     source_url="zipapp/pip-24.3.1.pyz"
+)
+
+LATEST_PIP = PipZipapp(
+    version_str="25.0.1",
+    sha3_256="eff93cf5d562974c1e6fff03c3d48c4b08bf5c5be8ceb315dc8b6ffe21860cb4",
+    source_url="zipapp/pip-25.0.1.pyz"
 )
 
 
@@ -105,10 +105,13 @@ def download_pip(
     with _laz.urlopen(url) as f:
         data = f.read()
 
+    dl_hash = _laz.hashlib.sha3_256(data).hexdigest()
     # Check hash matches
-    if _laz.hashlib.sha3_256(data).hexdigest() != latest_version.sha3_256:
+    if dl_hash != latest_version.sha3_256:
         raise InvalidPipDownload(
-            "The checksum of the downloaded PIP binary did not match the expected value."
+            "The checksum of the downloaded PIP binary did not match the expected value.\n"
+            f"Expected: {latest_version.sha3_256}\n"
+            f"Received: {dl_hash}"
         )
 
     # Make directory if it does not exist
