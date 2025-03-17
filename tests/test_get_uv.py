@@ -26,17 +26,40 @@ import sys
 import unittest.mock as mock
 from pathlib import Path
 
+import pytest
+
 import ducktools.env.scripts.get_uv as get_uv
 from ducktools.env.platform_paths import ManagedPaths
 
 UV_PYTHON_LIST_OUTPUT = Path(__file__).parent / "data" / "uv_python_versions_list.txt"
 
 
+@pytest.fixture(scope="function")
+def block_local_uv():
+    with mock.patch("shutil.which") as which_mock:
+        which_mock.return_value = None
+        yield
+
+
 class TestRetrieveUV:
     paths = ManagedPaths("ducktools_testing")
 
+    def test_local_uv(self):
+        fake_uv_path = "/home/uname/.cargo/bin/uv"
+        with (
+            mock.patch("shutil.which") as which_mock,
+            mock.patch("subprocess.run") as run_mock,
+        ):
+            which_mock.return_value = fake_uv_path
 
-    def test_uv_install(self):
+            uv_cmd_mock = mock.MagicMock()
+            uv_cmd_mock.stdout = "uv 0.6.5"
+            run_mock.return_value = uv_cmd_mock
+
+            assert get_uv.get_local_uv() == fake_uv_path
+            assert get_uv.retrieve_uv(self.paths, reinstall=False) == fake_uv_path
+
+    def test_uv_install(self, block_local_uv):
         with (
             mock.patch("os.path.exists") as exists_mock,
             mock.patch("os.remove") as remove_mock,
@@ -52,7 +75,7 @@ class TestRetrieveUV:
             open_mock.return_value.__enter__.return_value = writer_mock
 
             uv_cmd_mock = mock.MagicMock()
-            uv_cmd_mock.stdout = "uv 0.4.15 (0d81bfbc6 2024-09-21)"
+            uv_cmd_mock.stdout = "uv 0.6.5"
             run_mock.return_value = uv_cmd_mock
 
             build_path = "build/path"
@@ -94,14 +117,14 @@ class TestRetrieveUV:
 
             # One open call and write to store the UV version
             open_mock.assert_called_with(f"{self.paths.uv_executable}.version", "w")
-            writer_mock.write.assert_called_with("0.4.15")
+            writer_mock.write.assert_called_with("0.6.5")
 
             # Remove should not have been called
             remove_mock.assert_not_called()
 
             assert uv_path == self.paths.uv_executable
 
-    def test_uv_reinstall(self):
+    def test_uv_reinstall(self, block_local_uv):
         with (
             mock.patch("os.path.exists") as exists_mock,
             mock.patch("os.remove") as remove_mock,
@@ -117,7 +140,7 @@ class TestRetrieveUV:
             open_mock.return_value.__enter__.return_value = writer_mock
 
             uv_cmd_mock = mock.MagicMock()
-            uv_cmd_mock.stdout = "uv 0.4.15 (0d81bfbc6 2024-09-21)"
+            uv_cmd_mock.stdout = "uv 0.6.5"
             run_mock.return_value = uv_cmd_mock
 
             build_path = "build/path"
@@ -159,7 +182,7 @@ class TestRetrieveUV:
 
             # One open call and write to store the UV version
             open_mock.assert_called_with(f"{self.paths.uv_executable}.version", "w")
-            writer_mock.write.assert_called_with("0.4.15")
+            writer_mock.write.assert_called_with("0.6.5")
 
             # Remove should have been called twice
             remove_mock.assert_has_calls(
@@ -171,7 +194,7 @@ class TestRetrieveUV:
 
             assert uv_path == self.paths.uv_executable
 
-    def test_uv_install_failure(self):
+    def test_uv_install_failure(self, block_local_uv):
         with (
             mock.patch("os.path.exists") as exists_mock,
             mock.patch("os.remove") as remove_mock,
@@ -218,14 +241,14 @@ class TestRetrieveUV:
             open_mock.assert_not_called()
             remove_mock.assert_not_called()
 
-    def test_uv_exists_keep(self):
+    def test_uv_exists_keep(self, block_local_uv):
         with (
             mock.patch("os.path.exists") as exists_mock,
             mock.patch("os.remove") as remove_mock,
             mock.patch("subprocess.run") as run_mock,
             mock.patch.object(ManagedPaths, "get_uv_version") as uv_ver_mock
         ):
-            uv_ver_mock.return_value = "0.4.25"
+            uv_ver_mock.return_value = "0.6.5"
             exists_mock.return_value = True
             uv_path = get_uv.retrieve_uv(paths=self.paths, reinstall=False)
 

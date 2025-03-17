@@ -29,13 +29,87 @@ from .. import _lazy_imports as _laz
 from ..platform_paths import ManagedPaths
 
 
-uv_versionspec = ">=0.4.25"
+uv_versionspec = ">=0.6.5"
+uv_versionre = r"^uv (?P<uv_ver>\d+\.\d+\.\d+)"
 
 uv_download = "bin/uv.exe" if sys.platform == "win32" else "bin/uv"
 
 
+def download_uv(paths: ManagedPaths):
+    # Just the code to download UV from PyPI if it is otherwise unavailable
+    pip_install = retrieve_pip(paths=paths)
+
+    log("Downloading UV from PyPi")
+    with paths.build_folder() as build_folder:
+
+        install_folder = os.path.join(build_folder, "uv")
+
+        uv_dl = os.path.join(install_folder, uv_download)
+
+        pip_command = [
+            sys.executable,
+            pip_install,
+            "--disable-pip-version-check",
+            "install",
+            "-q",
+            f"uv{uv_versionspec}",
+            "--only-binary=:all:",
+            "--target",
+            install_folder,
+        ]
+
+        # Download UV with pip - handles getting the correct platform version
+        try:
+            _laz.subprocess.run(
+                pip_command,
+                check=True,
+            )
+        except _laz.subprocess.CalledProcessError as e:
+            log(f"UV download failed: {e}")
+            uv_path = None
+        else:
+            # Copy the executable out of the pip install
+            _laz.shutil.copy(uv_dl, paths.uv_executable)
+            uv_path = paths.uv_executable
+
+            version_command = [uv_path, "-V"]
+            version_output = _laz.subprocess.run(version_command, capture_output=True, text=True)
+            ver_match = _laz.re.match(uv_versionre, version_output.stdout.strip())
+            if ver_match:
+                uv_version = ver_match.group("uv_ver")
+                with open(f"{uv_path}.version", 'w') as ver_file:
+                    ver_file.write(uv_version)
+            else:
+                log(f"Unexpected UV version output {version_output.stdout!r}")
+                uv_path = None
+
+    return uv_path
+
+
+def get_local_uv():
+    uv_path = _laz.shutil.which("uv")
+    if uv_path:
+        log(f"Local uv install found at {uv_path}")
+        try:
+            version_output = _laz.subprocess.run([uv_path, "-V"], capture_output=True, text=True)
+        except (FileNotFoundError, _laz.subprocess.CalledProcessError):
+            return None
+
+        ver_match = _laz.re.match(uv_versionre, version_output.stdout.strip())
+        if ver_match:
+            uv_version = ver_match.group("uv_ver")
+            if uv_version not in _laz.SpecifierSet(uv_versionspec):
+                log(
+                    f"Local uv install version {uv_version!r} "
+                    f"does not satisfy the ducktools.env specifier {uv_versionspec!r}"
+                )
+                return None
+
+    return uv_path
+
+
 def retrieve_uv(paths: ManagedPaths, reinstall: bool = False) -> str | None:
-    uv_path = None
+    uv_path = get_local_uv()
 
     if os.path.exists(paths.uv_executable):
         uv_path = paths.uv_executable
@@ -48,46 +122,7 @@ def retrieve_uv(paths: ManagedPaths, reinstall: bool = False) -> str | None:
             uv_path = None
 
     if uv_path is None:
-        pip_install = retrieve_pip(paths=paths)
-
-        log("Downloading UV from PyPi")
-        with paths.build_folder() as build_folder:
-
-            install_folder = os.path.join(build_folder, "uv")
-
-            uv_dl = os.path.join(install_folder, uv_download)
-
-            pip_command = [
-                sys.executable,
-                pip_install,
-                "--disable-pip-version-check",
-                "install",
-                "-q",
-                f"uv{uv_versionspec}",
-                "--only-binary=:all:",
-                "--target",
-                install_folder,
-            ]
-
-            # Download UV with pip - handles getting the correct platform version
-            try:
-                _laz.subprocess.run(
-                    pip_command,
-                    check=True,
-                )
-            except _laz.subprocess.CalledProcessError as e:
-                log(f"UV download failed: {e}")
-                uv_path = None
-            else:
-                # Copy the executable out of the pip install
-                _laz.shutil.copy(uv_dl, paths.uv_executable)
-                uv_path = paths.uv_executable
-
-                version_command = [uv_path, "-V"]
-                version_output = _laz.subprocess.run(version_command, capture_output=True, text=True)
-                uv_version = version_output.stdout.split()[1]
-                with open(f"{uv_path}.version", 'w') as ver_file:
-                    ver_file.write(uv_version)
+        uv_path = download_uv(paths=paths)
 
     return uv_path
 
