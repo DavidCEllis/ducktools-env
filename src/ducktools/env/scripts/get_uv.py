@@ -89,7 +89,6 @@ def download_uv(paths: ManagedPaths):
 def get_local_uv():
     uv_path = _laz.shutil.which("uv")
     if uv_path:
-        log(f"Local uv install found at {uv_path}")
         try:
             version_output = _laz.subprocess.run([uv_path, "-V"], capture_output=True, text=True)
         except (FileNotFoundError, _laz.subprocess.CalledProcessError):
