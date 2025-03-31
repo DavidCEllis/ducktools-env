@@ -98,6 +98,11 @@ def migrate_old_env(name: str, mode="error"):
         if os.path.exists(old_folder):
             print(f"Migrating from {old_folder!r} to {new_folder!r}")
             import shutil
+
+            print("Deleting venv folders, cache can not correctly be moved")
+            shutil.rmtree(os.path.join(old_folder, CACHEDENV_FOLDERNAME))
+            shutil.rmtree(os.path.join(old_folder, APPLICATION_FOLDERNAME))
+
             if os.path.exists(new_folder):
                 if mode == "delete":
                     print(f"Removing old data folder as new folder detected.")
