@@ -534,7 +534,7 @@ class Manager(Prefab):
         script_args: list[str],
         generate_lock: bool = False,
         lock_path: str | None = None,
-    ) -> None:
+    ) -> int:
         try:
             row = self.script_registry.retrieve_script(script_name=script_name)
         except ScriptNotFound as e:
@@ -547,7 +547,7 @@ class Manager(Prefab):
 
         script_path = row.path
 
-        self.run_script(
+        return self.run_script(
             script_path=script_path,
             script_args=script_args,
             generate_lock=generate_lock,

@@ -27,6 +27,7 @@ import sys
 import os
 import os.path
 
+from ._logger import log
 
 class UnsupportedPlatformError(Exception):
     pass
@@ -69,7 +70,7 @@ else:
     USER_FOLDER = os.path.expanduser("~")
 
 
-def get_platform_python(venv_folder):
+def get_platform_python(venv_folder: str):
     if sys.platform == "win32":
         if sys.stdout:
             return os.path.join(venv_folder, "Scripts", "python.exe")
@@ -79,30 +80,69 @@ def get_platform_python(venv_folder):
         return os.path.join(venv_folder, "bin", "python")
 
 
-def get_platform_folder(name):
+def get_platform_folder(name: str, config: bool = False) -> str:
     if sys.platform == "win32":
-        return os.path.join(USER_FOLDER, name)
+        platform_folder = os.path.join(USER_FOLDER, name)
+    elif config:
+        platform_folder = os.path.join(USER_FOLDER, ".config", name)
     else:
-        return os.path.join(USER_FOLDER, f".{name}")
+        platform_folder = os.path.join(USER_FOLDER, ".local", "share", name)
+
+    return platform_folder
+
+
+def migrate_old_env(name: str, mode="error"):
+    if sys.platform != "win32":
+        old_folder = os.path.join(USER_FOLDER, f".{name}")
+        new_folder = os.path.join(USER_FOLDER, ".local", "share", name)
+        if os.path.exists(old_folder):
+            print(f"Migrating from {old_folder!r} to {new_folder!r}")
+            import shutil
+            if os.path.exists(new_folder):
+                if mode == "delete":
+                    print(f"Removing old data folder as new folder detected.")
+                    shutil.rmtree(old_folder)
+                elif mode == "overwrite":
+                    print(f"Overwriting new folder with old folder data")
+                    shutil.rmtree(new_folder)
+                    shutil.move(old_folder, new_folder)
+                else:
+                    raise RuntimeError(
+                        "Error: Both old and new env folders exist.\n"
+                        "Use --delete to remove the old folder or --overwrite to replace the new folder"
+                    )
+            else:
+                os.makedirs(os.path.dirname(new_folder), exist_ok=True)
+                shutil.move(old_folder, new_folder)
+                print(f"Moved old data to new folder")
+
+            # Try to remove the old folder, will only succeed if empty
+            try:
+                os.rmdir(os.path.dirname(old_folder))
+            except OSError:
+                pass
 
 
 class ManagedPaths:
     project_name: str
     project_folder: str
+
+    # WIN32: %LOCALAPPDATA%\ducktools\env
+    # OTHER: ~/.config/ducktools/env
     config_path: str
 
+    # WIN32: %LOCALAPPDATA%\ducktools\env
+    # OTHER: ~/.local/share/ducktools/env
     manager_folder: str
     pip_zipapp: str
     uv_executable: str
     env_folder: str
+    register_db: str
 
     application_folder: str
     application_db: str
-
     cache_folder: str
     cache_db: str
-
-    register_db: str
 
     build_base: str
 
@@ -112,7 +152,18 @@ class ManagedPaths:
         folder_base = os.path.join(self.project_name, PACKAGE_SUBFOLDER)
 
         self.project_folder = get_platform_folder(folder_base)
-        self.config_path = os.path.join(self.project_folder, CONFIG_FILENAME)
+
+        if sys.platform != "win32":
+            if os.path.exists(os.path.join(USER_FOLDER, f".{folder_base}")):
+                log(
+                    "Old ducktools-env folder detected, "
+                    "use the migrate subcommand to copy data to the new path."
+                )
+
+        self.config_path = os.path.join(
+            get_platform_folder(folder_base, config=True),
+            CONFIG_FILENAME
+        )
 
         self.manager_folder = os.path.join(self.project_folder, MANAGER_FOLDERNAME)
         self.pip_zipapp = os.path.join(self.manager_folder, "pip.pyz")

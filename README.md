@@ -60,7 +60,9 @@ version automatically and use that to build the environment.
 Environment data and the application itself will be stored in the following locations:
 
 * Windows: `%LOCALAPPDATA%\ducktools\env`
-* Linux/Mac/Other: `~/.ducktools/env`
+* Linux/Mac/Other: 
+  * Data: `~/.local/share/ducktools/env`
+  * Config: `~/.config/ducktools/env` (Not yet used)
 
 ## Usage ##
 
