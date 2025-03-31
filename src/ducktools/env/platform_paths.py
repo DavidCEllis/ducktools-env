@@ -90,7 +90,7 @@ def get_platform_folder(name: str, config: bool = False) -> str:
     return platform_folder
 
 
-def migrate_old_env(name: str):
+def migrate_old_env(name: str, mode="error"):
     if sys.platform != "win32":
         old_folder = os.path.join(USER_FOLDER, f".{name}")
         new_folder = os.path.join(USER_FOLDER, ".local", "share", name)
@@ -98,8 +98,18 @@ def migrate_old_env(name: str):
             print(f"Migrating from {old_folder!r} to {new_folder!r}")
             import shutil
             if os.path.exists(new_folder):
-                print(f"Removing old data folder as new folder detected.")
-                shutil.rmtree(old_folder)
+                if mode == "delete":
+                    print(f"Removing old data folder as new folder detected.")
+                    shutil.rmtree(old_folder)
+                elif mode == "overwrite":
+                    print(f"Overwriting new folder with old folder data")
+                    shutil.rmtree(new_folder)
+                    shutil.move(old_folder, new_folder)
+                else:
+                    raise RuntimeError(
+                        "Error: Both old and new env folders exist.\n"
+                        "Use --delete to remove the old folder or --overwrite to replace the new folder"
+                    )
             else:
                 os.makedirs(os.path.dirname(new_folder), exist_ok=True)
                 shutil.move(old_folder, new_folder)
