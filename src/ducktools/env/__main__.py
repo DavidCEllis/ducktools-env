@@ -227,6 +227,13 @@ def get_parser(prog, exit_on_error=True) -> FixedArgumentParser:
         help="Name of the environment to delete",
     )
 
+    # Temporary migrate argument
+    if sys.platform != "win32":
+        migrate = subparsers.add_parser(
+            "migrate",
+            help="migrate old ducktools-env folder"
+        )
+
     return parser
 
 
@@ -431,6 +438,13 @@ def delete_env_command(manager, args):
     return 0
 
 
+def migrate_command(manager):
+    from .platform_paths import PACKAGE_SUBFOLDER, migrate_old_env
+    folder_base = os.path.join(manager.project_name, PACKAGE_SUBFOLDER)
+    migrate_old_env(folder_base)
+    return 0
+
+
 def main_command() -> int:
     executable_name = os.path.splitext(os.path.basename(sys.executable))[0]
 
@@ -479,6 +493,8 @@ def main_command() -> int:
             return list_command(manager, args)
         case "delete_env":
             return delete_env_command(manager, args)
+        case "migrate":
+            return migrate_command(manager)
         case _:
             raise RuntimeError(f"Invalid Command {args.command!r}")
 

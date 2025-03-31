@@ -95,13 +95,21 @@ def migrate_old_env(name: str):
         old_folder = os.path.join(USER_FOLDER, f".{name}")
         new_folder = os.path.join(USER_FOLDER, ".local", "share", name)
         if os.path.exists(old_folder):
+            print(f"Migrating from {old_folder!r} to {new_folder!r}")
             import shutil
             if os.path.exists(new_folder):
-                print(f"Removing old data folder as new folder detected: {old_folder!r}")
+                print(f"Removing old data folder as new folder detected.")
                 shutil.rmtree(old_folder)
             else:
                 os.makedirs(os.path.dirname(new_folder), exist_ok=True)
                 shutil.move(old_folder, new_folder)
+                print(f"Moved old data to new folder")
+
+            # Try to remove the old folder, will only succeed if empty
+            try:
+                os.rmdir(os.path.dirname(old_folder))
+            except OSError:
+                pass
 
 
 class ManagedPaths:
@@ -133,9 +141,6 @@ class ManagedPaths:
         folder_base = os.path.join(self.project_name, PACKAGE_SUBFOLDER)
 
         self.project_folder = get_platform_folder(folder_base)
-
-        # Check for the old env folder and migrate on linux/macos
-        migrate_old_env(folder_base)
 
         self.config_path = os.path.join(
             get_platform_folder(folder_base, config=True),
