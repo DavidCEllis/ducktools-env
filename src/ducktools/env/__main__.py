@@ -491,7 +491,7 @@ def main() -> int:
         if sys.stderr:
             sys.stderr.write(errors)
         return 1
-    return 0
+    return result
 
 
 if __name__ == "__main__":

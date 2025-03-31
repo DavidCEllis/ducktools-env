@@ -39,6 +39,12 @@ from .exceptions import EnvError
 
 
 def run():
+    if len(sys.argv) < 2:
+        # Script path is required
+        sys.stderr.write("usage: dtrun script_filename [script_args ...]\n")
+        sys.stderr.write("dtrun: error: the following arguments are required: script_filename\n")
+        return 1
+
     # First argument is the path to this script
     _, app, *args = sys.argv
 
@@ -52,12 +58,12 @@ def run():
 
     try:
         if os.path.isfile(app):
-            manager.run_script(
+            returncode = manager.run_script(
                 script_path=app,
                 script_args=args,
             )
         else:
-            manager.run_registered_script(
+            returncode = manager.run_registered_script(
                 script_name=app,
                 script_args=args,
             )
@@ -67,4 +73,4 @@ def run():
             sys.stderr.write(msg)
         return 1
 
-    return 0
+    return returncode
