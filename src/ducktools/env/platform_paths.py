@@ -27,6 +27,7 @@ import sys
 import os
 import os.path
 
+from ._logger import log
 
 class UnsupportedPlatformError(Exception):
     pass
@@ -151,6 +152,13 @@ class ManagedPaths:
         folder_base = os.path.join(self.project_name, PACKAGE_SUBFOLDER)
 
         self.project_folder = get_platform_folder(folder_base)
+
+        if sys.platform != "win32":
+            if os.path.exists(os.path.join(USER_FOLDER, f".{folder_base}")):
+                log(
+                    "Old ducktools-env folder detected, "
+                    "use the migrate subcommand to copy data to the new path."
+                )
 
         self.config_path = os.path.join(
             get_platform_folder(folder_base, config=True),
