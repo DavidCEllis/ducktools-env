@@ -69,7 +69,7 @@ else:
     USER_FOLDER = os.path.expanduser("~")
 
 
-def get_platform_python(venv_folder):
+def get_platform_python(venv_folder: str):
     if sys.platform == "win32":
         if sys.stdout:
             return os.path.join(venv_folder, "Scripts", "python.exe")
@@ -79,30 +79,51 @@ def get_platform_python(venv_folder):
         return os.path.join(venv_folder, "bin", "python")
 
 
-def get_platform_folder(name):
+def get_platform_folder(name: str, config: bool = False) -> str:
     if sys.platform == "win32":
-        return os.path.join(USER_FOLDER, name)
+        platform_folder = os.path.join(USER_FOLDER, name)
+    elif config:
+        platform_folder = os.path.join(USER_FOLDER, ".config", name)
     else:
-        return os.path.join(USER_FOLDER, f".{name}")
+        platform_folder = os.path.join(USER_FOLDER, ".local", "share", name)
+
+    return platform_folder
+
+
+def migrate_old_env(name: str):
+    if sys.platform != "win32":
+        old_folder = os.path.join(USER_FOLDER, f".{name}")
+        new_folder = os.path.join(USER_FOLDER, ".local", "share", name)
+        if os.path.exists(old_folder):
+            import shutil
+            if os.path.exists(new_folder):
+                print(f"Removing old data folder as new folder detected: {old_folder!r}")
+                shutil.rmtree(old_folder)
+            else:
+                os.makedirs(os.path.dirname(new_folder), exist_ok=True)
+                shutil.move(old_folder, new_folder)
 
 
 class ManagedPaths:
     project_name: str
     project_folder: str
+
+    # WIN32: %LOCALAPPDATA%\ducktools\env
+    # OTHER: ~/.config/ducktools/env
     config_path: str
 
+    # WIN32: %LOCALAPPDATA%\ducktools\env
+    # OTHER: ~/.local/share/ducktools/env
     manager_folder: str
     pip_zipapp: str
     uv_executable: str
     env_folder: str
+    register_db: str
 
     application_folder: str
     application_db: str
-
     cache_folder: str
     cache_db: str
-
-    register_db: str
 
     build_base: str
 
@@ -112,7 +133,14 @@ class ManagedPaths:
         folder_base = os.path.join(self.project_name, PACKAGE_SUBFOLDER)
 
         self.project_folder = get_platform_folder(folder_base)
-        self.config_path = os.path.join(self.project_folder, CONFIG_FILENAME)
+
+        # Check for the old env folder and migrate on linux/macos
+        migrate_old_env(folder_base)
+
+        self.config_path = os.path.join(
+            get_platform_folder(folder_base, config=True),
+            CONFIG_FILENAME
+        )
 
         self.manager_folder = os.path.join(self.project_folder, MANAGER_FOLDERNAME)
         self.pip_zipapp = os.path.join(self.manager_folder, "pip.pyz")
