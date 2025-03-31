@@ -39,7 +39,11 @@ def test_get_platform_folder():
     if sys.platform == "win32":
         assert platform_folder == str(USER_PATH / "demo")
     else:
-        assert platform_folder == str(USER_PATH / ".demo")
+        assert platform_folder == str(USER_PATH / ".local/share/demo")
+
+    if sys.platform != "win32":
+        config_folder = get_platform_folder("demo", config=True)
+        assert config_folder == str(USER_PATH / ".config/demo")
 
 
 class TestManagedPaths:
@@ -52,9 +56,10 @@ class TestManagedPaths:
         # they are not accidentally changed.
 
         project_folder = Path(get_platform_folder(self.project_name)) / "env"
+        config_folder = Path(get_platform_folder(self.project_name, config=True)) / "env"
 
         assert self.paths.project_folder == str(project_folder)
-        assert self.paths.config_path == str(project_folder / "config.json")
+        assert self.paths.config_path == str(config_folder / "config.json")
         assert self.paths.manager_folder == str(project_folder / "lib")
         assert self.paths.pip_zipapp == str(project_folder / "lib" / "pip.pyz")
         assert self.paths.env_folder == str(project_folder / "lib" / "ducktools-env")
