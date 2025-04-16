@@ -168,9 +168,13 @@ class SQLClass(metaclass=SQLMeta):
             if not value.internal:
                 valid_fields[name] = value
 
-            if value.type == list[str]:
+            v_type = value.type
+            if isinstance(v_type, str):
+                v_type = eval(v_type)
+
+            if v_type == list[str]:
                 split_columns.add(name)
-            elif value.type is bool:
+            elif v_type is bool:
                 bools.add(name)
 
         cls.VALID_FIELDS = valid_fields
