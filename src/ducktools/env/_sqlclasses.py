@@ -207,7 +207,12 @@ class SQLClass(metaclass=SQLMeta):
         sql_field_list = []
 
         for name, field in cls.VALID_FIELDS.items():
-            field_type = TYPE_MAP[field.type]
+            t = field.type
+            # __future__ annotations
+            if isinstance(t, str):
+                t = eval(t)
+
+            field_type = TYPE_MAP[t]
             if field.primary_key:
                 constraint = " PRIMARY KEY"
             elif field.unique:
