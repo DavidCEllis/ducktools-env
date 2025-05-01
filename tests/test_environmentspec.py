@@ -152,7 +152,7 @@ class TestExampleSpecs:
         
         log_mock.assert_called_once_with(
             MetadataWarning(
-                line_number=20,
+                line_number=27,
                 message=(
                     "Potential unclosed block 'script' detected. "
                     "A '# ///' block is needed to indicate the end of the block."
