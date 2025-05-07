@@ -288,11 +288,11 @@ and will extract everything into one `~/.shiv` directory unless otherwise specif
 `ducktools-env` will create a separate environment for each unique set of requirements
 for temporary environments by matching specification.
 
-### PEX ###
+### Pex ###
 
 `pex` provides an assortment of related tools for developers alongside a `.pex` bundler.
-It doesn't (to my knowledge) have support for inline script metadata and it makes `.pex` files
-instead of `.pyz` files.
+It supports inline script metadata and running with C extensions. It only supports bundling
+dependencies and does not support `online` installs. It optionally supports embedding Python itself.
 
 ### PyInstaller ###
 
