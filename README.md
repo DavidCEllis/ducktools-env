@@ -284,15 +284,20 @@ can be bundled or downloaded on first launch via `pip`.
 ### Shiv ###
 
 `shiv` allows you to bundle zipapps with C extensions, but doesn't provide for any `online` installs
-and will extract everything into one `~/.shiv` directory unless otherwise specified. 
-`ducktools-env` will create a separate environment for each unique set of requirements
-for temporary environments by matching specification.
+and will extract everything into one `~/.shiv` directory unless otherwise specified.
+At the time of writing support for using inline script metadata has not yet been merged but there
+is a PR to add support.
 
-### PEX ###
+`ducktools-env` creates and manages virtual environments for each unique set of script requirements.
+These are kept in more platform specific directories documented earlier in the readme.
 
-`pex` provides an assortment of related tools for developers alongside a `.pex` bundler.
-It doesn't (to my knowledge) have support for inline script metadata and it makes `.pex` files
-instead of `.pyz` files.
+### Pex ###
+
+`Pex` provides an assortment of related tools for developers alongside a `.pex` bundler.
+It has (undocumented) support for inline script metadata for building its archives and will
+bundle dependencies including C extensions inside the archive, with the option to also
+include a Python runtime. It does not support `online` installs, so archives may be platform
+dependent.
 
 ### PyInstaller ###
 
@@ -317,3 +322,5 @@ with more recent versions.
 
 `uv` itself can run PEP-723 scripts. `ducktools-env` mostly still exists for the extra zipapp bundling
 and script registry tools.
+
+[^1]: undocumented
