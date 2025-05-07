@@ -297,7 +297,7 @@ These are kept in more platform specific directories documented earlier in the r
 It has (undocumented) support for inline script metadata for building its archives and will
 bundle dependencies including C extensions inside the archive, with the option to also
 include a Python runtime. It does not support `online` installs, so archives may be platform
-dependent.
+dependent or large.
 
 ### PyInstaller ###
 
