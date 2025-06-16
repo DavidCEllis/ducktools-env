@@ -16,10 +16,10 @@ requires-python = ">=3.10"
 dependencies = [
     "ducktools-classbuilder>=0.7.1",
     "ducktools-lazyimporter>=0.7.0",
-    "ducktools-scriptmetadata",
+    "ducktools-scriptmetadata>=0.2.0",
     "ducktools-pythonfinder>=0.8.1",
-    "tomli; python_version < '3.11'",
-    "packaging>=23.2",
+    "tomli>=2.2; python_version < '3.11'",
+    "packaging>=24.2",
 ]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
@@ -33,12 +33,16 @@ classifiers = [
 ]
 dynamic = ["version"]
 
-[project.optional-dependencies]
-testing = ["pytest", "pytest-cov", "coverage-conditional-plugin"]
-
 [project.scripts]
 "ducktools-env" = "ducktools.env.__main__:main"
 "dtrun" = "ducktools.env._run:run"
+
+[dependency-groups]
+dev = [
+    "coverage-conditional-plugin>=0.9.0",
+    "pytest>=8.4.0",
+    "pytest-cov>=6.2.1",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -63,4 +67,3 @@ plugins = ["coverage_conditional_plugin"]
 # This tool works backwards - it really means no cover if <condition>
 skip-if-os-win32 = "sys_platform == 'win32'"
 skip-if-os-other = "sys_platform != 'win32'"
-
