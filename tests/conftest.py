@@ -87,3 +87,7 @@ def test_config():
 def testing_catalogue(catalogue_path):
     catalogue = TemporaryCatalogue(path=catalogue_path)
     yield catalogue
+
+
+def pytest_report_header():
+    return f"virtualenv: {sys.prefix}"
