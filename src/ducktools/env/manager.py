@@ -1,18 +1,18 @@
 # ducktools.env
 # MIT License
-# 
+#
 # Copyright (c) 2024 David C Ellis
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -60,7 +60,7 @@ _laz_internal = LazyImporter(
         FromImport(".scripts.get_pip", "retrieve_pip"),
         MultiFromImport(
             ".scripts.get_uv",
-            ["retrieve_uv", "get_available_pythons", "install_uv_python"]
+            ["get_local_uv", "get_available_pythons", "install_uv_python"]
         ),
         MultiFromImport(
             ".scripts.create_zipapp",
@@ -158,8 +158,10 @@ class Manager(Prefab):
         return _laz_internal.retrieve_pip(paths=self.paths)
 
     def retrieve_uv(self, required=False) -> str | None:
+        # Retrieve the path to the uv executable
+        # if uv is installed
         if self.config.use_uv or required:
-            uv_path = _laz_internal.retrieve_uv(paths=self.paths)
+            uv_path = _laz_internal.get_local_uv()
         else:
             uv_path = None
 
@@ -496,8 +498,8 @@ class Manager(Prefab):
     ) -> str:
         """
         Generate lockfile data and write the output to a file
-        
-        :param script_path: Path to the source script 
+
+        :param script_path: Path to the source script
         :param lockfile_path: Path to the output lockfile
         :return: Path to the output lockfile
         """""

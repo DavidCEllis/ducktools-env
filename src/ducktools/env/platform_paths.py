@@ -1,18 +1,18 @@
 # ducktools.env
 # MIT License
-# 
+#
 # Copyright (c) 2024 David C Ellis
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -140,7 +140,6 @@ class ManagedPaths:
     # OTHER: ~/.local/share/ducktools/env
     manager_folder: str
     pip_zipapp: str
-    uv_executable: str
     env_folder: str
     register_db: str
 
@@ -172,10 +171,6 @@ class ManagedPaths:
 
         self.manager_folder = os.path.join(self.project_folder, MANAGER_FOLDERNAME)
         self.pip_zipapp = os.path.join(self.manager_folder, "pip.pyz")
-        self.uv_executable = os.path.join(
-            self.manager_folder,
-            "uv.exe" if sys.platform == "win32" else "uv",
-        )
         self.env_folder = os.path.join(self.manager_folder, "ducktools-env")
 
         self.application_folder = os.path.join(self.project_folder, APPLICATION_FOLDERNAME)
@@ -203,10 +198,6 @@ class ManagedPaths:
 
     def get_env_version(self):
         version_file = f"{self.env_folder}.version"
-        return self.get_app_version(version_file)
-
-    def get_uv_version(self):
-        version_file = f"{self.uv_executable}.version"
         return self.get_app_version(version_file)
 
     def build_folder(self):
