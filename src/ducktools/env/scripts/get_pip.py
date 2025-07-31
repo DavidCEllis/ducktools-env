@@ -1,18 +1,18 @@
 # ducktools.env
 # MIT License
-# 
+#
 # Copyright (c) 2024 David C Ellis
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -62,15 +62,15 @@ class PipZipapp:
 
 # This is mostly kept for testing.
 PREVIOUS_PIP = PipZipapp(
-    version_str="24.3.1",
-    sha3_256="6dd95ab685d00abada578f2744f2b235faf5876d3f3468f0756e2b78bce050f1",
-    source_url="zipapp/pip-24.3.1.pyz"
-)
-
-LATEST_PIP = PipZipapp(
     version_str="25.0.1",
     sha3_256="eff93cf5d562974c1e6fff03c3d48c4b08bf5c5be8ceb315dc8b6ffe21860cb4",
     source_url="zipapp/pip-25.0.1.pyz"
+)
+
+LATEST_PIP = PipZipapp(
+    version_str="25.1.1",
+    sha3_256="19cea26421fcda28baa6a54f3e9be60a9ea06e85bf9b91f627de18bed0d0dc7b",
+    source_url="zipapp/pip-25.1.1.pyz"
 )
 
 
