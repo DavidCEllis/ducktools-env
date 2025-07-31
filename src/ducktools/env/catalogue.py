@@ -1,18 +1,18 @@
 # ducktools.env
 # MIT License
-# 
+#
 # Copyright (c) 2024 David C Ellis
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -54,7 +54,7 @@ class BaseEnvironment(SQLClass):
     parent_python: str
     created_on: str = SQLAttribute(default_factory=_datetime_now_iso)
     last_used: str = SQLAttribute(default_factory=_datetime_now_iso, compare=False)
-    
+
     # This field is used to indicate that the venv is usable in case another process
     # Attempts to run a script from the venv before it has finished construction
     # This is False initially and set to True after dependencies are installed
@@ -271,14 +271,9 @@ class BaseCatalogue:
         # Build the venv folder
         try:
             log(f"Creating venv in: {env.path}")
-            if uv_path:
-                _laz.subprocess.run(
-                    [uv_path, "venv", "-q", "--python", python_exe, env.path], check=True
-                )
-            else:
-                _laz.subprocess.run(
-                    [python_exe, "-m", "venv", "--without-pip", env.path], check=True
-                )
+            _laz.subprocess.run(
+                [python_exe, "-m", "venv", "--without-pip", env.path], check=True
+            )
         except _laz.subprocess.CalledProcessError as e:
             # Try to delete the folder if it exists
             _laz.shutil.rmtree(env.path, ignore_errors=True)

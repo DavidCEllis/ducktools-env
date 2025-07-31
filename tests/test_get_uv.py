@@ -1,18 +1,18 @@
 # ducktools.env
 # MIT License
-# 
+#
 # Copyright (c) 2024 David C Ellis
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -39,224 +39,6 @@ def block_local_uv():
     with mock.patch("shutil.which") as which_mock:
         which_mock.return_value = None
         yield
-
-
-class TestRetrieveUV:
-    paths = ManagedPaths("ducktools_testing")
-
-    def test_local_uv(self):
-        fake_uv_path = "/home/uname/.cargo/bin/uv"
-        with (
-            mock.patch("shutil.which") as which_mock,
-            mock.patch("subprocess.run") as run_mock,
-        ):
-            which_mock.return_value = fake_uv_path
-
-            uv_cmd_mock = mock.MagicMock()
-            uv_cmd_mock.stdout = "uv 0.6.5"
-            run_mock.return_value = uv_cmd_mock
-
-            assert get_uv.get_local_uv() == fake_uv_path
-            assert get_uv.retrieve_uv(self.paths, reinstall=False) == fake_uv_path
-
-    def test_uv_install(self, block_local_uv):
-        with (
-            mock.patch("os.path.exists") as exists_mock,
-            mock.patch("os.remove") as remove_mock,
-            mock.patch("subprocess.run") as run_mock,
-            mock.patch("shutil.copy") as copy_mock,
-            mock.patch.object(get_uv, "retrieve_pip") as retrieve_pip_mock,
-            mock.patch("builtins.open") as open_mock,
-            mock.patch.object(self.paths, "build_folder") as build_folder_mock,
-        ):
-            retrieve_pip_mock.return_value = self.paths.pip_zipapp
-
-            writer_mock = mock.MagicMock()
-            open_mock.return_value.__enter__.return_value = writer_mock
-
-            uv_cmd_mock = mock.MagicMock()
-            uv_cmd_mock.stdout = "uv 0.6.5"
-            run_mock.return_value = uv_cmd_mock
-
-            build_path = "build/path"
-            build_folder_mock.return_value.__enter__.return_value = build_path
-            exists_mock.return_value = False
-
-            uv_path = get_uv.retrieve_uv(paths=self.paths, reinstall=False)
-
-            # Should be 2 calls, one to download UV with pip and one to get UV version
-            run_mock.assert_has_calls(
-                [
-                    mock.call(
-                        [
-                            sys.executable,
-                            self.paths.pip_zipapp,
-                            "--disable-pip-version-check",
-                            "install",
-                            "-q",
-                            f"uv{get_uv.uv_versionspec}",
-                            "--only-binary=:all:",
-                            "--target",
-                            os.path.join(build_path, "uv")
-                        ],
-                        check=True,
-                    ),
-                    mock.call(
-                        [self.paths.uv_executable, "-V"],
-                        capture_output=True,
-                        text=True,
-                    )
-                ],
-            )
-
-            # One call to copy the UV executable into the ducktools folder
-            copy_mock.assert_called_once_with(
-                os.path.join(build_path, "uv", get_uv.uv_download),
-                self.paths.uv_executable,
-            )
-
-            # One open call and write to store the UV version
-            open_mock.assert_called_with(f"{self.paths.uv_executable}.version", "w")
-            writer_mock.write.assert_called_with("0.6.5")
-
-            # Remove should not have been called
-            remove_mock.assert_not_called()
-
-            assert uv_path == self.paths.uv_executable
-
-    def test_uv_reinstall(self, block_local_uv):
-        with (
-            mock.patch("os.path.exists") as exists_mock,
-            mock.patch("os.remove") as remove_mock,
-            mock.patch("subprocess.run") as run_mock,
-            mock.patch("shutil.copy") as copy_mock,
-            mock.patch.object(get_uv, "retrieve_pip") as retrieve_pip_mock,
-            mock.patch("builtins.open") as open_mock,
-            mock.patch.object(self.paths, "build_folder") as build_folder_mock,
-        ):
-            retrieve_pip_mock.return_value = self.paths.pip_zipapp
-
-            writer_mock = mock.MagicMock()
-            open_mock.return_value.__enter__.return_value = writer_mock
-
-            uv_cmd_mock = mock.MagicMock()
-            uv_cmd_mock.stdout = "uv 0.6.5"
-            run_mock.return_value = uv_cmd_mock
-
-            build_path = "build/path"
-            build_folder_mock.return_value.__enter__.return_value = build_path
-            exists_mock.return_value = True
-
-            uv_path = get_uv.retrieve_uv(paths=self.paths, reinstall=True)
-
-            # Should be 2 calls, one to download UV with pip and one to get UV version
-            run_mock.assert_has_calls(
-                [
-                    mock.call(
-                        [
-                            sys.executable,
-                            self.paths.pip_zipapp,
-                            "--disable-pip-version-check",
-                            "install",
-                            "-q",
-                            f"uv{get_uv.uv_versionspec}",
-                            "--only-binary=:all:",
-                            "--target",
-                            os.path.join(build_path, "uv")
-                        ],
-                        check=True,
-                    ),
-                    mock.call(
-                        [self.paths.uv_executable, "-V"],
-                        capture_output=True,
-                        text=True,
-                    )
-                ],
-            )
-
-            # One call to copy the UV executable into the ducktools folder
-            copy_mock.assert_called_once_with(
-                os.path.join(build_path, "uv", get_uv.uv_download),
-                self.paths.uv_executable,
-            )
-
-            # One open call and write to store the UV version
-            open_mock.assert_called_with(f"{self.paths.uv_executable}.version", "w")
-            writer_mock.write.assert_called_with("0.6.5")
-
-            # Remove should have been called twice
-            remove_mock.assert_has_calls(
-                [
-                    mock.call(self.paths.uv_executable),
-                    mock.call(f"{self.paths.uv_executable}.version")
-                ]
-            )
-
-            assert uv_path == self.paths.uv_executable
-
-    def test_uv_install_failure(self, block_local_uv):
-        with (
-            mock.patch("os.path.exists") as exists_mock,
-            mock.patch("os.remove") as remove_mock,
-            mock.patch("subprocess.run") as run_mock,
-            mock.patch("shutil.copy") as copy_mock,
-            mock.patch.object(get_uv, "retrieve_pip") as retrieve_pip_mock,
-            mock.patch("builtins.open") as open_mock,
-            mock.patch.object(self.paths, "build_folder") as build_folder_mock,
-        ):
-            retrieve_pip_mock.return_value = self.paths.pip_zipapp
-
-            build_path = "build/path"
-            build_folder_mock.return_value.__enter__.return_value = build_path
-            exists_mock.return_value = False
-
-            run_mock.side_effect = subprocess.CalledProcessError(
-                returncode=1,
-                cmd=sys.executable,
-                stderr="Could not run PIP"
-            )
-
-            uv_path = get_uv.retrieve_uv(paths=self.paths, reinstall=False)
-
-            assert uv_path is None
-
-            # Only one run command should be launched
-            run_mock.assert_called_with(
-                [
-                    sys.executable,
-                    self.paths.pip_zipapp,
-                    "--disable-pip-version-check",
-                    "install",
-                    "-q",
-                    f"uv{get_uv.uv_versionspec}",
-                    "--only-binary=:all:",
-                    "--target",
-                    os.path.join(build_path, "uv")
-                ],
-                check=True,
-            )
-
-            # No attempts to copy or run other commands should happen
-            copy_mock.assert_not_called()
-            open_mock.assert_not_called()
-            remove_mock.assert_not_called()
-
-    def test_uv_exists_keep(self, block_local_uv):
-        with (
-            mock.patch("os.path.exists") as exists_mock,
-            mock.patch("os.remove") as remove_mock,
-            mock.patch("subprocess.run") as run_mock,
-            mock.patch.object(ManagedPaths, "get_uv_version") as uv_ver_mock
-        ):
-            uv_ver_mock.return_value = "0.6.5"
-            exists_mock.return_value = True
-            uv_path = get_uv.retrieve_uv(paths=self.paths, reinstall=False)
-
-            exists_mock.assert_called_once_with(self.paths.uv_executable)
-            remove_mock.assert_not_called()
-            run_mock.assert_not_called()
-
-            assert uv_path == self.paths.uv_executable
 
 
 def test_get_available_pythons():

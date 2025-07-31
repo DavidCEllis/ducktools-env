@@ -1,18 +1,18 @@
 # ducktools.env
 # MIT License
-# 
+#
 # Copyright (c) 2024 David C Ellis
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -69,28 +69,21 @@ class TestManagedPaths:
         assert self.paths.cache_db == str(project_folder / "caches" / "catalogue.db")
         assert self.paths.build_base == str(project_folder / "build")
 
-        if sys.platform == "win32":
-            assert self.paths.uv_executable == str(project_folder / "lib" / "uv.exe")
-        else:
-            assert self.paths.uv_executable == str(project_folder / "lib" / "uv")
-
     def test_get_versions(self):
         with mock.patch.object(self.paths, "get_app_version") as gav_mock:
             gav_mock.return_value = "0.1.0"
 
             pip_ver = self.paths.get_pip_version()
             env_ver = self.paths.get_env_version()
-            uv_ver = self.paths.get_uv_version()
 
             gav_mock.assert_has_calls(
                 [
                     mock.call(f"{self.paths.pip_zipapp}.version"),
                     mock.call(f"{self.paths.env_folder}.version"),
-                    mock.call(f"{self.paths.uv_executable}.version"),
                 ]
             )
 
-            assert pip_ver == env_ver == uv_ver == "0.1.0"
+            assert pip_ver == env_ver == "0.1.0"
 
     def test_build_folder(self):
         with (
