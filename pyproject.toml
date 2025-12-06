@@ -6,15 +6,15 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name="ducktools-env"
-description="Virtual environment management tools and application bundle builder"
+name = "ducktools-env"
+description = "Virtual environment management tools and application bundle builder"
 authors = [
-  { name="David C Ellis" },
+    { name = "David C Ellis" },
 ]
-readme="README.md"
+readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "ducktools-classbuilder>=0.7.1",
+    "ducktools-classbuilder>=0.12.3",
     "ducktools-lazyimporter>=0.7.0",
     "ducktools-scriptmetadata>=0.2.0",
     "ducktools-pythonfinder>=0.8.1",
@@ -56,7 +56,7 @@ __version_tuple__ = {version_tuple}
 """
 
 [tool.pytest.ini_options]
-addopts= "--cov=src/ --cov-report=term-missing --cov-report xml:cov.xml"
+addopts = "--cov=src/ --cov-report=term-missing --cov-report xml:cov.xml"
 testpaths = [
     "tests",
 ]

@@ -1,18 +1,18 @@
 # ducktools.env
 # MIT License
-# 
+#
 # Copyright (c) 2024 David C Ellis
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -106,8 +106,14 @@ class SQLAttribute(Attribute):
             raise AttributeError("Primary key fields are already unique")
 
 
-def get_sql_fields(cls: "SQLMeta") -> dict[str, SQLAttribute]:
-    return get_attributes(cls)  # noqa
+def get_sql_fields(cls: "SQLMeta", local=False) -> dict[str, SQLAttribute]:
+    attribs = get_attributes(cls, local=local)
+    parents = SQLAttribute.__mro__[1:-1]  # remove object and self
+    attributes = {
+        k: SQLAttribute.from_field(v) if type(v) in parents else v
+        for k, v in attribs.items()
+    }
+    return attributes
 
 
 unified_gatherer = make_unified_gatherer(SQLAttribute)
@@ -154,7 +160,14 @@ class SQLClass(metaclass=SQLMeta):
         **kwargs,
     ):
         slots = "__slots__" in cls.__dict__
-        builder(cls, gatherer=gatherer, methods=methods, flags={"slotted": slots, "kw_only": True})
+
+        builder(
+            cls,
+            gatherer=gatherer,
+            methods=methods,
+            flags={"slotted": slots, "kw_only": True},
+            field_getter=get_sql_fields,
+        )
 
         fields = get_sql_fields(cls)
         valid_fields = {}
