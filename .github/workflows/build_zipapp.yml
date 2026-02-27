@@ -26,7 +26,7 @@ jobs:
       run: |
         python -m ducktools.env rebuild_env --zipapp
     - name: Store the built zipapp
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: ducktools-zipapp
         path: dist/
@@ -45,7 +45,7 @@ jobs:
 
     steps:
     - name: Download the zipapp
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         name: ducktools-zipapp
         path: dist/
