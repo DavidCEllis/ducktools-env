@@ -20,17 +20,12 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import sys
-
-
 from .._logger import log
 from .. import _lazy_imports as _laz
 
 
 uv_versionspec = ">=0.7.0"
 uv_versionre = r"^uv (?P<uv_ver>\d+\.\d+\.\d+)"
-
-uv_download = "bin/uv.exe" if sys.platform == "win32" else "bin/uv"
 
 
 def get_local_uv():

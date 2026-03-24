@@ -29,13 +29,11 @@
 import itertools
 
 from ducktools.lazyimporter import LazyImporter, ModuleImport
-
 from ducktools.classbuilder import (
     SlotMakerMeta,
     builder,
     make_unified_gatherer,
 )
-
 from ducktools.classbuilder.prefab import (
     PREFAB_FIELDS,
     Attribute,
@@ -47,11 +45,37 @@ from ducktools.classbuilder.prefab import (
 )
 
 
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import dataclass_transform
+else:
+    def dataclass_transform(
+        *,
+        eq_default=True,
+        order_default=False,
+        kw_only_default=False,
+        frozen_default=False,
+        field_specifiers=(),
+        **kwargs
+    ):
+        def decorator(cls_or_fn):
+            cls_or_fn.__dataclass_transform__ = {
+                "eq_default": eq_default,
+                "order_default": order_default,
+                "kw_only_default": kw_only_default,
+                "frozen_default": frozen_default,
+                "field_specifiers": field_specifiers,
+                "kwargs": kwargs,
+            }
+            return cls_or_fn
+        return decorator
+
+
 # Unlike the other modules this has its own lazy importer
 # As it might be spun off as a separate package
 _laz = LazyImporter(
     [
-        ModuleImport("sqlite3", asname="sql")
+        ModuleImport("sqlite3", asname="sql"),
     ]
 )
 
@@ -113,7 +137,7 @@ def get_sql_fields(cls: "SQLMeta", local=False) -> dict[str, SQLAttribute]:
         k: SQLAttribute.from_field(v) if type(v) in parents else v
         for k, v in attribs.items()
     }
-    return attributes
+    return attributes  # type: ignore  # Bug in classbuilder stub file
 
 
 unified_gatherer = make_unified_gatherer(SQLAttribute)
@@ -148,6 +172,7 @@ class SQLMeta(SlotMakerMeta):
 default_methods = frozenset({init_maker, repr_maker, eq_maker})
 
 
+@dataclass_transform(kw_only_default=True, field_specifiers=(SQLAttribute,))
 class SQLClass(metaclass=SQLMeta):
     _meta_gatherer = unified_gatherer
     __slots__ = {}
@@ -167,7 +192,7 @@ class SQLClass(metaclass=SQLMeta):
             methods=methods,
             flags={"slotted": slots, "kw_only": True},
             field_getter=get_sql_fields,
-        )
+        )  # type: ignore  # Another complex typing issue with classbuilder
 
         fields = get_sql_fields(cls)
         valid_fields = {}
@@ -201,11 +226,11 @@ class SQLClass(metaclass=SQLMeta):
         for name, field in fields.items():
             if field.primary_key:
                 if primary_key is not None:
-                    raise AttributeError("sqlclass *must* have **only** one primary key")
+                    raise AttributeError("SQLClass *must* have **only** one primary key")
                 primary_key = name
 
         if primary_key is None:
-            raise AttributeError("sqlclass *must* have one primary key")
+            raise AttributeError("SQLClass *must* have one primary key")
 
         cls.PK_NAME = primary_key
         cls.TABLE_NAME = caps_to_snake(cls.__name__)
@@ -398,7 +423,7 @@ class SQLClass(metaclass=SQLMeta):
         search_condition = f"{self.PK_NAME} = :{self.PK_NAME}"
 
         with con:
-            result = con.execute(
+            con.execute(
                 f"UPDATE {self.TABLE_NAME} SET {set_columns} WHERE {search_condition}",
                 processed_values,
             )

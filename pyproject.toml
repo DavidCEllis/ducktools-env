@@ -12,14 +12,13 @@ authors = [
     { name = "David C Ellis" },
 ]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
-    "ducktools-classbuilder>=0.12.3",
-    "ducktools-lazyimporter>=0.7.0",
-    "ducktools-scriptmetadata>=0.2.0",
-    "ducktools-pythonfinder>=0.8.1",
-    "tomli>=2.2; python_version < '3.11'",
-    "packaging>=24.2",
+    "ducktools-classbuilder>=0.12.6",
+    "ducktools-lazyimporter>=0.8.4",
+    "ducktools-scriptmetadata>=0.2.1",
+    "ducktools-pythonfinder>=0.10.5",
+    "packaging>=26.0",
 ]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
@@ -41,8 +40,8 @@ dynamic = ["version"]
 [dependency-groups]
 dev = [
     "coverage-conditional-plugin>=0.9.0",
-    "pytest>=8.4.0",
-    "pytest-cov>=6.2.1",
+    "pytest>=9.0",
+    "pytest-cov>=7.1",
 ]
 
 [tool.setuptools.packages.find]
