@@ -27,8 +27,9 @@ from ._version import (
 )
 
 
-MINIMUM_PYTHON = (3, 10)
+MINIMUM_PYTHON = (3, 12)
 MINIMUM_PYTHON_STR = ".".join(str(v) for v in MINIMUM_PYTHON)
+REANNOTATE_MINIMUM_PYTHON = "3.14"
 
 
 PROJECT_NAME = "ducktools"
@@ -45,5 +46,5 @@ LOCKFILE_EXTENSION = "dtenv.lock"
 
 
 bootstrap_requires = [
-    "packaging>=23.2",
+    "packaging>=26.0",
 ]
