@@ -5,13 +5,13 @@ applications and scripts written in Python that require additional dependencies.
 
 ## What is this for? ##
 
-Suppose you have a Python script that you wish to share with someone else, but 
+Suppose you have a Python script that you wish to share with someone else, but
 it relies on a third party dependency such as `requests`. In order for someone else
 to run your code they need to both have an appropriate version of Python
 and to create a virtual environment in which to install `requests` and subsequently
 run your script.
 
-PEP-723 introduced 
+PEP-723 introduced
 [inline script metadata](https://packaging.python.org/en/latest/specifications/inline-script-metadata/#inline-script-metadata)
 which allows users to declare dependencies for single python files in a standardized format.
 This is designed to make sharing scripts with PyPI dependencies easier as now the script
@@ -20,9 +20,9 @@ can define its own requirements.
 However, using this format requires the use of an extra package such as 'UV' or 'hatch'
 using a specific command such as `uv run my_script.py` or `hatch run my_script.py`.
 
-`ducktools-env` is designed to bundle your script into a Python 
-[zipapp](https://docs.python.org/3/library/zipapp.html) which can be run by any 
-Python 3.10+ install and will handle creating the virtualenv and launching the script
+`ducktools-env` is designed to bundle your script into a Python
+[zipapp](https://docs.python.org/3/library/zipapp.html) which can be run by any
+Python 3.12+ install and will handle creating the virtualenv and launching the script
 with the appropriate dependencies *without* needing the other user to have any
 specific script running tool installed.
 
@@ -37,13 +37,13 @@ Will run your script much like some of the other script runners.
 Will then generate a zipapp bundle of your script and the required tools to extract and
 execute it in the same way as it is executed via the `run` command.
 
-The resulting bundle will include `ducktools-env` and the `pip` zipapp in order to 
-bootstrap the unbundling process. `UV` will be downloaded and installed on unbundling 
+The resulting bundle will include `ducktools-env` and the `pip` zipapp in order to
+bootstrap the unbundling process. `UV` will be downloaded and installed on unbundling
 if it is available (on PyPI) for the platform.
 
 ## What if the user does not have Python installed ##
 
-Running the bundle requires the user to have an install of Python 3.10 or later.
+Running the bundle requires the user to have an install of Python 3.12 or later.
 This should be available via python.org with installers for Windows/Mac and either
 already included or available from any up to date Linux distribution. This is all
 that should be needed for your script to run.
@@ -60,7 +60,7 @@ version automatically and use that to build the environment.
 Environment data and the application itself will be stored in the following locations:
 
 * Windows: `%LOCALAPPDATA%\ducktools\env`
-* Linux/Mac/Other: 
+* Linux/Mac/Other:
   * Data: `~/.local/share/ducktools/env`
   * Config: `~/.config/ducktools/env` (Not yet used)
 
@@ -90,7 +90,7 @@ Run a script that uses inline script metadata:
 
 `ducktools-env run my_script.py`
 
-If installed via `uv`, `pipx` or `pip` there is an alias `dtrun` for this command. 
+If installed via `uv`, `pipx` or `pip` there is an alias `dtrun` for this command.
 Unlike the full command it does not accept optional arguments and all arguments are passed
 on to the script.
 
@@ -125,7 +125,7 @@ which can then be run by using the script name without the extension:
 ## Locking environments ##
 
 When generating zipapp bundles it may be desirable to also generate a lockfile
-to make sure that the versions of installed dependencies do not change between 
+to make sure that the versions of installed dependencies do not change between
 generation and execution without having to over specify in the original
 script.
 
@@ -170,7 +170,7 @@ table in the toml block.
 # /// script
 # requires-python = ">=3.10"
 # dependencies = ["cowsay"]
-# 
+#
 # [tool.ducktools.env]
 # include.data = ["path/to/folder", "path/to/file.txt"]
 # ///
@@ -182,8 +182,8 @@ included in the zipapp.
 This data can be retrieved on demand using `get_data_folder` from `ducktools.env.bundled_data` which
 will create a temporary folder containing a copy of the data files and return the path to the folder.
 
-Note: Paths are relative to the script folder. If you include a folder, the folder itself will be 
-included, not just its contents. This means that if you include `./` you will get the name of the 
+Note: Paths are relative to the script folder. If you include a folder, the folder itself will be
+included, not just its contents. This means that if you include `./` you will get the name of the
 folder the script is in (along with all of its contents).
 
 This can be used to include additional code by inserting the relevant folder into `sys.path` before
@@ -193,14 +193,14 @@ executing the body of a script.
 # /// script
 # requires-python = ">=3.12"
 # dependencies = ["ducktools-env>=0.1.0"]
-# 
+#
 # [tool.ducktools.env]
 # include.data = ["./"]
 # include.license = ["license.md"]
 # ///
 from pathlib import Path
 
-from ducktools.env.bundled_data import get_data_folder 
+from ducktools.env.bundled_data import get_data_folder
 
 with get_data_folder() as fld_name:
     for f in Path(fld_name).rglob("*"):
@@ -216,7 +216,7 @@ These environments **require** generation of a lockfile.
 
 A new version of the application will update the environment to depend on that version. The environment
 will be rebuilt if the lockfile is updated on updating to a new version. If the lockfile has changed
-but the version has not, running the application will fail (unless the version is a pre-release). 
+but the version has not, running the application will fail (unless the version is a pre-release).
 Old versions will also fail to run if the environment has been created for a new version.
 
 ```python
@@ -241,11 +241,11 @@ Existing environments can be listed with the command
 
 `ducktools-env list`
 
-and deleted with 
+and deleted with
 
 `ducktools-env delete_env <envname>`
 
-where `<envname>` is the `name` of a temporary environment or the combination 
+where `<envname>` is the `name` of a temporary environment or the combination
 `owner/name` of an application environment as shown in the list.
 
 ## Goals ##
@@ -263,20 +263,20 @@ Subprocesses:
 * `pip` as a zipapp via subprocess used to install UV and where UV is unavailable
 * `uv` where available as a faster installer and for locking dependencies for bundles
 
-PyPI: 
+PyPI:
 * `ducktools-classbuilder` (A lazy, faster implementation of the building blocks behind things like dataclasses)
 * `ducktools-lazyimporter` (A simple class based tool to handle deferred imports)
 * `ducktools-scriptmetadata` (The parser for inline script metadata blocks)
 * `ducktools-pythonfinder` (A tool to discover python installs available for environment creation)
 * `packaging` (for comparing dependency lists to cached environments)
-* `tomli` (for Python 3.10 to support the TOML format)
+* `reannotate` (for correctly handling Python 3.14 annotations)
 
 ## Other tools in this space ##
 
 ### zipapp ###
 
-The standard library [`zipapp`](https://docs.python.org/3/library/zipapp.html) is at the core of how 
-`ducktools-env` works. However it doesn't support running with C extensions and it has no inbuilt way 
+The standard library [`zipapp`](https://docs.python.org/3/library/zipapp.html) is at the core of how
+`ducktools-env` works. However it doesn't support running with C extensions and it has no inbuilt way
 to control which Python it will run under.
 
 By contrast `ducktools-env` will respect a specified python version and required extensions, these
@@ -284,7 +284,7 @@ can be bundled or downloaded on first launch via `pip`.
 
 ### Shiv ###
 
-[`shiv`](https://github.com/linkedin/shiv) allows you to bundle zipapps with C extensions, but doesn't provide for 
+[`shiv`](https://github.com/linkedin/shiv) allows you to bundle zipapps with C extensions, but doesn't provide for
 any `online` installs and will extract everything into one `~/.shiv` directory unless otherwise specified.
 At the time of writing support for using inline script metadata has not yet been merged but there
 is a PR to add support.
@@ -294,7 +294,7 @@ These are kept in more platform specific directories documented earlier in the r
 
 ### Pex ###
 
-[`Pex`](https://github.com/pex-tool/pex) provides an assortment of related tools for developers alongside 
+[`Pex`](https://github.com/pex-tool/pex) provides an assortment of related tools for developers alongside
 a `.pex` bundler.
 It has (undocumented) support for inline script metadata for building its archives and will
 bundle dependencies including C extensions inside the archive, with the option to also
@@ -303,27 +303,25 @@ dependent or large.
 
 ### PyInstaller ###
 
-[Pyinstaller](https://pyinstaller.org/en/stable/) will generate an executable from your script but will also bundle 
-all of your dependencies in a platform specific way. 
-It also bundles Python itself, which while convenient if python is not installed, is unnecessary if we can treat 
+[Pyinstaller](https://pyinstaller.org/en/stable/) will generate an executable from your script but will also bundle
+all of your dependencies in a platform specific way.
+It also bundles Python itself, which while convenient if python is not installed, is unnecessary if we can treat
 Python as a shared library.
 
 ### Hatch ###
 
-[`Hatch`](https://hatch.pypa.io/) allows you to run scripts with inline dependencies, but requires the user on the 
-other end already have hatch installed. 
-The goal of `ducktools-env` is to make it so you can quickly bundle the script into a zipapp that will work on the 
+[`Hatch`](https://hatch.pypa.io/) allows you to run scripts with inline dependencies, but requires the user on the
+other end already have hatch installed.
+The goal of `ducktools-env` is to make it so you can quickly bundle the script into a zipapp that will work on the
 other end with only Python as the requirement.
 
 ### pipx ###
 
-[`pipx`](https://pipx.pypa.io/) is another tool that allows you to install packages from PyPI and run them as 
+[`pipx`](https://pipx.pypa.io/) is another tool that allows you to install packages from PyPI and run them as
 applications based on their `[project.scripts]` and `[project.gui-scripts]`. It also allows you to run inline scripts
 with more recent versions.
 
 ### uv ###
 
-[`uv`](https://docs.astral.sh/uv) itself can run PEP-723 scripts. 
+[`uv`](https://docs.astral.sh/uv) itself can run PEP-723 scripts.
 `ducktools-env` mostly still exists for the extra zipapp bundling and script registry tools.
-
-[^1]: undocumented
