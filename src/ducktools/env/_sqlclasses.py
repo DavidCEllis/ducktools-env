@@ -51,7 +51,7 @@ from ducktools.classbuilder.prefab import (
 # As it might be spun off as a separate package
 _laz = LazyImporter(
     [
-        ModuleImport("sqlite3", asname="sql")
+        ModuleImport("sqlite3", asname="sql"),
     ]
 )
 
@@ -113,7 +113,7 @@ def get_sql_fields(cls: "SQLMeta", local=False) -> dict[str, SQLAttribute]:
         k: SQLAttribute.from_field(v) if type(v) in parents else v
         for k, v in attribs.items()
     }
-    return attributes
+    return attributes  # type: ignore  # Bug in classbuilder stub file
 
 
 unified_gatherer = make_unified_gatherer(SQLAttribute)
@@ -167,7 +167,7 @@ class SQLClass(metaclass=SQLMeta):
             methods=methods,
             flags={"slotted": slots, "kw_only": True},
             field_getter=get_sql_fields,
-        )
+        )  # type: ignore  # Another complex typing issue with classbuilder
 
         fields = get_sql_fields(cls)
         valid_fields = {}
@@ -398,7 +398,7 @@ class SQLClass(metaclass=SQLMeta):
         search_condition = f"{self.PK_NAME} = :{self.PK_NAME}"
 
         with con:
-            result = con.execute(
+            con.execute(
                 f"UPDATE {self.TABLE_NAME} SET {set_columns} WHERE {search_condition}",
                 processed_values,
             )
