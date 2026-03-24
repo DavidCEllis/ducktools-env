@@ -100,15 +100,15 @@ def migrate_old_env(name: str, mode="error"):
             import shutil
 
             print("Deleting venv folders, cache can not correctly be moved")
-            shutil.rmtree(os.path.join(old_folder, CACHEDENV_FOLDERNAME))
-            shutil.rmtree(os.path.join(old_folder, APPLICATION_FOLDERNAME))
+            shutil.rmtree(os.path.join(old_folder, CACHEDENV_FOLDERNAME), ignore_errors=True)
+            shutil.rmtree(os.path.join(old_folder, APPLICATION_FOLDERNAME), ignore_errors=True)
 
             if os.path.exists(new_folder):
                 if mode == "delete":
-                    print(f"Removing old data folder as new folder detected.")
+                    print("Removing old data folder as new folder detected.")
                     shutil.rmtree(old_folder)
                 elif mode == "overwrite":
-                    print(f"Overwriting new folder with old folder data")
+                    print("Overwriting new folder with old folder data")
                     shutil.rmtree(new_folder)
                     shutil.move(old_folder, new_folder)
                 else:
@@ -117,9 +117,10 @@ def migrate_old_env(name: str, mode="error"):
                         "Use --delete to remove the old folder or --overwrite to replace the new folder"
                     )
             else:
+                # Make ~/.local/share if it does not exist
                 os.makedirs(os.path.dirname(new_folder), exist_ok=True)
                 shutil.move(old_folder, new_folder)
-                print(f"Moved old data to new folder")
+                print("Moved old data to new folder")
 
             # Try to remove the old folder, will only succeed if empty
             try:
