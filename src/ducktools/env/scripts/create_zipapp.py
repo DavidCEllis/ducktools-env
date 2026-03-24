@@ -1,18 +1,18 @@
 # ducktools.env
 # MIT License
-# 
+#
 # Copyright (c) 2024 David C Ellis
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -38,7 +38,7 @@ import importlib.metadata as metadata
 from packaging.requirements import Requirement
 
 import ducktools.env
-from ducktools.env import MINIMUM_PYTHON_STR, bootstrap_requires
+from ducktools.env import MINIMUM_PYTHON_STR, REANNOTATE_MINIMUM_PYTHON, bootstrap_requires
 from ducktools.env.platform_paths import ManagedPaths
 
 
@@ -53,7 +53,7 @@ def build_env_folder(
     reqs = metadata.requires("ducktools-env")  # Use hyphen name to be recognised by older python
     for req in reqs:
         req = Requirement(req)
-        if not (req.marker and not req.marker.evaluate({"python_version": MINIMUM_PYTHON_STR})):
+        if not (req.marker and not req.marker.evaluate({"python_version": REANNOTATE_MINIMUM_PYTHON})):
             deps.append(f"{req.name}{req.specifier}")
 
     with paths.build_folder() as build_folder:
@@ -72,7 +72,7 @@ def build_env_folder(
             "install",
             *deps,
             "--python-version",
-            MINIMUM_PYTHON_STR,
+            REANNOTATE_MINIMUM_PYTHON,
             "--only-binary=:all:",
             "--no-compile",
             "--target",
