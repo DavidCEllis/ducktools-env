@@ -58,10 +58,7 @@ _laz_internal = LazyImporter(
     [
         FromImport(".bundle", "create_bundle"),
         FromImport(".scripts.get_pip", "retrieve_pip"),
-        MultiFromImport(
-            ".scripts.get_uv",
-            ["get_local_uv", "get_available_pythons", "install_uv_python"]
-        ),
+        FromImport(".scripts.get_uv", "get_local_uv"),
         MultiFromImport(
             ".scripts.create_zipapp",
             ["build_env_folder", "build_zipapp"]
@@ -157,15 +154,10 @@ class Manager(Prefab):
     def retrieve_pip(self) -> str:
         return _laz_internal.retrieve_pip(paths=self.paths)
 
-    def retrieve_uv(self, required=False) -> str | None:
+    def retrieve_uv(self) -> str:
         # Retrieve the path to the uv executable
-        # if uv is installed
-        if self.config.use_uv or required:
-            uv_path = _laz_internal.get_local_uv()
-        else:
-            uv_path = None
-
-        if uv_path is None and required:
+        uv_path = _laz_internal.get_local_uv()
+        if uv_path is None:
             raise RuntimeError(
                 "UV is required for this process but is unavailable."
             )
@@ -186,26 +178,6 @@ class Manager(Prefab):
             ):
                 install = inst
                 break
-        else:
-            # If no Python was matched try to install a matching python from UV
-            if self.config.uv_install_python and (uv_path := self.retrieve_uv()):
-                uv_pythons = _laz_internal.get_available_pythons(uv_path)
-                matched_python = False
-                for ver in uv_pythons:
-                    if spec.details.requires_python_spec.contains(ver):
-                        # Install matching python
-                        _laz_internal.install_uv_python(
-                            uv_path=uv_path,
-                            version_str=ver,
-                        )
-                        matched_python = ver
-                        break
-                if matched_python:
-                    # Recover the actual install
-                    for inst in _laz.get_installed_uv_pythons():
-                        if inst.version_str == matched_python:
-                            install = inst
-                            break
 
         if install is None:
             raise PythonVersionNotFound(
@@ -214,18 +186,12 @@ class Manager(Prefab):
 
         return install
 
-    def install_base_command(self, use_uv=True) -> list[str]:
+    def install_base_command(self) -> list[str]:
         # Get the installer command for python packages
-        # Pip or the faster uv_pip if it is available
-        if use_uv and (uv_path := self.retrieve_uv()):
-            return [uv_path, "pip"]
-        else:
-            pip_path = self.retrieve_pip()
-            return [sys.executable, pip_path, "--disable-pip-version-check"]
+        pip_path = self.retrieve_pip()
+        return [sys.executable, pip_path, "--disable-pip-version-check"]
 
     def build_env_folder(self, clear_old_builds=True) -> None:
-        # build_env_folder will use PIP as uv will fail
-        # if there is no environment
         # build-env-folder installs into a target directory
         # instead of using a venv
         base_command = [sys.executable, self.retrieve_pip(), "--disable-pip-version-check"]
@@ -267,7 +233,7 @@ class Manager(Prefab):
 
         spec = EnvironmentSpec.from_script(script_path)
         if generate_lock:
-            spec.generate_lockdata(uv_path=self.retrieve_uv(required=True))
+            spec.generate_lockdata(uv_path=self.retrieve_uv())
         elif lock_path:
             with open(lock_path, 'r') as f:
                 spec.lockdata = f.read()
@@ -299,7 +265,6 @@ class Manager(Prefab):
                     env = self.app_catalogue.create_env(
                         spec=spec,
                         config=self.config,
-                        uv_path=self.retrieve_uv(),
                         installer_command=self.install_base_command(),
                         base_python=base_python
                     )
@@ -313,7 +278,6 @@ class Manager(Prefab):
                     env = self.temp_catalogue.create_env(
                         spec=spec,
                         config=self.config,
-                        uv_path=self.retrieve_uv(),
                         installer_command=self.install_base_command(),
                         base_python=base_python,
                     )
@@ -487,7 +451,7 @@ class Manager(Prefab):
             spec=spec,
             output_file=output_file,
             paths=self.paths,
-            installer_command=self.install_base_command(use_uv=False),
+            installer_command=self.install_base_command(),
             compressed=compressed,
         )
 
@@ -504,7 +468,7 @@ class Manager(Prefab):
         :return: Path to the output lockfile
         """""
         spec = EnvironmentSpec.from_script(script_path=script_path)
-        spec.generate_lockdata(uv_path=self.retrieve_uv(required=True))
+        spec.generate_lockdata(uv_path=self.retrieve_uv())
 
         lockfile_path = lockfile_path if lockfile_path else f"{script_path}.{LOCKFILE_EXTENSION}"
 

@@ -44,7 +44,6 @@ class TestBuildRetrieve:
         real_env = testing_catalogue.create_env(
             spec=spec,
             config=test_config,
-            uv_path=manager.retrieve_uv(),
             installer_command=manager.install_base_command(),
             base_python=python_install,
         )

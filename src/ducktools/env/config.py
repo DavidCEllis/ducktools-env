@@ -36,10 +36,6 @@ class Config(Prefab, kw_only=True):
     cache_maxcount: int = 10
     cache_lifetime: float = 14.0
 
-    # Use uv and allow uv to auto install Python
-    use_uv: bool = True
-    uv_install_python: bool = True
-
     @property
     def cache_lifetime_delta(self) -> _timedelta:
         return _timedelta(days=self.cache_lifetime)

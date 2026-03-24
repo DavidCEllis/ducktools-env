@@ -52,8 +52,6 @@ __all__ = [
 
     # ducktools-pythonfinder
     "list_python_installs",
-    "PythonInstall",
-    "get_installed_uv_pythons",
 ]
 
 laz = LazyImporter()
@@ -81,5 +79,4 @@ with capture_imports(laz):
     from packaging.specifiers import SpecifierSet, InvalidSpecifier
     from packaging.version import Version, InvalidVersion
 
-    from ducktools.pythonfinder import list_python_installs, PythonInstall
-    from ducktools.pythonfinder.shared import get_uv_pythons as get_installed_uv_pythons
+    from ducktools.pythonfinder import list_python_installs

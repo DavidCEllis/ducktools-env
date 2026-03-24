@@ -256,7 +256,6 @@ class BaseCatalogue:
         self,
         *,
         spec: EnvironmentSpec,
-        uv_path: str | None,
         installer_command: list[str],
         env: ENV_TYPE,
     ):
@@ -290,26 +289,15 @@ class BaseCatalogue:
                     with open(requirements_path, 'w') as f:
                         f.write(spec.lockdata)
                     try:
-                        if uv_path:
-                            dependency_command = [
-                                *installer_command,
-                                "install",
-                                "--python",
-                                env.python_path,
-                                "--no-deps",
-                                "-r",
-                                requirements_path,
-                            ]
-                        else:
-                            dependency_command = [
-                                *installer_command,
-                                "--python",
-                                env.python_path,
-                                "install",
-                                "--no-deps",
-                                "-r",
-                                requirements_path,
-                            ]
+                        dependency_command = [
+                            *installer_command,
+                            "--python",
+                            env.python_path,
+                            "install",
+                            "--no-deps",
+                            "-r",
+                            requirements_path,
+                        ]
                         _laz.subprocess.run(
                             dependency_command,
                             check=True,
@@ -321,22 +309,13 @@ class BaseCatalogue:
             else:
                 log(f"Installing dependencies from PyPI: {dep_list}")
                 try:
-                    if uv_path:
-                        dependency_command = [
-                            *installer_command,
-                            "install",
-                            "--python",
-                            env.python_path,
-                            *deps,
-                        ]
-                    else:
-                        dependency_command = [
-                            *installer_command,
-                            "--python",
-                            env.python_path,
-                            "install",
-                            *deps,
-                        ]
+                    dependency_command = [
+                        *installer_command,
+                        "--python",
+                        env.python_path,
+                        "install",
+                        *deps,
+                    ]
                     _laz.subprocess.run(
                         dependency_command,
                         check=True,
@@ -347,20 +326,12 @@ class BaseCatalogue:
                     raise VenvBuildError(f"Failed to install dependencies: {e}")
 
             # Get pip-freeze list to use for installed modules
-            if uv_path:
-                freeze_command = [
-                    *installer_command,
-                    "freeze",
-                    "--python",
-                    env.python_path,
-                ]
-            else:
-                freeze_command = [
-                    *installer_command,
-                    "--python",
-                    env.python_path,
-                    "freeze",
-                ]
+            freeze_command = [
+                *installer_command,
+                "--python",
+                env.python_path,
+                "freeze",
+            ]
             freeze = _laz.subprocess.run(
                 freeze_command,
                 capture_output=True,
@@ -545,7 +516,6 @@ class TemporaryCatalogue(BaseCatalogue):
         *,
         spec: EnvironmentSpec,
         config: Config,
-        uv_path: str | None,
         installer_command: list[str],
         base_python,
     ) -> ENV_TYPE:
@@ -576,7 +546,6 @@ class TemporaryCatalogue(BaseCatalogue):
         try:
             self._create_venv(
                 spec=spec,
-                uv_path=uv_path,
                 installer_command=installer_command,
                 env=new_env,
             )
@@ -709,7 +678,6 @@ class ApplicationCatalogue(BaseCatalogue):
         *,
         spec: EnvironmentSpec,
         config: Config,
-        uv_path: str,
         installer_command: list[str],
         base_python,
     ):
@@ -756,7 +724,6 @@ class ApplicationCatalogue(BaseCatalogue):
         try:
             self._create_venv(
                 spec=spec,
-                uv_path=uv_path,
                 installer_command=installer_command,
                 env=new_env,
             )

@@ -1,18 +1,18 @@
 # ducktools.env
 # MIT License
-# 
+#
 # Copyright (c) 2024 David C Ellis
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -47,8 +47,6 @@ class TestLoad:
             json_load_mock.return_value = {
                 "cache_maxcount": 5,
                 "cache_lifetime": 1.0,
-                "use_uv": False,
-                "uv_install_python": False,
             }
             confpath = "path/to/config"
 
@@ -60,8 +58,6 @@ class TestLoad:
             # Confirm values loaded correctly
             assert config.cache_maxcount == 5
             assert config.cache_lifetime == 1.0
-            assert config.use_uv is False
-            assert config.uv_install_python is False
 
     def test_load_unknowns(self):
         with (
@@ -72,8 +68,6 @@ class TestLoad:
             json_load_mock.return_value = {
                 "cache_maxcount": 5,
                 "cache_lifetime": 1.0,
-                "use_uv": False,
-                "uv_install_python": False,
                 "extra_invalid_value": True
             }
 
@@ -83,8 +77,6 @@ class TestLoad:
             # Confirm values loaded correctly
             assert config.cache_maxcount == 5
             assert config.cache_lifetime == 1.0
-            assert config.use_uv is False
-            assert config.uv_install_python is False
 
             # Invalid value discarded
             assert not hasattr(config, "extra_invalid_value")

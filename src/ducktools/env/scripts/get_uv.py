@@ -24,7 +24,7 @@ from .._logger import log
 from .. import _lazy_imports as _laz
 
 
-uv_versionspec = ">=0.7.0"
+uv_versionspec = ">=0.10.0"
 uv_versionre = r"^uv (?P<uv_ver>\d+\.\d+\.\d+)"
 
 
@@ -52,43 +52,3 @@ def get_local_uv():
                 return None
 
     return uv_path
-
-
-def get_available_pythons(uv_path: str) -> list[str]:
-    """
-    Get all python install version numbers available from UV
-
-    :param uv_path: Path to the UV executable
-    :return: list of version strings
-    """
-    # CPython installs listed by UV - only want downloadable installs
-    version_re = _laz.re.compile(
-        r"(?m)^cpython-(?P<version>\d+.\d+.\d+(?:a|b|rc)?\d*).*<download available>$"
-    )
-    data = _laz.subprocess.run(
-        [
-            uv_path,
-            "python",
-            "list",
-            "--all-versions",
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-
-    matches = version_re.findall(data.stdout)
-
-    return matches
-
-
-def install_uv_python(*, uv_path: str, version_str: str) -> None:
-    _laz.subprocess.run(
-        [
-            uv_path,
-            "python",
-            "install",
-            version_str,
-        ],
-        check=True,
-    )

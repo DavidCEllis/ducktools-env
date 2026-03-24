@@ -22,7 +22,6 @@
 # SOFTWARE.
 import shutil
 import subprocess
-import sys
 import zipapp
 
 from pathlib import Path
@@ -56,12 +55,12 @@ def create_bundle(
 
     :param spec: Bundle environment spec
     :param paths: ManagedPaths object containing application path info
-    :param installer_command: appropriate UV or PIP 'install' command
+    :param installer_command: pip 'install' command
     :param output_file: output path for the bundle, if not provided the
                         scriptfile path will be used with `.pyz` added as
                         file extension
     :param compressed: Compress the archive bundle
-    :raises ScriptNameClash: error raised if the script name clashes with a 
+    :raises ScriptNameClash: error raised if the script name clashes with a
                              name required for bootstrapping.
     """
     script_path = Path(spec.script_path)
@@ -84,13 +83,9 @@ def create_bundle(
         build_path = Path(build_folder)
         print(f"Building bundle in '{build_folder}'")
         print("Copying libraries into build folder")
-        # Don't copy UV - it's platform dependent
         # Don't copy __pycache__ folders either
-        uv_base_exe = "uv.exe" if sys.platform == "win32" else "uv"
         ignore_patterns = shutil.ignore_patterns(
             "__pycache__",
-            uv_base_exe,
-            f"{uv_base_exe}.version"
         )
 
         # Copy pip and ducktools zipapps into folder
