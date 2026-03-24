@@ -155,12 +155,8 @@ def build_zipapp(
                 if p != build_path:
                     shutil.rmtree(p)
 
-        # UV should not be bundled - binary is not cross platform
-        uv_base_exe = "uv.exe" if sys.platform == "win32" else "uv"
         ignore_patterns = shutil.ignore_patterns(
             "__pycache__",
-            uv_base_exe,
-            f"{uv_base_exe}.version"
         )
 
         print("Copying pip.pyz and ducktools-env")

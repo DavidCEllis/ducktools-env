@@ -21,35 +21,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ducktools.env import PROJECT_NAME
-from ducktools.env.manager import Manager
-from ducktools.env.environment_specs import EnvironmentSpec
+# This script will only start working after Python 4 is released :)
 
+# /// script
+# requires-python = ">=4.0"
+# ///
 
-class TestBuildRetrieve:
-    def test_build_retrieve(self, testing_catalogue, test_config):
+import sys
 
-        manager = Manager(project_name=PROJECT_NAME)
-
-        spec = EnvironmentSpec(
-            script_path="path/to/script.py",
-            raw_spec="requires-python='>=3.8'\ndependencies=[]\n",
-        )
-
-        # Test the env does not exist yet
-        assert testing_catalogue.find_env(spec=spec) is None
-
-        python_install = manager._get_python_install(spec=spec)
-
-        real_env = testing_catalogue.create_env(
-            spec=spec,
-            config=test_config,
-            installer_command=manager.install_base_command(),
-            base_python=python_install,
-        )
-
-        assert real_env is not None
-
-        retrieve_env = testing_catalogue.find_env(spec=spec)
-
-        assert real_env == retrieve_env
+print(f"running in {sys.version_info}")
