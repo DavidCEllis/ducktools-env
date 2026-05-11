@@ -50,7 +50,7 @@ jobs:
         name: ducktools-zipapp
         path: dist/
     - name: Sign the zipapp with Sigstore
-      uses: sigstore/gh-action-sigstore-python@v3.2.0
+      uses: sigstore/gh-action-sigstore-python@v3.3.0
       with:
         release-signing-artifacts: false
         inputs: >-
