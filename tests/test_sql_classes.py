@@ -1,18 +1,18 @@
 # ducktools.env
 # MIT License
-# 
+#
 # Copyright (c) 2024 David C Ellis
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -106,13 +106,13 @@ class SharedExample:
     @property
     def field_dict(self):
         return {
-            "uid": SQLAttribute(default=None, primary_key=True, type=int),
-            "name": SQLAttribute(unique=True, type=str),
-            "age": SQLAttribute(default=20, internal=True, type=int),
-            "height_m": SQLAttribute(type=float),
-            "height_feet": SQLAttribute(default=None, computed="height_m * 3.28084", type=float),
-            "friends": SQLAttribute(default_factory=list, type=list[str]),
-            "some_bool": SQLAttribute(type=bool),
+            "uid": SQLAttribute(default=None, primary_key=True, type=int, kw_only=True),
+            "name": SQLAttribute(unique=True, type=str, kw_only=True),
+            "age": SQLAttribute(default=20, internal=True, type=int, kw_only=True),
+            "height_m": SQLAttribute(type=float, kw_only=True),
+            "height_feet": SQLAttribute(default=None, computed="height_m * 3.28084", type=float, kw_only=True),
+            "friends": SQLAttribute(default_factory=list, type=list[str], kw_only=True),
+            "some_bool": SQLAttribute(type=bool, kw_only=True),
         }
 
 
@@ -572,4 +572,3 @@ class TestIncorrectConstruction:
                 height_feet: float = SQLAttribute(computed="height_m * 3.28084")
                 friends: list[str] = SQLAttribute(default_factory=list)
                 some_bool: bool
-
