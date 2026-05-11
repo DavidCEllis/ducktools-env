@@ -62,15 +62,15 @@ class PipZipapp:
 
 # This is mostly kept for testing.
 PREVIOUS_PIP = PipZipapp(
-    version_str="25.3",
-    sha3_256="a619d1451f2c42c072e0005d98c8a0fdd60ec1f033597a91f8b46c416c338fb6",
-    source_url="zipapp/pip-25.3.pyz",
-)
-
-LATEST_PIP = PipZipapp(
     version_str="26.0.1",
     sha3_256="fe1f58ec30e3b09a0fa54619f55750682549364670fc206995e1b72c24157011",
     source_url="zipapp/pip-26.0.1.pyz",
+)
+
+LATEST_PIP = PipZipapp(
+    version_str="26.1.1",
+    sha3_256="5ba75d2cdf608e6f7cbb231993a9d0dda3cd0dbe11eb4cd79593cc66b3252628",
+    source_url="zipapp/pip-26.1.1.pyz",
 )
 
 
