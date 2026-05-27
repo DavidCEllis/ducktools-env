@@ -5,17 +5,20 @@ on:
   release:
     types: [published]
 
+permissions: {}
+
 jobs:
   build:
     name: Build zipapp
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         fetch-depth: 0
+        persist-credentials: false
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
       with:
         python-version: "3.14"  # build with python version that includes all packages
     - name: Install the module
@@ -26,7 +29,7 @@ jobs:
       run: |
         python -m ducktools.env rebuild_env --zipapp
     - name: Store the built zipapp
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ducktools-zipapp
         path: dist/
@@ -45,12 +48,12 @@ jobs:
 
     steps:
     - name: Download the zipapp
-      uses: actions/download-artifact@v8
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
       with:
         name: ducktools-zipapp
         path: dist/
     - name: Sign the zipapp with Sigstore
-      uses: sigstore/gh-action-sigstore-python@v3.3.0
+      uses: sigstore/gh-action-sigstore-python@04cffa1d795717b140764e8b640de88853c92acc # v3.3.0
       with:
         release-signing-artifacts: false
         inputs: >-
@@ -63,5 +66,5 @@ jobs:
       # sigstore-produced signatures and certificates.
       run: >-
         gh release upload
-        '${{ github.ref_name }}' dist/**
-        --repo '${{ github.repository }}'
+        "${GITHUB_REF_NAME}" dist/**
+        --repo "${GITHUB_REPOSITORY}"
