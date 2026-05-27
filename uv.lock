@@ -6,6 +6,16 @@ resolution-markers = [
     "python_full_version < '3.14'",
 ]
 
+[options]
+exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
+exclude-newer-span = "P1W"
+
+[options.exclude-newer-package]
+ducktools-classbuilder = { timestamp = "0001-01-01T00:00:00Z", span = "PT1H" }
+reannotate = { timestamp = "0001-01-01T00:00:00Z", span = "PT1H" }
+ducktools-pythonfinder = { timestamp = "0001-01-01T00:00:00Z", span = "PT1H" }
+ducktools-scriptmetadata = { timestamp = "0001-01-01T00:00:00Z", span = "PT1H" }
+
 [[package]]
 name = "colorama"
 version = "0.4.6"
