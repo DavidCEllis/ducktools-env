@@ -24,7 +24,7 @@ from .._logger import log
 from .. import _lazy_imports as _laz
 
 
-uv_versionspec = ">=0.10.0"
+uv_versionspec = ">=0.13.0"
 uv_versionre = r"^uv (?P<uv_ver>\d+\.\d+\.\d+)"
 
 
