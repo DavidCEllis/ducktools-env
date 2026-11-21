@@ -66,13 +66,13 @@ envs = [
         raw_spec="",
     ),
     DataSet(
-        raw_spec=("requires-python = '>=3.10'\n" 
+        raw_spec=("requires-python = '>=3.10'\n"
                   "dependencies = []\n"),
         requires_python=">=3.10",
     ),
     DataSet(
         raw_spec=(
-            "requires-python = '>=3.11'\n" 
+            "requires-python = '>=3.11'\n"
             "dependencies = ['ducktools-env>=0.1.0']\n"
         ),
         requires_python=">=3.11",
@@ -85,7 +85,7 @@ class TestExampleSpecs:
     def test_cowsay_script(self):
         cowsay_script_path = EXAMPLES_FOLDER / "cowsay_ex.py"
         cowsay_lock_path = EXAMPLES_FOLDER / f"cowsay_ex.py.{LOCKFILE_EXTENSION}"
-        
+
         spec = EnvironmentSpec.from_script(cowsay_script_path)
 
         assert spec.details.requires_python == ">=3.8.0"
@@ -149,7 +149,7 @@ class TestExampleSpecs:
 
         with mock.patch.object(env_specs, "log") as log_mock:
             _ = EnvironmentSpec.from_script(error_path)
-        
+
         log_mock.assert_called_once_with(
             MetadataWarning(
                 line_number=27,
@@ -203,6 +203,7 @@ class TestSpecText:
                 input=deps,
                 capture_output=True,
                 text=True,
+                check=True,
             )
 
         else:
