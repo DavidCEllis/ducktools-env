@@ -24,7 +24,6 @@
 This is the script that builds the inner ducktools-env folder
 and bundles ducktools-env into ducktools-env.pyz
 """
-import sys
 import os
 import os.path
 import shutil
@@ -79,7 +78,7 @@ def build_env_folder(
             build_folder,
         ]
 
-        subprocess.run(install_command)
+        subprocess.run(install_command, check=True)
 
         freeze_command = [
             *install_base_command,
@@ -91,7 +90,7 @@ def build_env_folder(
         # don't include executable scripts
         shutil.rmtree(build_folder_path / "bin", ignore_errors=True)
 
-        freeze = subprocess.run(freeze_command, capture_output=True, text=True)
+        freeze = subprocess.run(freeze_command, capture_output=True, text=True, check=True)
 
         (build_folder_path / "requirements.txt").write_text(freeze.stdout)
 
@@ -202,7 +201,7 @@ def build_zipapp(
             "--target",
             vendor_folder,
         ]
-        subprocess.run(pip_command)
+        subprocess.run(pip_command, check=True)
 
         freeze_command = [
             *install_base_command,
@@ -211,7 +210,7 @@ def build_zipapp(
             vendor_folder,
         ]
 
-        freeze = subprocess.run(freeze_command, capture_output=True, text=True)
+        freeze = subprocess.run(freeze_command, capture_output=True, text=True, check=True)
 
         (Path(vendor_folder) / "requirements.txt").write_text(freeze.stdout)
 
